@@ -17,6 +17,13 @@ import cPickle
 
 # Global access variables
 
+
+
+dv_bounds = OrderedDict([('coreh',[100.0, 135.0]), ('pf',[0.15, 0.35]), \
+    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[15.0, 19.5])])
+    
+extra_states = OrderedDict([('cdens',[0.001, 0.75, 1.0]), ('bu', [0.0, 5.0, 89.0, 183.0])])
+
 tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
     ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
     ('bu', [0.0, 5.0, 89.0, 183.0]) ])  
@@ -26,7 +33,7 @@ del case_matrix_dv_dict['bu']
 #    case_matrix_dv_dict = OrderedDict([('coreh',[135.0]), ('pf',[0.35]), \
 #        ('krad',[0.0350]), ('enr',[19.5]), ('cdens',[1.0])])
     
-data_dir = os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v3')
+data_dir = os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4')
 
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
@@ -54,12 +61,12 @@ def main():
     # Set up command line parser
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
-    parser.add_argument("-m","--make", default='off')
+    parser.add_argument("-m","--make", default='on')
     parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='off')
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off')
-    parser.add_argument("-o","--opt", default='on')
+    parser.add_argument("-o","--opt", default='off')
     parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()

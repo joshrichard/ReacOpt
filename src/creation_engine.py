@@ -62,16 +62,16 @@ from collections import OrderedDict
 
 def make_case_matrix(case_matrix_dv_dict, run_opts):
     for element in itertools.product(*case_matrix_dv_dict.values()):
-        str_element = core.combo_nameval(case_matrix_dv_dict.keys(), core.prep_val(element))
+        str_element = core.combo_nameval(case_matrix_dv_dict.keys(), core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         root_path = os.getcwd()
         main_inp_fname = 'fhtr_opt_{}_{}_{}_{}_{}'.format(*str_element)
         main_qsub_fname = 'fhtr_opt_run_{}_{}_{}_{}_{}.qsub'.format(*str_element)
         main_pdist_fname = 'partdist_{}_{}_{}.inp'.format(*str_element[0:3])
         make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
-        pdist_path = os.path.join(*str_element[0:3])
+        pdist_path = os.path.join(*str_element[0:3]) #Instead of making a path here, set to a single folder
         pdist_path = os.path.join(pdist_path, main_pdist_fname)
-        for item in str_element:
+        for item in str_element: #Here, instead of making a folder for each element, just make a single folder
             item_path = '{0}'.format(item)
             full_path = os.path.join(root_path, item_path)
             if not os.path.isdir(full_path):
