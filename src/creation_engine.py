@@ -64,15 +64,19 @@ from sklearn import preprocessing
         
 def make_doe(case_bounds, **kwargs):
     if kwargs['doe_type'] == 'FF':
-        FF_points = copy.deepcopy(case_bounds)
-        for key in FF_points:
-            FF_points[key] = list(np.linspace(FF_points[key][0], FF_points[key][-1], num=kwargs['FF_num']))
-#        FF_points_array = np.array(FF_points.values())
-#        scal = preprocessing.MinMaxScaler()
-#        FF_points_array_scaled = scal.fit_transform(FF_points_array.T)
-#        doe_scaled = np.array(list(itertools.product(*FF_points_array_scaled.T.tolist())))
-        doe = np.array(list(itertools.product(*FF_points.values())))
-        doe_scaled = core.dv_scaler(doe, case_bounds, 'zeroone')
+#        FF_points = copy.deepcopy(case_bounds)
+#        for key in FF_points:
+#            FF_points[key] = list(np.linspace(FF_points[key][0], FF_points[key][-1], num=kwargs['FF_num']))
+##        FF_points_array = np.array(FF_points.values())
+##        scal = preprocessing.MinMaxScaler()
+##        FF_points_array_scaled = scal.fit_transform(FF_points_array.T)
+##        doe_scaled = np.array(list(itertools.product(*FF_points_array_scaled.T.tolist())))
+#        doe = np.array(list(itertools.product(*FF_points.values())))
+        ff_shape = [kwargs['FF_num']] * len(case_bounds)
+        doe = pyDOE.fullfact(ff_shape)
+        scal = preprocessing.MinMaxScaler()
+        doe_scaled = scal.fit_transform(doe)
+        doe = core.dv_scaler(doe_scaled, case_bounds, 'real')
     elif kwargs['doe_type'] == 'LHS':
         doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
         doe = copy.deepcopy(doe_scaled)
