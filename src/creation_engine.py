@@ -15,6 +15,10 @@ import shutil
 import core_objects_v5 as core
 import subprocess
 from collections import OrderedDict
+import copy
+import numpy as np
+import pyDOE
+from sklearn import preprocessing
 
 
 
@@ -58,15 +62,54 @@ from collections import OrderedDict
 #    if args.run == 'on':
 #        run_case_matrix()
         
+def make_doe(case_bounds, **kwargs):
+    if kwargs['doe_type'] == 'FF':
+        FF_points = copy.deepcopy(case_bounds)
+        for key in FF_points:
+            FF_points[key] = list(np.linspace(FF_points[key][0], FF_points[key][-1], num=kwargs['FF_num']))
+#        FF_points_array = np.array(FF_points.values())
+#        scal = preprocessing.MinMaxScaler()
+#        FF_points_array_scaled = scal.fit_transform(FF_points_array.T)
+#        doe_scaled = np.array(list(itertools.product(*FF_points_array_scaled.T.tolist())))
+        doe = np.array(list(itertools.product(*FF_points.values())))
+        doe_scaled = core.dv_scaler(doe, case_bounds, 'zeroone')
+    elif kwargs['doe_type'] == 'LHS':
+        doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
+        doe = copy.deepcopy(doe_scaled)
+        doe = core.dv_scaler(doe, case_bounds, 'real')
+#        # Now need to scale doe to correct ranges
+#        #First, set what the actual max/min are
+#        min_max = np.array([[0.0],[1.0]])
+#        # For each feature, create a scaler for that range
+#        for index, bounds in enumerate(case_bounds.values()):
+#            scal = preprocessing.MinMaxScaler(feature_range=bounds)
+#            scal.fit(min_max)
+#            doe[:,index] = scal.transform(doe_scaled[:,index])
+    else:
+        msg = "doe_type must be either 'FF' for full factorial or 'LH' for latin hypercube, not {}".format(kwargs['doe_type'])
+        raise TypeError(msg)
+    return doe, doe_scaled
 
 
-def make_case_matrix(case_matrix_dv_dict, run_opts):
+# pass a case_info dict with two items: a 'case_set' item (numpy array) with each design configuration,
+# and a 'dv_names' dict with mappings from variable names to indices in the case_set
+
+def make_case_matrix(case_matrix_dv_dict, run_opts, extra_states): # change from case_matrix... to a case_set that can be updated?
+
+    # First, make actual case set by taking dv's and adding extra state points
+    # 1.a hardwire FF DoE here | TAG: remove
+    #dv_element = list(itertools.product(*case_matrix_dv_dict.values())) #Note that this cannot have bu or cdens
+    for dv_element in itertools.product(*case_matrix_dv_dict.values()): # TAG: Change this to an input
+        for case_set in itertools.product(*extra_states.values()):
+            final_case_set = list(dv_element) + list(case_set)
+            print final_case_set
+
     for element in itertools.product(*case_matrix_dv_dict.values()):
         str_element = core.combo_nameval(case_matrix_dv_dict.keys(), core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         root_path = os.getcwd()
         main_inp_fname = 'fhtr_opt_{}_{}_{}_{}_{}'.format(*str_element)
         main_qsub_fname = 'fhtr_opt_run_{}_{}_{}_{}_{}.qsub'.format(*str_element)
-        main_pdist_fname = 'partdist_{}_{}_{}.inp'.format(*str_element[0:3])
+        main_pdist_fname = 'partdist_{}_{}_{}.inp'.format(*str_element[0:3]) # Should try to generalize this?
         make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
         pdist_path = os.path.join(*str_element[0:3]) #Instead of making a path here, set to a single folder

@@ -13,32 +13,34 @@ import os
 import copy
 import inspect
 import cPickle
+import itertools
+from core_objects_v5 import dv_scaler
 
 
 # Global access variables
 
+# Hardwired inputs
 
+design_vars = ('coreh', 'pf', 'krad', 'enr')
+case_vars = ('cdens',)
+extra_vars= ('bu',)
 
 dv_bounds = OrderedDict([('coreh',[100.0, 135.0]), ('pf',[0.15, 0.35]), \
-    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[15.0, 19.5])])
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5])])
     
 extra_states = OrderedDict([('cdens',[0.001, 0.75, 1.0]), ('bu', [0.0, 5.0, 89.0, 183.0])])
 
 tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
     ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
-    ('bu', [0.0, 5.0, 89.0, 183.0]) ])  
-
-case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
-del case_matrix_dv_dict['bu']
-#    case_matrix_dv_dict = OrderedDict([('coreh',[135.0]), ('pf',[0.35]), \
-#        ('krad',[0.0350]), ('enr',[19.5]), ('cdens',[1.0])])
+    ('bu', [0.0, 5.0, 89.0, 183.0]) ])
     
 data_dir = os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4')
 
-
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t')]) 
-
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t')])
+                 
+doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+                 
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_v3_data.out')), \
 ('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_v3_fit.out')), \
@@ -47,21 +49,33 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002')  ])
 
 plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
+    
+# Input prep
 
+case_info = {'case_set':None, 'dv_bounds':dv_bounds}
+#case_info['dv_names'] = {k: dv_bounds.keys().index(k) for k in dv_bounds.keys()}
 
+case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
+del case_matrix_dv_dict['bu']
+
+# Initializations
 first_iter = True
 iter_diff = 0.05
 converge_tol = 0.05
 obj_fun = []
 iter_cntr = 0
 
+# testing
+#dv_list = [  1.17500000e+02,   2.50000000e-01,   2.56000000e-02, 1.72500000e+01] # [0.5,0.5,0.5,0.5], [  1.17500000e+02,   2.50000000e-01,   2.56000000e-02, 1.72500000e+01]
+#new_dv = dv_scaler(dv_list, dv_bounds, 'to-zeroone')
+
 def main():
-    
     
     # Set up command line parser
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
-    parser.add_argument("-m","--make", default='on')
+    parser.add_argument("-d","--doe", default='on')
+    parser.add_argument("-m","--make", default='off')
     parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='off')
     parser.add_argument("-p","--plot", default='off')
@@ -71,8 +85,11 @@ def main():
     
     args = parser.parse_args()
     
+    if args.doe == 'on':
+        doe, doe_scaled = c_eng.make_doe(dv_bounds, **doe_opts)
+    
     if args.make == 'on':
-        c_eng.make_case_matrix(case_matrix_dv_dict, run_opts)
+        c_eng.make_case_matrix(case_matrix_dv_dict, run_opts, extra_states)
         
     if args.run == 'on':
         c_eng.run_case_matrix(case_matrix_dv_dict)

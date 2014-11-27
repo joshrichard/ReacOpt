@@ -7,6 +7,7 @@ import itertools
 import copy
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn import preprocessing
 
 #import weakref
 #from collections import *
@@ -1241,3 +1242,33 @@ def prep_val(inp):
 def combo_nameval(names, values):
     inner_tuple = tuple( ('{}{}'.format(*combo) for combo in zip(names, values)) )
     return inner_tuple
+    
+    
+# Function that takes a new dv set and either un-scales it (to real interval) or
+# or scales it (to the interval 0-1)
+def dv_scaler(dv_set, dv_bounds, scal_type):
+
+    #check and see what dv_set looks like
+    if not isinstance(dv_set, np.ndarray):
+        dv_new = np.array(dv_set)
+    else:
+        dv_new = copy.deepcopy(dv_set)
+    if len(dv_new.shape) < 2:
+        dv_new = dv_new[np.newaxis, :]
+    if scal_type == 'real':
+        min_max = np.array([[0.0],[1.0]])
+        for index, bounds in enumerate(dv_bounds.values()):
+            scal = preprocessing.MinMaxScaler(feature_range=bounds)
+            scal.fit(min_max)
+            dv_new[:,index] = scal.transform(dv_new[:,index])
+    elif scal_type == 'zeroone':
+        for index, bounds in enumerate(dv_bounds.values()):
+            min_max = np.array([bounds[0],bounds[-1]])
+            min_max = min_max[:, np.newaxis]
+            scal = preprocessing.MinMaxScaler()
+            scal.fit(min_max)
+            dv_new[:,index] = scal.transform(dv_new[:,index])
+    else:
+        msg = "scal_type must be either 'to-real' or 'to-zeroone', not {}".format(scal_type)
+        raise TypeError(msg)
+    return dv_new
