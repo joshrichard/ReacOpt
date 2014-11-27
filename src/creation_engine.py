@@ -20,58 +20,9 @@ import numpy as np
 import pyDOE
 from sklearn import preprocessing
 
-
-
-
-# Global variables
-# could store these in an OptionString dict to keep things cleaner
-#fuel_xs = '.12c'
-#cool_xs = '.09c'
-#pin_rad = '0.8'
-#cool_mat = 'nafzrf4'
-#void_mat = core.Material('void', density='')
-#outside_mat = core.Material('outside', density='')
-
-
-# Need to think about how to wrap this script, feed it these values
-#cool_rads = [0.4, 0.6, 0.8]
-#enrichments = [10.0, 15.0, 19.5]
-#k_rads = [0.0212, 0.0270, 0.0300]
-#core_heights = [70.0, 100.0, 135.0]
-#cool_densities = [0.001, 0.75, 1.0, 1.25]
-#pfs = [0.15, 0.25, 0.35]
-#burnups = [0.0, 5.0, 89.0, 183.0]
-
-
-
-
-#def main():    
-#
-#    
-#    # Set up command line parser
-#    # Create top-level parser
-#    parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
-#    parser.add_argument("-m","--make", default='on')
-#    parser.add_argument("-r","--run", default='off')
-#    
-#    args = parser.parse_args()
-#    
-#    if args.make == 'on':
-#        make_case_matrix()
-#        
-#    if args.run == 'on':
-#        run_case_matrix()
         
 def make_doe(case_bounds, **kwargs):
     if kwargs['doe_type'] == 'FF':
-#        FF_points = copy.deepcopy(case_bounds)
-#        for key in FF_points:
-#            FF_points[key] = list(np.linspace(FF_points[key][0], FF_points[key][-1], num=kwargs['FF_num']))
-##        FF_points_array = np.array(FF_points.values())
-##        scal = preprocessing.MinMaxScaler()
-##        FF_points_array_scaled = scal.fit_transform(FF_points_array.T)
-##        doe_scaled = np.array(list(itertools.product(*FF_points_array_scaled.T.tolist())))
-#        doe = np.array(list(itertools.product(*FF_points.values())))
         ff_shape = [kwargs['FF_num']] * len(case_bounds)
         doe = pyDOE.fullfact(ff_shape)
         scal = preprocessing.MinMaxScaler()
@@ -81,14 +32,6 @@ def make_doe(case_bounds, **kwargs):
         doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
         doe = copy.deepcopy(doe_scaled)
         doe = core.dv_scaler(doe, case_bounds, 'real')
-#        # Now need to scale doe to correct ranges
-#        #First, set what the actual max/min are
-#        min_max = np.array([[0.0],[1.0]])
-#        # For each feature, create a scaler for that range
-#        for index, bounds in enumerate(case_bounds.values()):
-#            scal = preprocessing.MinMaxScaler(feature_range=bounds)
-#            scal.fit(min_max)
-#            doe[:,index] = scal.transform(doe_scaled[:,index])
     else:
         msg = "doe_type must be either 'FF' for full factorial or 'LH' for latin hypercube, not {}".format(kwargs['doe_type'])
         raise TypeError(msg)
@@ -392,25 +335,5 @@ def make_qsub(qsub_inp_fname, qsub_fname):
     
     
 
-if __name__ == '__main__':
-    #main()
-    
-    case_matrix_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
-        ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25])])    
 
-    run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.8'), ('cool_mat','nafzrf4')])    
-    
-    # Set up command line parser
-    # Create top-level parser
-    parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
-    parser.add_argument("-m","--make", default='on')
-    parser.add_argument("-r","--run", default='off')
-    
-    args = parser.parse_args()
-    
-    if args.make == 'on':
-        make_case_matrix(case_matrix_dv_dict, run_opts)
-        
-    if args.run == 'on':
-        run_case_matrix(case_matrix_dv_dict)
     

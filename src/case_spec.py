@@ -65,9 +65,6 @@ converge_tol = 0.05
 obj_fun = []
 iter_cntr = 0
 
-# testing
-#dv_list = [  1.17500000e+02,   2.50000000e-01,   2.56000000e-02, 1.72500000e+01] # [0.5,0.5,0.5,0.5], [  1.17500000e+02,   2.50000000e-01,   2.56000000e-02, 1.72500000e+01]
-#new_dv = dv_scaler(dv_list, dv_bounds, 'to-zeroone')
 
 def main():
     

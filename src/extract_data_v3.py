@@ -544,24 +544,5 @@ def print_fun(x, f, accepted):
     print("at minima %.4f accepted %d" % (f, int(accepted)))
 
 
-if __name__ == '__main__':
-    
-    # Set up command line parser
-    # Create top-level parser
-    parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
-    parser.add_argument("-e","--extract", default='on')
-    parser.add_argument("-p","--plot", default='on')
-    
-    args = parser.parse_args()
-    
-    if args.extract == 'on':
-        # Read data into objects:
-        read_data()
-        # calculate reactivity coefficients from core reactivity data:
-        calc_reac_coeff()
-        # Finally, store cleaned data into a pickle datafile
-        store_data()
-        
-    if args.plot == 'on':
-        make_plots()
+
     
