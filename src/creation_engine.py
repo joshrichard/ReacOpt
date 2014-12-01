@@ -33,49 +33,66 @@ def make_doe(case_bounds, **kwargs):
         doe = copy.deepcopy(doe_scaled)
         doe = core.dv_scaler(doe, case_bounds, 'real')
     else:
-        msg = "doe_type must be either 'FF' for full factorial or 'LH' for latin hypercube, not {}".format(kwargs['doe_type'])
+        msg = "doe_type must be either 'FF' for full factorial or 'LHS' for latin hypercube, not {}".format(kwargs['doe_type'])
         raise TypeError(msg)
     return doe, doe_scaled
 
 
+def add_extra_states(dv_case_set, extra_states):
+    # First, make actual case set by taking dv's and adding extra state points
+    final_case_set = []
+    for dv_element in dv_case_set:
+        for extra_points in itertools.product(*extra_states.values()):
+            final_case_set.append(list(dv_element) + list(extra_points))
+    # Once the list of lists is filled, make a numpy array
+    final_case_set = np.array(final_case_set)
+    return final_case_set
+    
+
 # pass a case_info dict with two items: a 'case_set' item (numpy array) with each design configuration,
 # and a 'dv_names' dict with mappings from variable names to indices in the case_set
 
-def make_case_matrix(case_matrix_dv_dict, run_opts, extra_states): # change from case_matrix... to a case_set that can be updated?
+def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from case_matrix... to a case_set that can be updated?
 
-    # First, make actual case set by taking dv's and adding extra state points
-    # 1.a hardwire FF DoE here | TAG: remove
-    #dv_element = list(itertools.product(*case_matrix_dv_dict.values())) #Note that this cannot have bu or cdens
-    for dv_element in itertools.product(*case_matrix_dv_dict.values()): # TAG: Change this to an input
-        for case_set in itertools.product(*extra_states.values()):
-            final_case_set = list(dv_element) + list(case_set)
-            print final_case_set
+    # First, add extra states to dv case set
+    full_case_set = add_extra_states(case_set, extra_states)
+    
+    # Define what dv's exist
+    dv_names = dv_bounds.keys()
 
-    for element in itertools.product(*case_matrix_dv_dict.values()):
-        str_element = core.combo_nameval(case_matrix_dv_dict.keys(), core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
+    # Now make input files (and folders, where necessary) for Serpent
+    for element in full_case_set:
+        dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
+        str_element = core.combo_nameval(dv_bounds.keys() + extra_states.keys(), core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         root_path = os.getcwd()
-        main_inp_fname = 'fhtr_opt_{}_{}_{}_{}_{}'.format(*str_element)
-        main_qsub_fname = 'fhtr_opt_run_{}_{}_{}_{}_{}.qsub'.format(*str_element)
-        main_pdist_fname = 'partdist_{}_{}_{}.inp'.format(*str_element[0:3]) # Should try to generalize this?
+        main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
+        main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
+        main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this?  
+        pdist_path = 'partdist_files' # os.path.join(*str_element[0:3]) #Instead of making a path here, set to a single folder
+        file_path = 'input_files'
+        dv_path = os.path.join(root_path, file_path, '_'.join(dv_str_element))
         make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
-        pdist_path = os.path.join(*str_element[0:3]) #Instead of making a path here, set to a single folder
-        pdist_path = os.path.join(pdist_path, main_pdist_fname)
-        for item in str_element: #Here, instead of making a folder for each element, just make a single folder
+        if not os.path.isdir(file_path):
+            os.mkdir(file_path)
+        if not os.path.isdir(dv_path):
+            os.mkdir(dv_path)
+        root_path = dv_path
+        for item in str_element[len(dv_names):]:
             item_path = '{0}'.format(item)
-            full_path = os.path.join(root_path, item_path)
-            if not os.path.isdir(full_path):
-                os.mkdir(full_path)
-            root_path = full_path
-        final_path = os.path.join(*str_element)
-        for the_file in os.listdir(final_path):
+            final_path = os.path.join(root_path, item_path)
+            if not os.path.isdir(final_path):
+                os.mkdir(final_path)
+            root_path = final_path
+        for the_file in os.listdir(final_path): # Note that if there's a directory in here, will fail
             file_path = os.path.join(final_path, the_file)
             os.remove(file_path)
         shutil.move(main_inp_fname, final_path)
         shutil.move(main_qsub_fname, final_path)
-        if not os.path.isfile(pdist_path):
-            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
-            shutil.move(main_pdist_fname, pdist_path)
+#        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
+#            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
+#            shutil.move(main_pdist_fname, pdist_path)
+        
         reload(core)
         #break
 
