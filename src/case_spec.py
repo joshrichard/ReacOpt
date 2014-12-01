@@ -73,7 +73,7 @@ def main():
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='on')
     parser.add_argument("-m","--make", default='on')
-    parser.add_argument("-r","--run", default='off')
+    parser.add_argument("-r","--run", default='on')
     parser.add_argument("-e","--extract", default='off')
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off')
@@ -86,11 +86,11 @@ def main():
         case_info['doe'], case_info['doe_scaled'] = c_eng.make_doe(dv_bounds, **doe_opts)
     
     if args.make == 'on':
-        c_eng.make_case_matrix(case_info['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+        case_info['case_set'] = c_eng.make_case_matrix(case_info['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts)
         
     if args.run == 'on':
-        c_eng.run_case_matrix(case_matrix_dv_dict)
+        c_eng.run_case_matrix(case_info['case_set'])
     
     if args.extract == 'on':
         # Read data into objects:

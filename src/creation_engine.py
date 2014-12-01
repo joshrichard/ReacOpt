@@ -59,11 +59,14 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
     
     # Define what dv's exist
     dv_names = dv_bounds.keys()
+    
+    # Make a storage container for created filenames, may need to think how this will be affected by additional cases
+    case_set_names = []
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
         dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
-        str_element = core.combo_nameval(dv_bounds.keys() + extra_states.keys(), core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
+        str_element = core.combo_nameval(dv_names + extra_states.keys(), core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         root_path = os.getcwd()
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
         main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
@@ -84,6 +87,7 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
             if not os.path.isdir(final_path):
                 os.mkdir(final_path)
             root_path = final_path
+        case_set_names.append((str_element,final_path))
         for the_file in os.listdir(final_path): # Note that if there's a directory in here, will fail
             file_path = os.path.join(final_path, the_file)
             os.remove(file_path)
@@ -94,18 +98,17 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
 #            shutil.move(main_pdist_fname, pdist_path)
         
         reload(core)
+    return case_set_names
         #break
 
 
 
-def run_case_matrix(case_matrix_dv_dict):
+def run_case_matrix(case_set_names):
     start_path = os.getcwd()
-    for element in itertools.product(*case_matrix_dv_dict.values()):
-        print element
-        str_element = core.combo_nameval(case_matrix_dv_dict.keys(), core.prep_val(element))
-        main_qsub_fname = 'fhtr_opt_run_{}_{}_{}_{}_{}.qsub'.format(*str_element)
-        final_path = os.path.join(*str_element)
-        os.chdir(final_path)
+    for str_element, file_path in case_set_names:
+        print str_element
+        main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
+        os.chdir(file_path)
         subprocess.call(["qsub", main_qsub_fname])
         os.chdir(start_path)
         #break
