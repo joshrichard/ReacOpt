@@ -19,6 +19,7 @@ import copy
 import numpy as np
 import pyDOE
 from sklearn import preprocessing
+import time
 
         
 def make_doe(case_bounds, **kwargs):
@@ -113,6 +114,18 @@ def run_case_matrix(case_set_names):
         os.chdir(start_path)
         #break
 
+def wait_case_matrix(case_set_names):
+    for case in case_set_names:
+        done = False
+        while not done:
+            raw_queue_output = subprocess.check_output(['qstat'])
+            raw_queue_output = raw_queue_output.split()
+            if case in raw_queue_output:
+                print 'waiting for case {} to finish'.format(case)
+                time.sleep(350)
+            else:
+                done = True
+        
 
 def make_std_inp(inp_tuple, fmake_inp_fname, fmake_pdist_fname, run_opts):
     # Define materials
