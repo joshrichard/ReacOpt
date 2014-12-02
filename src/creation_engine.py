@@ -73,7 +73,7 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
         main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
         main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this?  
         file_path = os.path.join(root_path, 'input_files')
-        pdist_path = os.path.join(file_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
+        pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
         dv_path = os.path.join(root_path, file_path, '_'.join(dv_str_element))
         make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
@@ -224,7 +224,7 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     # Fuel Compact Matrix
     core.Surface('matrix_inf_s', 'inf')
     core.Cell('matrix_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../partdist_files" + partdist_fname) # Can make the folder structure here a variable | TAG: Improve
+    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../partdist_files/" + partdist_fname) # Can make the folder structure here a variable | TAG: Improve
     
     # Assembly pin definitions
     
