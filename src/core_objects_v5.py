@@ -936,7 +936,7 @@ class Layer(object):
 
 
 class StackLat(object):
-    def __init__(self, key, dimension, ref_point, core_height=None, layer_list = None, universes = ['ax_salt_u','ax_ref_u','act_core_u','ax_ref_u','ax_salt_u'], comment = None):
+    def __init__(self, key, dimension, ref_point, core_height=None, active_height=None, layer_list = None, universes = ['ax_salt_u','ax_ref_u','act_core_u','ax_ref_u','ax_salt_u'], comment = None):
         global n_lattices, n_universes
         n_lattices += 1
         n_universes += 1
@@ -946,6 +946,12 @@ class StackLat(object):
         self.dimension = dimension
         self.ref_point = ref_point
         self.core_height = float(core_height)
+        self.active_height = float(active_height)
+        self.refl_thickness = (self.core_height - self.active_height) * 0.5
+        self.lower_ref_bound = 0.0 - self.refl_thickness
+        self.upper_ref_bound = self.active_height + self.refl_thickness
+        self.lower_stack_bound = self.lower_ref_bound - 5.0
+        self.upper_stack_bound = self.upper_ref_bound + 5.0
         if layer_list != None:
             self.layer_list = layer_list # could also create an empty list and just append here
         else:
@@ -953,7 +959,7 @@ class StackLat(object):
                 raise Exception('If specifying universes only, must provide a core height')
             self.universes = [univ_dict.intdict[arg] for arg in universes]   
             self.layer_list = []   
-            self.lbounds = [-20.0, -15.0, 0.0, self.core_height, (self.core_height + 15.0) ]
+            self.lbounds = [self.lower_stack_bound, self.lower_ref_bound, 0.0, self.active_height, self.upper_ref_bound ]
             for item in range(len(self.universes)):           
                 self.layer_list.append(Layer(self.lbounds[item],self.universes[item].id))
         self.comment = comment

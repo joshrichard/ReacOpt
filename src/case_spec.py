@@ -37,7 +37,7 @@ tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.
 data_dir = os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t')])
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
 doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
@@ -73,7 +73,7 @@ def main():
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='on')
     parser.add_argument("-m","--make", default='on')
-    parser.add_argument("-r","--run", default='on')
+    parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='off')
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off')

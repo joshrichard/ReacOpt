@@ -72,8 +72,8 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
         main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
         main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this?  
-        pdist_path = 'partdist_files' # os.path.join(*str_element[0:3]) #Instead of making a path here, set to a single folder
-        file_path = 'input_files'
+        file_path = os.path.join(root_path, 'input_files')
+        pdist_path = os.path.join(file_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
         dv_path = os.path.join(root_path, file_path, '_'.join(dv_str_element))
         make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
@@ -97,10 +97,9 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
 #        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
 #            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
 #            shutil.move(main_pdist_fname, pdist_path)
-        
         reload(core)
     return case_set_names
-        #break
+
 
 
 
@@ -112,17 +111,17 @@ def run_case_matrix(case_set_names):
         os.chdir(file_path)
         subprocess.call(["qsub", main_qsub_fname])
         os.chdir(start_path)
-        #break
 
-def wait_case_matrix(case_set_names):
+
+def wait_case_matrix(case_set_names, wait_time=350):
     for case in case_set_names:
         done = False
         while not done:
             raw_queue_output = subprocess.check_output(['qstat'])
             raw_queue_output = raw_queue_output.split()
             if case in raw_queue_output:
-                print 'waiting for case {} to finish'.format(case)
-                time.sleep(350)
+                print 'waiting {} seconds for case {} to finish'.format(wait_time, case)
+                time.sleep(wait_time)
             else:
                 done = True
         
@@ -209,7 +208,8 @@ def make_mats(mats_inp_tuple, run_opts):
     
 def make_geom(geom_inp_tuple, partdist_fname, run_opts):
 
-    core_h = float(geom_inp_tuple[0])
+    core_h = float(run_opts['total_coreh'])
+    act_core_h = float(geom_inp_tuple[0])
     k_rad = float(geom_inp_tuple[2])
     void_mat = core.Material('void', density='')
     outside_mat = core.Material('outside', density='')
@@ -224,7 +224,7 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     # Fuel Compact Matrix
     core.Surface('matrix_inf_s', 'inf')
     core.Cell('matrix_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../" + partdist_fname)
+    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../partdist_files" + partdist_fname) # Can make the folder structure here a variable | TAG: Improve
     
     # Assembly pin definitions
     
@@ -286,16 +286,16 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     
     
     # Core axial stack
-    core.StackLat('core_stack_L', '5', '0.0 0.0', core_height=core_h)
+    ax_stack = core.StackLat('core_stack_L', '5', '0.0 0.0', core_height=core_h, active_height=act_core_h)
     
     
     # Universe zero
-    core.Surface('total_core_s', 'hexxprism', '0.0 0.0 130.0 -20.0 {max_h}'.format(max_h=(core_h + 20.0)))
+    core.Surface('total_core_s', 'hexxprism', '0.0 0.0 130.0 {min_h} {max_h}'.format(min_h=ax_stack.lower_stack_bound, max_h=ax_stack.upper_stack_bound))
     core.Cell('total_core_c', '-{0}'.format(core.surf_dict.intdict['total_core_s'].id), fill=core.lat_dict.intdict['core_stack_L'].id)
     core.Cell('total_core_outside_c', '{0}'.format(core.surf_dict.intdict['total_core_s'].id), material=outside_mat)
     
     # Fuel irradiation position ghost surface
-    core.Surface('fuel_ip_det_s', 'hexyprism', '0.0 0.0 12.5 0.0 {act_h}'.format(act_h = core_h))
+    core.Surface('fuel_ip_det_s', 'hexyprism', '0.0 0.0 12.5 0.0 {act_h}'.format(act_h = act_core_h))
     
     
     
