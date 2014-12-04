@@ -20,9 +20,10 @@ import numpy as np
 import pyDOE
 from sklearn import preprocessing
 import time
+import cPickle
 
         
-def make_doe(case_bounds, **kwargs):
+def make_doe(case_bounds, output_fname, **kwargs):
     if kwargs['doe_type'] == 'FF':
         ff_shape = [kwargs['FF_num']] * len(case_bounds)
         doe = pyDOE.fullfact(ff_shape)
@@ -36,6 +37,11 @@ def make_doe(case_bounds, **kwargs):
     else:
         msg = "doe_type must be either 'FF' for full factorial or 'LHS' for latin hypercube, not {}".format(kwargs['doe_type'])
         raise TypeError(msg)
+    
+    with open(output_fname, 'wb') as outpf:
+        cPickle.dump(doe, outpf)
+        cPickle.dump(doe_scaled, outpf)
+        
     return doe, doe_scaled
 
 
@@ -53,7 +59,7 @@ def add_extra_states(dv_case_set, extra_states):
 # pass a case_info dict with two items: a 'case_set' item (numpy array) with each design configuration,
 # and a 'dv_names' dict with mappings from variable names to indices in the case_set
 
-def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from case_matrix... to a case_set that can be updated?
+def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # change from case_matrix... to a case_set that can be updated?
 
     # First, add extra states to dv case set
     full_case_set = add_extra_states(case_set, extra_states)
@@ -79,6 +85,8 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
         make_qsub(main_inp_fname, main_qsub_fname)
         if not os.path.isdir(file_path):
             os.mkdir(file_path)
+        if not os.path.isdir(pdist_path):
+            os.mkdir(pdist_path)
         if not os.path.isdir(dv_path):
             os.mkdir(dv_path)
         root_path = dv_path
@@ -94,33 +102,46 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts): # change from
             os.remove(file_path)
         shutil.move(main_inp_fname, final_path)
         shutil.move(main_qsub_fname, final_path)
-#        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
-#            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
-#            shutil.move(main_pdist_fname, pdist_path)
+        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
+            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
+            shutil.move(main_pdist_fname, pdist_path)
         reload(core)
+
+    with open(data_opts['cases_fname'], 'wb') as outpf:
+        cPickle.dump(case_set_names, outpf)
+    
     return case_set_names
 
 
 
 
-def run_case_matrix(case_set_names):
+def run_case_matrix(case_set_names, data_opts):
     start_path = os.getcwd()
+    new_case_set_names = []
     for str_element, file_path in case_set_names:
         print str_element
         main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
         os.chdir(file_path)
-        subprocess.call(["qsub", main_qsub_fname])
+        jobid = subprocess.check_output(["qsub", main_qsub_fname])
         os.chdir(start_path)
+        jobid = jobid.split('.')[0]
+        new_case_set_names.append((str_element, file_path, jobid))
+        
+    with open(data_opts['cases_fname'], 'wb') as outpf: # Will this work if file already exists? Will it overwrite correctly?
+        cPickle.dump(new_case_set_names, outpf)
+    
+    return new_case_set_names
 
 
 def wait_case_matrix(case_set_names, wait_time=350):
-    for case in case_set_names:
+    for str_element, file_path, jobid in case_set_names:
+        filenme = 'fhtr_opt_' + '_'.join(str_element) # Can change this to just passing the filename | TAG: Improve
         done = False
         while not done:
             raw_queue_output = subprocess.check_output(['qstat'])
-            raw_queue_output = raw_queue_output.split()
-            if case in raw_queue_output:
-                print 'waiting {} seconds for case {} to finish'.format(wait_time, case)
+            raw_queue_output = raw_queue_output.replace('.', ' ').split()
+            if jobid in raw_queue_output:
+                print 'waiting {} seconds for case {} name {} to finish'.format(wait_time, jobid, filenme)
                 time.sleep(wait_time)
             else:
                 done = True

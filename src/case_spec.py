@@ -25,7 +25,7 @@ design_vars = ('coreh', 'pf', 'krad', 'enr')
 case_vars = ('cdens',)
 extra_vars= ('bu',)
 
-dv_bounds = OrderedDict([('coreh',[100.0, 135.0]), ('pf',[0.15, 0.35]), \
+dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
     ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5])])
     
 extra_states = OrderedDict([('cdens',[0.001, 0.75, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
@@ -34,7 +34,10 @@ tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.
     ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
     ('bu', [0.0, 5.0, 89.0, 183.0]) ])
     
-data_dir = os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4')
+# '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
+# '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'component_testing', 'pdist_build'
+# '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
+data_dir = os.path.join('~jgr42_000','Documents','GitHub','ReacOpt','examples', 'FF_test_145_height_set')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -42,10 +45,12 @@ run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
 doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
-('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_v3_data.out')), \
-('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_v3_fit.out')), \
-('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_v3_results.out')), \
-('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_v3_final.out')), \
+('doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_doe.out')), \
+('cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_cases.out')), \
+('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_data.out')), \
+('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
+('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_results.out')), \
+('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_final.out')), \
 ('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002')  ])
 
 plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
@@ -72,7 +77,7 @@ def main():
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='on')
-    parser.add_argument("-m","--make", default='on')
+    parser.add_argument("-m","--make", default='off')
     parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='off')
     parser.add_argument("-p","--plot", default='off')
@@ -83,14 +88,21 @@ def main():
     args = parser.parse_args()
     
     if args.doe == 'on':
-        case_info['doe'], case_info['doe_scaled'] = c_eng.make_doe(dv_bounds, **doe_opts)
+        case_info['doe'], case_info['doe_scaled'] = c_eng.make_doe(
+        dv_bounds, data_opts['doe_fname'], **doe_opts)
     
     if args.make == 'on':
+        with open(data_opts['doe_fname'], 'rb') as f:
+            case_info['doe'] = cPickle.load(f)
+            case_info['doe_scaled'] = cPickle.load(f)
         case_info['case_set'] = c_eng.make_case_matrix(case_info['doe'], case_info['extra_states'], case_info['dv_bounds'], 
-                               run_opts)
+                               run_opts, data_opts)
         
     if args.run == 'on':
-        c_eng.run_case_matrix(case_info['case_set'])
+        with open(data_opts['cases_fname'], 'rb') as outpf:
+            case_info['case_set'] = cPickle.load(outpf)
+        case_info['case_set'] = c_eng.run_case_matrix(case_info['case_set'], data_opts)
+        c_eng.wait_case_matrix(case_info['case_set'])
     
     if args.extract == 'on':
         # Read data into objects:
