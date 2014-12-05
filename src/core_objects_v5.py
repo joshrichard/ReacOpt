@@ -1142,22 +1142,11 @@ sss2 {inpfname} -omp 8"""
 
 # Object CaseMatrix() for storing data as a function of design variables investigated
 class CaseMatrix(object):
-    def __init__(self, tot_dv_dict):
-        self.bu_stride = False
-        self.cdens_stride = False
-        self.tot_dv_dict = tot_dv_dict
-        self.fit_dv_dict = copy.deepcopy(tot_dv_dict)
-        if 'cdens' in self.fit_dv_dict.keys():
-            del self.fit_dv_dict['cdens']
-            self.cdens_stride = True
-        if 'bu' in self.fit_dv_dict.keys():        
-            del self.fit_dv_dict['bu']
-            self.bu_stride = True
+    def __init__(self, ff_shape=None):
         self.myshapetot = tuple((len(dv_list) for dv_list in self.tot_dv_dict.values())) # Must calc these first to later reshape the numpy array
-        self.mysizetot = reduce(operator.mul, self.myshapetot)
+        #self.mysizetot = reduce(operator.mul, self.myshapetot)
         self.myshapefit = tuple((len(dv_list) for dv_list in self.fit_dv_dict.values())) # Must calc these first to later reshape the numpy array
-        self.mysizefit = reduce(operator.mul, self.myshapefit)
-        self.fit_dv_mtx = numpy.empty(shape=(self.mysizefit, len(self.fit_dv_dict)), dtype=float)
+        #self.mysizefit = reduce(operator.mul, self.myshapefit)
         cnt=0
         for element in itertools.product(*self.fit_dv_dict.values()):
             self.fit_dv_mtx[cnt] = list(element)
@@ -1198,10 +1187,10 @@ class CaseMatrix(object):
 # Object MultCaseMat() for creating multiple CaseMatrix() objects inside a single object
 # to store groupwise data
 class MultCaseMat(object):
-    def __init__(self, dv_dict):
-        self.fast = CaseMatrix(dv_dict)
-        self.epi = CaseMatrix(dv_dict)
-        self.therm = CaseMatrix(dv_dict)
+    def __init__(self, ff_shape=None):
+        self.fast = CaseMatrix(ff_shape)
+        self.epi = CaseMatrix(ff_shape)
+        self.therm = CaseMatrix(ff_shape)
 
     def final_shape(self):
         [obj.final_shape() for obj in self.__dict__.values()]

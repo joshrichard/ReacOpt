@@ -29,6 +29,7 @@ dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
     ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5])])
     
 extra_states = OrderedDict([('cdens',[0.001, 0.75, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
+bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
     ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
@@ -44,6 +45,8 @@ run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  
 doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
+
+
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_doe.out')), \
 ('cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_cases.out')), \
@@ -57,7 +60,7 @@ plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
     
 # Input prep
 
-case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states}
+case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_steps}
 #case_info['dv_names'] = {k: dv_bounds.keys().index(k) for k in dv_bounds.keys()}
 
 case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
@@ -101,7 +104,7 @@ def main():
     if args.run == 'on':
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
-        case_info['case_set'] = c_eng.run_case_matrix(case_info['case_set'], data_opts)
+        case_info['case_set'], case_info['full_doe'] = c_eng.run_case_matrix(case_info['case_set'], data_opts)
         c_eng.wait_case_matrix(case_info['case_set'])
     
     if args.extract == 'on':

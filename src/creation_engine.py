@@ -109,8 +109,10 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # 
 
     with open(data_opts['cases_fname'], 'wb') as outpf:
         cPickle.dump(case_set_names, outpf)
+        cPickle.dump(full_case_set, outpf)
+
     
-    return case_set_names
+    return case_set_names, full_case_set
 
 
 

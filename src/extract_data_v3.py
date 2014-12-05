@@ -39,18 +39,17 @@ from scipy.optimize import basinhopping
 
 
 
-def read_data(tot_dv_dict, opts):
-
+def read_data(case_info, doe_opts):
     
-    iter_dv_dict = copy.deepcopy(tot_dv_dict)
-    del iter_dv_dict['bu']
-    rcoeff_dv_dict = copy.deepcopy(tot_dv_dict)
-    del rcoeff_dv_dict['cdens']
-    
-    
-    data_dict = dict([ ('reac', core.CaseMatrix(tot_dv_dict)), ('fuel_flux', core.MultCaseMat(tot_dv_dict)), \
-                     ('mat_flux', core.MultCaseMat(tot_dv_dict)), ('reac_coeff', core.CaseMatrix(rcoeff_dv_dict)), \
-                     ('void_worth', core.CaseMatrix(rcoeff_dv_dict)) ]) 
+    if doe_opts['doe_type'] == 'FF':
+        doe_FF_shape = doe_opts['FF_num']
+        data_dict = dict([ ('reac', core.CaseMatrix(doe_FF_shape)), ('fuel_flux', core.MultCaseMat(doe_FF_shape)), \
+                         ('mat_flux', core.MultCaseMat(doe_FF_shape)), ('reac_coeff', core.CaseMatrix(doe_FF_shape)), \
+                         ('void_worth', core.CaseMatrix(doe_FF_shape)) ]) 
+    else:
+        data_dict = dict([ ('reac', core.CaseMatrix()), ('fuel_flux', core.MultCaseMat()), \
+                         ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CaseMatrix()), \
+                         ('void_worth', core.CaseMatrix()) ]) 
 
     
 
