@@ -38,15 +38,18 @@ tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'component_testing', 'pdist_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
-data_dir = os.path.join('~jgr42_000','Documents','GitHub','ReacOpt','examples', 'FF_test_145_height_set')
+data_dir = os.path.join('~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
 doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
+data_sets = {}
 
+data_names = {}
 
+# Rename this at some point | TAG: Improve
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_doe.out')), \
 ('cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_cases.out')), \
@@ -80,7 +83,7 @@ def main():
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='on')
-    parser.add_argument("-m","--make", default='off')
+    parser.add_argument("-m","--make", default='on')
     parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='off')
     parser.add_argument("-p","--plot", default='off')
@@ -91,14 +94,14 @@ def main():
     args = parser.parse_args()
     
     if args.doe == 'on':
-        case_info['doe'], case_info['doe_scaled'] = c_eng.make_doe(
-        dv_bounds, data_opts['doe_fname'], **doe_opts)
+        data_sets['doe'], data_sets['doe_scaled'] = c_eng.make_doe(
+        case_info['dv_bounds'], data_opts['doe_fname'], **doe_opts)
     
     if args.make == 'on':
         with open(data_opts['doe_fname'], 'rb') as f:
-            case_info['doe'] = cPickle.load(f)
-            case_info['doe_scaled'] = cPickle.load(f)
-        case_info['case_set'] = c_eng.make_case_matrix(case_info['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+            data_sets['doe'] = cPickle.load(f)
+            data_sets['doe_scaled'] = cPickle.load(f)
+        data_names['case_set'] = c_eng.make_case_matrix(data_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts, data_opts)
         
     if args.run == 'on':

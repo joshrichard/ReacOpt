@@ -15,6 +15,7 @@ import shutil
 import core_objects_v5 as core
 import subprocess
 from collections import OrderedDict
+from collections import Iterable
 import copy
 import numpy as np
 import pyDOE
@@ -56,8 +57,27 @@ def add_extra_states(dv_case_set, extra_states):
     return final_case_set
     
 
-# pass a case_info dict with two items: a 'case_set' item (numpy array) with each design configuration,
-# and a 'dv_names' dict with mappings from variable names to indices in the case_set
+# Function to make a filename from a root filname and additional variables
+#def make_string_name(root_name, name_set, extension_set):
+#    outp_name_set = []
+#    if not isinstance(extension_set, Iterable):
+#        extension_set = [extension_set]
+#    for element in extension_set:
+#        str_element = core.combo_nameval(name_set, core.prep_val(element))
+#        outp_name_set.append(root_name + '_'.join(str_element))
+#    return outp_name_set
+    
+
+
+# What I want to return from this function:
+#   - Set of DoE names (these will be folders to loop through later, 
+#     but I want just the names) X decided not necessary
+#   - Set of Case names (these will be files to loop through later)
+#   - Set of case directory path names (starting with DoE names as the root directory)
+#   - Set of case configuration values (DoE + extra state config points) ?
+#   - Set of data statepoint vales (CC + steps per case)?
+# Formatted as:
+#   - Return the names and store into a data_names dict
 
 def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # change from case_matrix... to a case_set that can be updated?
 
@@ -66,37 +86,40 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # 
     
     # Define what dv's exist
     dv_names = dv_bounds.keys()
+    extra_names = extra_states.keys()
+    all_names = dv_names + extra_names
     
-    # Make a storage container for created filenames, may need to think how this will be affected by additional cases
-    case_set_names = []
+    # Starting filepath
+    root_path = data_opts['data_dirname']
+    
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
         dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
-        str_element = core.combo_nameval(dv_names + extra_states.keys(), core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
-        root_path = os.getcwd()
+        str_element = core.combo_nameval(all_names, core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
         main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
-        main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this?  
-        file_path = os.path.join(root_path, 'input_files')
-        pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
-        dv_path = os.path.join(root_path, file_path, '_'.join(dv_str_element))
+        main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this? | TAG: Improve
         make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
+        file_path = os.path.join(root_path, 'input_files')
+        pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
+        save_filepath = '_'.join(dv_str_element)
+        dv_path = os.path.join(file_path, save_filepath)
         if not os.path.isdir(file_path):
             os.mkdir(file_path)
         if not os.path.isdir(pdist_path):
             os.mkdir(pdist_path)
         if not os.path.isdir(dv_path):
             os.mkdir(dv_path)
-        root_path = dv_path
         for item in str_element[len(dv_names):]:
             item_path = '{0}'.format(item)
-            final_path = os.path.join(root_path, item_path)
-            if not os.path.isdir(final_path):
-                os.mkdir(final_path)
-            root_path = final_path
-        case_set_names.append((str_element,final_path))
+            combine_path = os.path.join(save_filepath, item_path)
+            make_filepath = os.path.join(file_path, combine_path)
+            if not os.path.isdir(make_filepath):
+                os.mkdir(make_filepath)
+            save_filepath = combine_path
+        final_path = os.path.join( file_path, save_filepath)
         for the_file in os.listdir(final_path): # Note that if there's a directory in here, will fail
             file_path = os.path.join(final_path, the_file)
             os.remove(file_path)
@@ -105,14 +128,14 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # 
         if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
             core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
             shutil.move(main_pdist_fname, pdist_path)
+        save_filepath = os.path.join(save_filepath, main_inp_fname)
         reload(core)
 
     with open(data_opts['cases_fname'], 'wb') as outpf:
-        cPickle.dump(case_set_names, outpf)
-        cPickle.dump(full_case_set, outpf)
+        cPickle.dump(save_filepath, outpf)
 
     
-    return case_set_names, full_case_set
+    return save_filepath
 
 
 
