@@ -81,6 +81,8 @@ def add_extra_states(dv_case_set, extra_states):
 
 def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # change from case_matrix... to a case_set that can be updated?
 
+    created_filepaths = []
+
     # First, add extra states to dv case set
     full_case_set = add_extra_states(case_set, extra_states)
     
@@ -98,7 +100,7 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # 
         dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
         str_element = core.combo_nameval(all_names, core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
-        main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
+        main_qsub_fname = 'fhtr_opt_' + '_'.join(str_element) +'.qsub'
         main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this? | TAG: Improve
         make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
@@ -125,48 +127,50 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # 
             os.remove(file_path)
         shutil.move(main_inp_fname, final_path)
         shutil.move(main_qsub_fname, final_path)
-        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
-            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
-            shutil.move(main_pdist_fname, pdist_path)
+#        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
+#            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
+#            shutil.move(main_pdist_fname, pdist_path)
         save_filepath = os.path.join(save_filepath, main_inp_fname)
+        created_filepaths.append(save_filepath)
         reload(core)
 
     with open(data_opts['cases_fname'], 'wb') as outpf:
-        cPickle.dump(save_filepath, outpf)
+        cPickle.dump(created_filepaths, outpf)
 
-    
-    return save_filepath
+    return created_filepaths
 
 
 
 
 def run_case_matrix(case_set_names, data_opts):
-    start_path = os.getcwd()
-    new_case_set_names = []
-    for str_element, file_path in case_set_names:
-        print str_element
-        main_qsub_fname = 'fhtr_opt_run_' + '_'.join(str_element) +'.qsub'
-        os.chdir(file_path)
+    root_dir = data_opts['input_dirname']
+    job_set_names = []
+    for full_file_path in case_set_names:
+        file_dir = os.path.dirname(full_file_path)
+        file_name = os.path.basename(full_file_path)
+        print file_name
+        main_qsub_fname = file_name +'.qsub'
+        file_dir = os.path.join(root_dir, file_dir)
+        os.chdir(file_dir)
         jobid = subprocess.check_output(["qsub", main_qsub_fname])
-        os.chdir(start_path)
         jobid = jobid.split('.')[0]
-        new_case_set_names.append((str_element, file_path, jobid))
+        job_set_names.append(jobid)
         
-    with open(data_opts['cases_fname'], 'wb') as outpf: # Will this work if file already exists? Will it overwrite correctly?
-        cPickle.dump(new_case_set_names, outpf)
+    with open(data_opts['jobs_fname'], 'wb') as outpf: # Will this work if file already exists? Will it overwrite correctly?
+        cPickle.dump(job_set_names, outpf)
     
-    return new_case_set_names
+    return job_set_names
 
 
-def wait_case_matrix(case_set_names, wait_time=350):
-    for str_element, file_path, jobid in case_set_names:
-        filenme = 'fhtr_opt_' + '_'.join(str_element) # Can change this to just passing the filename | TAG: Improve
+def wait_case_matrix(jobid_set, case_set, wait_time=350):
+    for jobid, full_file_path in zip(jobid_set, case_set):
+        case_name = os.path.basename(full_file_path)
         done = False
         while not done:
             raw_queue_output = subprocess.check_output(['qstat'])
             raw_queue_output = raw_queue_output.replace('.', ' ').split()
             if jobid in raw_queue_output:
-                print 'waiting {} seconds for case {} name {} to finish'.format(wait_time, jobid, filenme)
+                print 'waiting {} seconds for case {} name {} to finish'.format(wait_time, jobid, case_name)
                 time.sleep(wait_time)
             else:
                 done = True

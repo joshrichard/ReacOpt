@@ -36,9 +36,9 @@ tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.
     ('bu', [0.0, 5.0, 89.0, 183.0]) ])
     
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
-# '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'component_testing', 'pdist_build'
+# '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
-data_dir = os.path.join('~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build')
+data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_new')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -51,8 +51,10 @@ data_names = {}
 
 # Rename this at some point | TAG: Improve
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), \
 ('doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_doe.out')), \
 ('cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_cases.out')), \
+('jobs_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_jobids.out')), \
 ('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_data.out')), \
 ('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
 ('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_results.out')), \
@@ -84,7 +86,7 @@ def main():
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='on')
     parser.add_argument("-m","--make", default='on')
-    parser.add_argument("-r","--run", default='off')
+    parser.add_argument("-r","--run", default='on')
     parser.add_argument("-e","--extract", default='off')
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off')
@@ -107,8 +109,8 @@ def main():
     if args.run == 'on':
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
-        case_info['case_set'], case_info['full_doe'] = c_eng.run_case_matrix(case_info['case_set'], data_opts)
-        c_eng.wait_case_matrix(case_info['case_set'])
+        case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts)
+        c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
     
     if args.extract == 'on':
         # Read data into objects:
