@@ -7,6 +7,7 @@ Created on Thu Mar 20 19:00:59 2014
 
 from __future__ import division
 import core_objects_v5 as core
+import creation_engine as c_eng
 
 
 import numpy as np
@@ -39,25 +40,19 @@ from scipy.optimize import basinhopping
 
 
 
-def read_data(case_info, doe_opts):
+def read_data(case_info, data_opts, detector_opts):
     
-    if doe_opts['doe_type'] == 'FF':
-        doe_FF_shape = doe_opts['FF_num']
-        data_dict = dict([ ('reac', core.CaseMatrix(doe_FF_shape)), ('fuel_flux', core.MultCaseMat(doe_FF_shape)), \
-                         ('mat_flux', core.MultCaseMat(doe_FF_shape)), ('reac_coeff', core.CaseMatrix(doe_FF_shape)), \
-                         ('void_worth', core.CaseMatrix(doe_FF_shape)) ]) 
-    else:
-        data_dict = dict([ ('reac', core.CaseMatrix()), ('fuel_flux', core.MultCaseMat()), \
-                         ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CaseMatrix()), \
-                         ('void_worth', core.CaseMatrix()) ]) 
-
+    case_set = case_info['case_set']
+    root_dir = data_opts['input_dirname']
+    
+    data_dict = dict([ ('reac', core.CaseMatrix()), ('fuel_flux', core.MultCaseMat()), \
+                     ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CaseMatrix()), \
+                     ('void_worth', core.CaseMatrix()) ])
     
 
-    for dv_set in itertools.product(*iter_dv_dict.values()):
-        str_element = core.combo_nameval(iter_dv_dict.keys(), core.prep_val(dv_set))
-        res_fname = 'fhtr_opt_{}_{}_{}_{}_{}_res.m'.format(*str_element)
-        folder = os.path.join(*str_element)
-        res_filepath = os.path.join(opts['data_dirname'], folder, res_fname)
+    for case in case_set:
+        res_fname = case + '_res.m'
+        res_filepath = os.path.join(root_dir, res_fname)
         with open(res_filepath, 'rb') as rf:
             for line in rf:
                 try: 
@@ -71,20 +66,20 @@ def read_data(case_info, doe_opts):
                         data_dict['reac'].add_vals(reac_tmp, err_tmp)
                 except IndexError:
                     pass
-        for detnum in range(4):
-            det_fname = 'fhtr_opt_{}_{}_{}_{}_{}_'.format(*str_element) + 'det{}.m'.format(detnum)
-            det_filepath = os.path.join(opts['data_dirname'], folder, det_fname)
+        for detnum in xrange(4): # Can make this a user input | TAG: improve
+            det_fname = case + '_det{}.m'.format(detnum)
+            det_filepath = os.path.join(root_dir, det_fname)
             with open(det_filepath, 'rb') as df:
                 for line in df:
                     try:
-                        if line.split()[0] == opts['fuel_detname']:
+                        if line.split()[0] == detector_opts['fuel_detname']:
                             line = df.next() 
                             data_dict['fuel_flux'].therm.add_vals(*line.split()[10:12])
                             line = df.next() 
                             data_dict['fuel_flux'].epi.add_vals(*line.split()[10:12])
                             line = df.next() 
                             data_dict['fuel_flux'].fast.add_vals(*line.split()[10:12])
-                        if line.split()[0] == opts['mat_detname']:
+                        if line.split()[0] == detector_opts['mat_detname']:
                             line = df.next() 
                             data_dict['mat_flux'].therm.add_vals(*line.split()[10:12])
                             line = df.next() 
@@ -93,18 +88,61 @@ def read_data(case_info, doe_opts):
                             data_dict['mat_flux'].fast.add_vals(*line.split()[10:12])
                     except IndexError:
                         pass
+    
 
-    # calculate reactivity coefficients from core reactivity
-    bu_stride = len(tot_dv_dict['bu'])
-    cl_stride = len(tot_dv_dict['cdens'])
+
+    # prep for calculating reactivity coefficients from core reactivity
+    data_dict['reac'].calc_length()
+    bu_stride = len(case_info['bu_steps'])
+    cl_stride = c_eng.calc_extra_states(case_info['extra_states'])
     delta =  (2960 - 2960 * 0.001)/ (0.889)
-    for main_index in range(0, data_dict['reac'].mysizetot, bu_stride*cl_stride):
-        for bu_index in range(0, bu_stride, 1):
+       
+    # New style (with array striding) calculation of reac_coeff from reac
+    #First, pull out all extra_case and data_statepoint points from stock reac list
+    # XX Do I want to do this at some point, or not? | TAG: Improve
+    temp_bu_data = []
+    for bu_dim in xrange(bu_stride):
+        reac_bu1 = data_dict['reac'].data[bu_dim::bu_stride]
+        reac_bu1_error = data_dict['reac'].error[bu_dim::bu_stride]
+        void_worth = reac_bu1[0::cl_stride] - reac_bu1[2::cl_stride]
+        reac_coeff = void_worth / delta
+        vw_err = ( ( reac_bu1[0::cl_stride] * reac_bu1_error[0::cl_stride] )**2  + \
+                   ( reac_bu1[2::cl_stride] * reac_bu1_error[2::cl_stride] )**2 ) \
+                   / abs(void_worth)
+        temp_bu_data.append((reac_coeff, void_worth, vw_err))
+    
+    print 'stop!'
+    reac_coeff_mtx = np.array([temp_bu_data[0][0], temp_bu_data[1][0], temp_bu_data[2][0], 
+                              temp_bu_data[3][0]]).T
+        
+    
+#    reac_bu1 = data_dict['reac'].data[1::bu_stride]
+#    reac_bu1_error = data_dict['reac'].error[1::bu_stride]
+#    void_worth = reac_bu1[0::cl_stride] - reac_bu1[2::cl_stride]
+#    reac_coeff = void_worth / delta
+#    vw_err = ( ( reac_bu1[0::cl_stride] * reac_bu1_error[0::cl_stride] )**2  + \
+#               ( reac_bu1[2::cl_stride] * reac_bu1_error[2::cl_stride] )**2 ) \
+#               / abs(void_worth)
+               
+#    data_dict['reac_coeff'].data = reac_coeff
+#    data_dict['reac_coeff'].error = vw_err
+#    data_dict['void_worth'].data = void_worth
+#    data_dict['void_worth'].error = vw_err
+    
+#    if os.path.isfile(data_opts['data_fname']):
+#        os.remove(data_opts['data_fname'])
+#    with open(data_opts['data_fname'], 'wb') as datf:
+#        cPickle.dump(data_dict, datf, 2)
+    
+
+
+    for main_index in xrange(0, data_dict['reac'].mysizetot, bu_stride*cl_stride):
+        for bu_index in xrange(0, bu_stride, 1):
 #            val_bu = data_dict['reac'].data[main_index + bu_stride*cl_stride - bu_stride + bu_index] \
 #                    - data_dict['reac'].data[main_index + bu_stride*(cl_stride - 1) - bu_stride + bu_index]
-            reac_idx_cdens_100 = main_index + bu_stride*(cl_stride - 1) - bu_stride + bu_index
+            reac_idx_cdens_100 = main_index + bu_stride*(cl_stride - 0) - bu_stride + bu_index
             #reac_idx_cdens_075 = main_index + bu_stride*(cl_stride - 2) - bu_stride + bu_index
-            reac_idx_cdens_000 = main_index + bu_stride*(cl_stride - 3) - bu_stride + bu_index
+            reac_idx_cdens_000 = main_index + bu_stride*(cl_stride - 2) - bu_stride + bu_index
             
             void_worth = data_dict['reac'].data[reac_idx_cdens_000] \
                     - data_dict['reac'].data[reac_idx_cdens_100]

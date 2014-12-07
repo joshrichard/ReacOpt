@@ -1142,27 +1142,34 @@ sss2 {inpfname} -omp 8"""
 
 # Object CaseMatrix() for storing data as a function of design variables investigated
 class CaseMatrix(object):
-    def __init__(self, ff_shape=None):
-        self.myshapetot = tuple((len(dv_list) for dv_list in self.tot_dv_dict.values())) # Must calc these first to later reshape the numpy array
+    def __init__(self, FF_num=None):
+        #self.myshapetot = tuple((len(dv_list) for dv_list in self.tot_dv_dict.values())) # Must calc these first to later reshape the numpy array
         #self.mysizetot = reduce(operator.mul, self.myshapetot)
-        self.myshapefit = tuple((len(dv_list) for dv_list in self.fit_dv_dict.values())) # Must calc these first to later reshape the numpy array
+        #self.myshapefit = tuple((len(dv_list) for dv_list in self.fit_dv_dict.values())) # Must calc these first to later reshape the numpy array
         #self.mysizefit = reduce(operator.mul, self.myshapefit)
-        cnt=0
-        for element in itertools.product(*self.fit_dv_dict.values()):
-            self.fit_dv_mtx[cnt] = list(element)
-            cnt += 1
+#        cnt=0
+#        for element in itertools.product(*self.fit_dv_dict.values()):
+#            self.fit_dv_mtx[cnt] = list(element)
+#            cnt += 1
         self.data = numpy.array([], dtype=float)
         self.error = numpy.array([], dtype=float)
+        self.ff_shape = FF_num
 
         
     def add_vals(self, val, error):
         self.data = numpy.append(self.data, float(val))
         self.error = numpy.append(self.error, float(error))
+        
+    def calc_length(self):
+        self.mysizetot = len(self.data.ravel())
+        
+    def set_ff_shape(self, FF_num):
+        self.ff_shape = FF_num
     
     def final_shape(self):
         # First, reshape data array for easy plotting        
-        self.data_shape = numpy.array(self.data).reshape(self.myshapetot)
-        self.error_shape = numpy.array(self.error).reshape(self.myshapetot)
+        #self.data_shape = numpy.array(self.data).reshape(self.myshapetot)
+        #self.error_shape = numpy.array(self.error).reshape(self.myshapetot)
         # Then, make an array with data only from 2nd bu step (xe equil) and dens=1.0 for fitting purposes       
         self.data_fit = copy.deepcopy(self.data)
         if self.bu_stride:
@@ -1194,6 +1201,9 @@ class MultCaseMat(object):
 
     def final_shape(self):
         [obj.final_shape() for obj in self.__dict__.values()]
+        
+    def set_ff_shape(self, FF_num):
+        [obj.set_ff_shape(FF_num) for obj in self.__dict__.values()]
 
 
 # Functions for use in building input file

@@ -57,6 +57,15 @@ def add_extra_states(dv_case_set, extra_states):
     return final_case_set
     
 
+def calc_extra_states(extra_states):
+    extra_set = []
+    for extra_points in itertools.product(*extra_states.values()):
+        extra_set.append(list(extra_points))
+#    extra_states_info = {}
+    extra_states_info = len(extra_set)
+    return extra_states_info
+    
+
 # Function to make a filename from a root filname and additional variables
 #def make_string_name(root_name, name_set, extension_set):
 #    outp_name_set = []

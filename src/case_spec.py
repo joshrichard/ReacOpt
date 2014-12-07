@@ -58,8 +58,9 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_data.out')), \
 ('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
 ('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_results.out')), \
-('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_final.out')), \
-('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002')  ])
+('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_final.out')) ])
+
+detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002')])
 
 plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
     
@@ -84,10 +85,10 @@ def main():
     # Set up command line parser
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
-    parser.add_argument("-d","--doe", default='on')
-    parser.add_argument("-m","--make", default='on')
-    parser.add_argument("-r","--run", default='on')
-    parser.add_argument("-e","--extract", default='off')
+    parser.add_argument("-d","--doe", default='off')
+    parser.add_argument("-m","--make", default='off')
+    parser.add_argument("-r","--run", default='off')
+    parser.add_argument("-e","--extract", default='on')
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off')
     parser.add_argument("-o","--opt", default='off')
@@ -113,8 +114,10 @@ def main():
         c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
     
     if args.extract == 'on':
+        with open(data_opts['cases_fname'], 'rb') as outpf:
+            case_info['case_set'] = cPickle.load(outpf)
         # Read data into objects:
-        run_data = ex_data.read_data(tot_dv_dict, data_opts)
+        run_data = ex_data.read_data(case_info, data_opts, detector_opts)
 #        rcoeff_check = ((run_data['reac'].data[-12] * run_data['reac'].error[-12])**2.0 \
 #                     + (run_data['reac'].data[-8] * run_data['reac'].error[-8])**2.0)**0.5 \
 #                     / run_data['reac_coeff'].data[-4]
