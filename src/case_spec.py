@@ -116,13 +116,14 @@ def main():
     if args.extract == 'on':
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
+        with open(data_opts['doe_fname'], 'rb') as f:
+            data_sets['doe'] = cPickle.load(f)
+            data_sets['doe_scaled'] = cPickle.load(f)
         # Read data into objects:
-        data_sets[''], data_sets[''] = ex_data.read_data(case_info, data_opts, detector_opts, data_sets)
+        ex_data.read_data(case_info, data_opts, detector_opts, data_sets)
 #        rcoeff_check = ((run_data['reac'].data[-12] * run_data['reac'].error[-12])**2.0 \
 #                     + (run_data['reac'].data[-8] * run_data['reac'].error[-8])**2.0)**0.5 \
 #                     / run_data['reac_coeff'].data[-4]
-        # Store cleaned data into a pickle datafile
-        ex_data.store_data(run_data, data_opts)
         
     if args.plot == 'on':
         #reac_pltname=('reac', 'reactivity [pcm]')

@@ -1158,13 +1158,13 @@ class CaseMatrix(object):
 
     def __add__(self, other):
         new = copy.deepcopy(self) # Not very memory efficient, but less prone to error? | TAG: Improve
-        new.data = np.concatenate(self.data, other.data) # 1-D so can just add
-        new.error = np.concatenate(self.error, other.error)
+        new.data = np.concatenate([self.data, other.data]) # 1-D so can just add
+        new.error = np.concatenate([self.error, other.error])
         if hasattr(self, 'data_fit') and hasattr(other, 'data_fit'):
-            new.data_fit = np.concatenate(self.data_fit, other.data_fit)
-            new.error_fit = np.concatenate(self.error_fit, other.error_fit)
+            new.data_fit = np.concatenate([self.data_fit, other.data_fit])
+            new.error_fit = np.concatenate([self.error_fit, other.error_fit])
         if hasattr(self, 'max_bu_data') and hasattr(other, 'max_bu_data'):
-            new.max_bu_data = np.concatenate(self.max_bu_data, other.max_bu_data)
+            new.max_bu_data = np.concatenate([self.max_bu_data, other.max_bu_data])
         return new
         
     def add_vals(self, val, error):
@@ -1201,12 +1201,22 @@ class CaseMatrix(object):
         # only called for 'reac' CaseMatrix        
         self.burnups = np.array(bu_vals)[:,np.newaxis]
         self.max_bu_data = []
-        reac_vals = self.data.reshape([-1, self.file_points])[extra_state_idx::self.extra_states][1:4] # Need to not hardcode here | TAG: Improve, hardcode
+        reac_vals = self.data.reshape([-1, self.file_points])[extra_state_idx::self.extra_states][:,1:4] # Need to not hardcode here | TAG: Improve, hardcode
         for reac_set in reac_vals:
             bu_fit = LinearRegression()
             bu_fit.fit(self.burnups, reac_set)
             self.max_bu_data.append(float(-1.0 * bu_fit.intercept_ / bu_fit.coef_))
         self.max_bu_data = np.array(self.max_bu_data)
+        
+
+class CoeffCaseMat(CaseMatrix):
+    
+    def final_shape(self, file_point_idx=1, extra_state_idx=2):
+        self.data_fit = copy.deepcopy(self.data)
+        self.error_fit = copy.deepcopy(self.error)
+        if hasattr(self, 'file_points'):
+            self.data_fit = self.data_fit.reshape([-1, self.file_points]) # narrow from BU
+            self.error_fit = self.error_fit.reshape([-1, self.file_points])
         
 
 # Object MultCaseMat() for creating multiple CaseMatrix() objects inside a single object
@@ -1216,6 +1226,13 @@ class MultCaseMat(object):
         self.fast = CaseMatrix(ff_shape)
         self.epi = CaseMatrix(ff_shape)
         self.therm = CaseMatrix(ff_shape)
+        
+    def __add__(self, other):
+        new = copy.deepcopy(self)
+        for key in new.__dict__.keys():
+            new.__dict__[key] = self.__dict__[key] + other.__dict__[key]
+        return new
+        
 
     def final_shape(self, file_point_idx=1, extra_state_idx=2):
         [obj.final_shape(file_point_idx, extra_state_idx) for obj in self.__dict__.values()]

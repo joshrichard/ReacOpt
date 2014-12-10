@@ -48,8 +48,8 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
 
     
     data_dict = dict([ ('reac', core.CaseMatrix()), ('fuel_flux', core.MultCaseMat()), \
-                     ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CaseMatrix()), \
-                     ('void_worth', core.CaseMatrix()) ])
+                     ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CoeffCaseMat()), \
+                     ('void_worth', core.CoeffCaseMat()) ])
     
 
     for case in case_set:
@@ -116,10 +116,10 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         temp_vw_err.append(np.array(vw_err))
     
     print 'stop!'
-    data_dict['reac_coeff'].data = np.hstack(temp_reac_coeff).reshape([-1, cl_stride]) # TAG: TEST
-    data_dict['reac_coeff'].error = np.hstack(temp_vw_err).reshape([-1, cl_stride])
-    data_dict['void_worth'].data = np.hstack(temp_void_worth).reshape([-1, cl_stride])
-    data_dict['void_worth'].error = np.hstack(temp_vw_err).reshape([-1, cl_stride])
+    data_dict['reac_coeff'].data = np.hstack(temp_reac_coeff) # .reshape([-1, bu_stride])
+    data_dict['reac_coeff'].error = np.hstack(temp_vw_err)
+    data_dict['void_worth'].data = np.hstack(temp_void_worth)
+    data_dict['void_worth'].error = np.hstack(temp_vw_err)
         
     
 #    reac_bu1 = data_dict['reac'].data[1::bu_stride]
@@ -175,7 +175,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     # TAG: Test!!
     # Could combine output data and doe data sets into single dict... | TAG: Improve
     # If preexisting data exists, add to it
-    if os.path.isfile(data_opts['data_fname']):
+    if os.path.isfile(data_opts['data_fname']): # Should probably make this an iteration check? | TAG: Improve
         with open(data_opts['data_fname'], 'rb') as f:
             data_dict_existing = cPickle.load(f)
             doe_set_existing = cPickle.load(f)
@@ -191,10 +191,11 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         if not doe_set.keys() == doe_set_existing.keys():
             raise Exception('New and old doe_sets must have same keys!')
         for key in doe_set:
-            doe_set_new[key] = np.vstack([doe_set_existing[key], doe_set[key]])
+            doe_set_new[key] = np.concatenate([doe_set_existing[key], doe_set[key]])
         # End by dumping out the new combined data
         with open(data_opts['data_fname'], 'wb') as f:
-            cPickle.dump(data_dict_new)
+            cPickle.dump(data_dict_new, f)
+            cPickle.dump(doe_set_new, f)
         del data_dict, data_dict_existing, doe_set, doe_set_existing
         data_dict = data_dict_new
         doe_set = doe_set_new
@@ -204,7 +205,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
             cPickle.dump(data_dict, f)
             cPickle.dump(doe_set, f)
     
-    return data_dict, doe_set
+    #return data_dict, doe_set
 
                     
     
