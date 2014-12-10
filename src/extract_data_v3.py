@@ -40,10 +40,12 @@ from scipy.optimize import basinhopping
 
 
 
-def read_data(case_info, data_opts, detector_opts):
+def read_data(case_info, data_opts, detector_opts, data_sets):
     
     case_set = case_info['case_set']
     root_dir = data_opts['input_dirname']
+    doe_set = data_sets
+
     
     data_dict = dict([ ('reac', core.CaseMatrix()), ('fuel_flux', core.MultCaseMat()), \
                      ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CaseMatrix()), \
@@ -94,26 +96,30 @@ def read_data(case_info, data_opts, detector_opts):
     # prep for calculating reactivity coefficients from core reactivity
     data_dict['reac'].calc_length()
     bu_stride = len(case_info['bu_steps'])
-    cl_stride = c_eng.calc_extra_states(case_info['extra_states'])
+    cl_stride = c_eng.calc_extra_states(case_info['extra_states']) # Only if cdens is the only extra state? | TAG: Improve
     delta =  (2960 - 2960 * 0.001)/ (0.889)
        
-    # New style (with array striding) calculation of reac_coeff from reac
-    #First, pull out all extra_case and data_statepoint points from stock reac list
-    # XX Do I want to do this at some point, or not? | TAG: Improve
-    temp_bu_data = []
+    # New style (with array striding) calculation of reac_coeff from reac | TAG: Improve
+    temp_reac_coeff = []
+    temp_void_worth = []
+    temp_vw_err = []
     for bu_dim in xrange(bu_stride):
-        reac_bu1 = data_dict['reac'].data[bu_dim::bu_stride]
+        reac_bu1 = data_dict['reac'].data[bu_dim::bu_stride] # These strides only hold if 
         reac_bu1_error = data_dict['reac'].error[bu_dim::bu_stride]
         void_worth = reac_bu1[0::cl_stride] - reac_bu1[2::cl_stride]
         reac_coeff = void_worth / delta
         vw_err = ( ( reac_bu1[0::cl_stride] * reac_bu1_error[0::cl_stride] )**2  + \
                    ( reac_bu1[2::cl_stride] * reac_bu1_error[2::cl_stride] )**2 ) \
                    / abs(void_worth)
-        temp_bu_data.append((reac_coeff, void_worth, vw_err))
+        temp_reac_coeff.append(np.array(reac_coeff))
+        temp_void_worth.append(np.array(void_worth))
+        temp_vw_err.append(np.array(vw_err))
     
     print 'stop!'
-    reac_coeff_mtx = np.array([temp_bu_data[0][0], temp_bu_data[1][0], temp_bu_data[2][0], 
-                              temp_bu_data[3][0]]).T
+    data_dict['reac_coeff'].data = np.hstack(temp_reac_coeff).reshape([-1, cl_stride]) # TAG: TEST
+    data_dict['reac_coeff'].error = np.hstack(temp_vw_err).reshape([-1, cl_stride])
+    data_dict['void_worth'].data = np.hstack(temp_void_worth).reshape([-1, cl_stride])
+    data_dict['void_worth'].error = np.hstack(temp_vw_err).reshape([-1, cl_stride])
         
     
 #    reac_bu1 = data_dict['reac'].data[1::bu_stride]
@@ -136,33 +142,69 @@ def read_data(case_info, data_opts, detector_opts):
     
 
 
-    for main_index in xrange(0, data_dict['reac'].mysizetot, bu_stride*cl_stride):
-        for bu_index in xrange(0, bu_stride, 1):
-#            val_bu = data_dict['reac'].data[main_index + bu_stride*cl_stride - bu_stride + bu_index] \
-#                    - data_dict['reac'].data[main_index + bu_stride*(cl_stride - 1) - bu_stride + bu_index]
-            reac_idx_cdens_100 = main_index + bu_stride*(cl_stride - 0) - bu_stride + bu_index
-            #reac_idx_cdens_075 = main_index + bu_stride*(cl_stride - 2) - bu_stride + bu_index
-            reac_idx_cdens_000 = main_index + bu_stride*(cl_stride - 2) - bu_stride + bu_index
-            
-            void_worth = data_dict['reac'].data[reac_idx_cdens_000] \
-                    - data_dict['reac'].data[reac_idx_cdens_100]
-            vw_err = ( ( data_dict['reac'].data[reac_idx_cdens_000] * data_dict['reac'].error[reac_idx_cdens_000] )**2.0 \
-                    + ( data_dict['reac'].data[reac_idx_cdens_100] * data_dict['reac'].error[reac_idx_cdens_100] )**2.0 )**0.5 \
-                    / abs(void_worth)
-            
-#            delrho = data_dict['reac'].data[reac_idx_cdens_075] \
-#                    - data_dict['reac'].data[reac_idx_cdens_100]  
-#            rcoeff_err = ( ( data_dict['reac'].data[reac_idx_cdens_075] * data_dict['reac'].error[reac_idx_cdens_075] )**2.0 \
+#    for main_index in xrange(0, data_dict['reac'].mysizetot, bu_stride*cl_stride):
+#        for bu_index in xrange(0, bu_stride, 1):
+##            val_bu = data_dict['reac'].data[main_index + bu_stride*cl_stride - bu_stride + bu_index] \
+##                    - data_dict['reac'].data[main_index + bu_stride*(cl_stride - 1) - bu_stride + bu_index]
+#            reac_idx_cdens_100 = main_index + bu_stride*(cl_stride - 0) - bu_stride + bu_index
+#            #reac_idx_cdens_075 = main_index + bu_stride*(cl_stride - 2) - bu_stride + bu_index
+#            reac_idx_cdens_000 = main_index + bu_stride*(cl_stride - 2) - bu_stride + bu_index
+#            
+#            void_worth = data_dict['reac'].data[reac_idx_cdens_000] \
+#                    - data_dict['reac'].data[reac_idx_cdens_100]
+#            vw_err = ( ( data_dict['reac'].data[reac_idx_cdens_000] * data_dict['reac'].error[reac_idx_cdens_000] )**2.0 \
 #                    + ( data_dict['reac'].data[reac_idx_cdens_100] * data_dict['reac'].error[reac_idx_cdens_100] )**2.0 )**0.5 \
-#                    / abs(delrho)
-            delrho = void_worth / delta
-            data_dict['reac_coeff'].add_vals(delrho, vw_err)
-            data_dict['void_worth'].add_vals(void_worth, vw_err)
+#                    / abs(void_worth)
+#            
+##            delrho = data_dict['reac'].data[reac_idx_cdens_075] \
+##                    - data_dict['reac'].data[reac_idx_cdens_100]  
+##            rcoeff_err = ( ( data_dict['reac'].data[reac_idx_cdens_075] * data_dict['reac'].error[reac_idx_cdens_075] )**2.0 \
+##                    + ( data_dict['reac'].data[reac_idx_cdens_100] * data_dict['reac'].error[reac_idx_cdens_100] )**2.0 )**0.5 \
+##                    / abs(delrho)
+#            delrho = void_worth / delta
+#            data_dict['reac_coeff'].add_vals(delrho, vw_err)
+#            data_dict['void_worth'].add_vals(void_worth, vw_err)
             
-    [obj.final_shape() for obj in data_dict.values()]
+    for obj in data_dict.values():
+        obj.set_shape_extras(bu_stride, cl_stride)
+        obj.final_shape()
+    
     # Calc max cycle lengths using reac data
-    data_dict['reac'].make_bu_fit()
-    return data_dict
+    data_dict['reac'].make_bu_fit(case_info['bu_steps'][1:]) # Must specify here | TAG: Hardcode
+    
+    # TAG: Test!!
+    # Could combine output data and doe data sets into single dict... | TAG: Improve
+    # If preexisting data exists, add to it
+    if os.path.isfile(data_opts['data_fname']):
+        with open(data_opts['data_fname'], 'rb') as f:
+            data_dict_existing = cPickle.load(f)
+            doe_set_existing = cPickle.load(f)
+        data_dict_new = {}
+        doe_set_new = {}
+        # Add data together and doe's together
+        if not data_dict.keys() == data_dict_existing.keys():
+            raise Exception('New and old data_dicts must have same keys!')
+        # Make new combined results data structures
+        for key in data_dict:
+            data_dict_new[key] = data_dict_existing[key] + data_dict[key]
+        # Now make new combined doe data structures
+        if not doe_set.keys() == doe_set_existing.keys():
+            raise Exception('New and old doe_sets must have same keys!')
+        for key in doe_set:
+            doe_set_new[key] = np.vstack([doe_set_existing[key], doe_set[key]])
+        # End by dumping out the new combined data
+        with open(data_opts['data_fname'], 'wb') as f:
+            cPickle.dump(data_dict_new)
+        del data_dict, data_dict_existing, doe_set, doe_set_existing
+        data_dict = data_dict_new
+        doe_set = doe_set_new
+    # Otherwise, make a file to store this data and add to it later
+    else:
+        with open(data_opts['data_fname'], 'wb') as f:
+            cPickle.dump(data_dict, f)
+            cPickle.dump(doe_set, f)
+    
+    return data_dict, doe_set
 
                     
     
@@ -498,11 +540,11 @@ def optimize_dv(data_opts):
     mybounds0 = [(0.0,1.0),(0.0,1.0),(0.0,1.0),(0.0,1.0)]
     #brute_bounds = (slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1))
     def positive_pred(X):
-        global meta_dict
+        global meta_dict # Can change this to use default value such that it doesn't need to be global?
         return -1.0 * meta_dict['obj_val'].predict(X)
         
     # Constraints for COBYLA
-    # upper bound constraints
+    # upper bound constraints- will need to add lower bounds | TAG: FIX
     def constr1(x):
         return 1 - x[0]
     def constr2(x):

@@ -117,7 +117,7 @@ def main():
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
         # Read data into objects:
-        run_data = ex_data.read_data(case_info, data_opts, detector_opts)
+        data_sets[''], data_sets[''] = ex_data.read_data(case_info, data_opts, detector_opts, data_sets)
 #        rcoeff_check = ((run_data['reac'].data[-12] * run_data['reac'].error[-12])**2.0 \
 #                     + (run_data['reac'].data[-8] * run_data['reac'].error[-8])**2.0)**0.5 \
 #                     / run_data['reac_coeff'].data[-4]

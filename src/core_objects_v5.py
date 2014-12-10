@@ -1155,6 +1155,17 @@ class CaseMatrix(object):
         self.error = numpy.array([], dtype=float)
         self.ff_shape = FF_num
 
+
+    def __add__(self, other):
+        new = copy.deepcopy(self) # Not very memory efficient, but less prone to error? | TAG: Improve
+        new.data = np.concatenate(self.data, other.data) # 1-D so can just add
+        new.error = np.concatenate(self.error, other.error)
+        if hasattr(self, 'data_fit') and hasattr(other, 'data_fit'):
+            new.data_fit = np.concatenate(self.data_fit, other.data_fit)
+            new.error_fit = np.concatenate(self.error_fit, other.error_fit)
+        if hasattr(self, 'max_bu_data') and hasattr(other, 'max_bu_data'):
+            new.max_bu_data = np.concatenate(self.max_bu_data, other.max_bu_data)
+        return new
         
     def add_vals(self, val, error):
         self.data = numpy.append(self.data, float(val))
@@ -1163,30 +1174,37 @@ class CaseMatrix(object):
     def calc_length(self):
         self.mysizetot = len(self.data.ravel())
         
-    def set_ff_shape(self, FF_num):
-        self.ff_shape = FF_num
+    def set_ff_num(self, ff_num):
+        self.ff_num = ff_num
+        
+    def set_shape_extras(self, file_points, extra_states):
+        self.file_points = file_points
+        self.extra_states = extra_states
     
-    def final_shape(self):
+    # Note: Could only thin from cdens, then opt over a single bu or avg of all bu
+    # TAG: Improve
+    def final_shape(self, file_point_idx=1, extra_state_idx=2):
         # First, reshape data array for easy plotting        
         #self.data_shape = numpy.array(self.data).reshape(self.myshapetot)
         #self.error_shape = numpy.array(self.error).reshape(self.myshapetot)
         # Then, make an array with data only from 2nd bu step (xe equil) and dens=1.0 for fitting purposes       
         self.data_fit = copy.deepcopy(self.data)
-        if self.bu_stride:
-            self.data_fit = self.data_fit[1::4] # narrow from BU
-        if self.cdens_stride:
-            self.data_fit = self.data_fit[2::4] # narrow from cdens
+        self.error_fit = copy.deepcopy(self.error)
+        if hasattr(self, 'file_points'):
+            self.data_fit = self.data_fit[file_point_idx::self.file_points] # narrow from BU
+            self.error_fit = self.error_fit[file_point_idx::self.file_points]
+        if hasattr(self, 'extra_states'):
+            self.data_fit = self.data_fit[extra_state_idx::self.extra_states] # narrow from cdens
+            self.error_fit = self.error_fit[extra_state_idx::self.extra_states] # narrow from cdens
             
-    def make_bu_fit(self):
+    def make_bu_fit(self, bu_vals, extra_state_idx=2):
         # only called for 'reac' CaseMatrix        
-        # Use data_shape array to pull out reactivity data
-        # for use in fitting cycle length
-        self.burnups_fit = np.array(self.tot_dv_dict['bu'][1:])[:,np.newaxis]
+        self.burnups = np.array(bu_vals)[:,np.newaxis]
         self.max_bu_data = []
-        for dv_set in itertools.product(*[range(item) for item in self.myshapefit]):
-            reac_vals = self.data_shape[dv_set[0],dv_set[1],dv_set[2],dv_set[3],2,1:]
+        reac_vals = self.data.reshape([-1, self.file_points])[extra_state_idx::self.extra_states][1:4] # Need to not hardcode here | TAG: Improve, hardcode
+        for reac_set in reac_vals:
             bu_fit = LinearRegression()
-            bu_fit.fit(self.burnups_fit, reac_vals)
+            bu_fit.fit(self.burnups, reac_set)
             self.max_bu_data.append(float(-1.0 * bu_fit.intercept_ / bu_fit.coef_))
         self.max_bu_data = np.array(self.max_bu_data)
         
@@ -1199,11 +1217,14 @@ class MultCaseMat(object):
         self.epi = CaseMatrix(ff_shape)
         self.therm = CaseMatrix(ff_shape)
 
-    def final_shape(self):
-        [obj.final_shape() for obj in self.__dict__.values()]
+    def final_shape(self, file_point_idx=1, extra_state_idx=2):
+        [obj.final_shape(file_point_idx, extra_state_idx) for obj in self.__dict__.values()]
         
-    def set_ff_shape(self, FF_num):
-        [obj.set_ff_shape(FF_num) for obj in self.__dict__.values()]
+    def set_ff_num(self, ff_num):
+        [obj.set_ff_num(ff_num) for obj in self.__dict__.values()]
+        
+    def set_shape_extras(self, file_points, extra_states):
+        [obj.set_shape_extras(file_points, extra_states) for obj in self.__dict__.values()]
 
 
 # Functions for use in building input file
