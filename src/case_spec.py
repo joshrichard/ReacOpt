@@ -45,7 +45,7 @@ run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  
 doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
-data_sets = {}
+doe_sets = {}
 
 data_names = {}
 
@@ -69,8 +69,8 @@ plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
 case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_steps}
 #case_info['dv_names'] = {k: dv_bounds.keys().index(k) for k in dv_bounds.keys()}
 
-case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
-del case_matrix_dv_dict['bu']
+#case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
+#del case_matrix_dv_dict['bu']
 
 # Initializations
 first_iter = True
@@ -79,6 +79,10 @@ converge_tol = 0.05
 obj_fun = []
 iter_cntr = 0
 
+try:
+    os.remove(data_opts['data_fname'])
+except OSError:
+    pass
 
 def main():
     
@@ -97,14 +101,14 @@ def main():
     args = parser.parse_args()
     
     if args.doe == 'on':
-        data_sets['doe'], data_sets['doe_scaled'] = c_eng.make_doe(
+        doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
         case_info['dv_bounds'], data_opts['doe_fname'], **doe_opts)
     
     if args.make == 'on':
         with open(data_opts['doe_fname'], 'rb') as f:
-            data_sets['doe'] = cPickle.load(f)
-            data_sets['doe_scaled'] = cPickle.load(f)
-        data_names['case_set'] = c_eng.make_case_matrix(data_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+            doe_sets['doe'] = cPickle.load(f)
+            doe_sets['doe_scaled'] = cPickle.load(f)
+        data_names['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts, data_opts)
         
     if args.run == 'on':
@@ -114,16 +118,15 @@ def main():
         c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
     
     if args.extract == 'on':
+        global doe_sets
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
         with open(data_opts['doe_fname'], 'rb') as f:
-            data_sets['doe'] = cPickle.load(f)
-            data_sets['doe_scaled'] = cPickle.load(f)
+            doe_sets['doe'] = cPickle.load(f)
+            doe_sets['doe_scaled'] = cPickle.load(f)
         # Read data into objects:
-        ex_data.read_data(case_info, data_opts, detector_opts, data_sets)
-#        rcoeff_check = ((run_data['reac'].data[-12] * run_data['reac'].error[-12])**2.0 \
-#                     + (run_data['reac'].data[-8] * run_data['reac'].error[-8])**2.0)**0.5 \
-#                     / run_data['reac_coeff'].data[-4]
+        data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
+
         
     if args.plot == 'on':
         #reac_pltname=('reac', 'reactivity [pcm]')

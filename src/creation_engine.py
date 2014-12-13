@@ -424,8 +424,129 @@ def make_qsub(qsub_inp_fname, qsub_fname):
     with open(qsub_fname, 'wb') as qf:
         qf.write(qfile_str)
 
+
+# Data extraction function
+def read_data(case_info, data_opts, detector_opts, data_sets):
     
+    case_set = case_info['case_set']
+    root_dir = data_opts['input_dirname']
+    doe_set = data_sets
+
     
+    data_dict = dict([ ('reac', core.CaseMatrix()), ('fuel_flux', core.MultCaseMat()), \
+                     ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CoeffCaseMat()), \
+                     ('void_worth', core.CoeffCaseMat()) ])
+    
+
+    for case in case_set:
+        res_fname = case + '_res.m'
+        res_filepath = os.path.join(root_dir, res_fname)
+        with open(res_filepath, 'rb') as rf:
+            for line in rf:
+                try: 
+                    if line.split()[0] == 'COL_KEFF':
+                        reac_tmp = float(line.split()[6:7][0])
+                        err_tmp = float(line.split()[7:8][0])
+                        err_tmp = err_tmp * abs( (reac_tmp) / (reac_tmp - 1.0) )
+                        err_tmp = 1.4142 * err_tmp
+                        reac_tmp = (reac_tmp - 1.0) / reac_tmp * 1.0E5
+
+                        data_dict['reac'].add_vals(reac_tmp, err_tmp)
+                except IndexError:
+                    pass
+        for detnum in xrange(4): # Can make this a user input | TAG: improve
+            det_fname = case + '_det{}.m'.format(detnum)
+            det_filepath = os.path.join(root_dir, det_fname)
+            with open(det_filepath, 'rb') as df:
+                for line in df:
+                    try:
+                        if line.split()[0] == detector_opts['fuel_detname']:
+                            line = df.next() 
+                            data_dict['fuel_flux'].therm.add_vals(*line.split()[10:12])
+                            line = df.next() 
+                            data_dict['fuel_flux'].epi.add_vals(*line.split()[10:12])
+                            line = df.next() 
+                            data_dict['fuel_flux'].fast.add_vals(*line.split()[10:12])
+                        if line.split()[0] == detector_opts['mat_detname']:
+                            line = df.next() 
+                            data_dict['mat_flux'].therm.add_vals(*line.split()[10:12])
+                            line = df.next() 
+                            data_dict['mat_flux'].epi.add_vals(*line.split()[10:12])
+                            line = df.next() 
+                            data_dict['mat_flux'].fast.add_vals(*line.split()[10:12])
+                    except IndexError:
+                        pass
+    
+
+
+    # prep for calculating reactivity coefficients from core reactivity
+    data_dict['reac'].calc_length()
+    bu_stride = len(case_info['bu_steps'])
+    cl_stride = calc_extra_states(case_info['extra_states']) # Only if cdens is the only extra state? | TAG: Improve
+    delta =  (2960 - 2960 * 0.001)/ (0.889)
+       
+    # New style (with array striding) calculation of reac_coeff from reac | TAG: Improve
+    temp_reac_coeff = []
+    temp_void_worth = []
+    temp_vw_err = []
+    for bu_dim in xrange(bu_stride):
+        reac_bu1 = data_dict['reac'].data[bu_dim::bu_stride] # These strides only hold if 
+        reac_bu1_error = data_dict['reac'].error[bu_dim::bu_stride]
+        void_worth = reac_bu1[0::cl_stride] - reac_bu1[2::cl_stride]
+        reac_coeff = void_worth / delta
+        vw_err = ( ( reac_bu1[0::cl_stride] * reac_bu1_error[0::cl_stride] )**2  + \
+                   ( reac_bu1[2::cl_stride] * reac_bu1_error[2::cl_stride] )**2 ) \
+                   / abs(void_worth)
+        temp_reac_coeff.append(np.array(reac_coeff))
+        temp_void_worth.append(np.array(void_worth))
+        temp_vw_err.append(np.array(vw_err))
+    
+    data_dict['reac_coeff'].data = np.hstack(temp_reac_coeff) # .reshape([-1, bu_stride])
+    data_dict['reac_coeff'].error = np.hstack(temp_vw_err)
+    data_dict['void_worth'].data = np.hstack(temp_void_worth)
+    data_dict['void_worth'].error = np.hstack(temp_vw_err)
+        
+    
+    for obj in data_dict.values():
+        obj.set_shape_extras(bu_stride, cl_stride)
+        obj.final_shape()
+    
+    # Calc max cycle lengths using reac data
+    data_dict['reac'].make_bu_fit(case_info['bu_steps'][1:]) # Must specify here | TAG: Hardcode
+    
+    # Could combine output data and doe data sets into single dict... | TAG: Improve
+    # If preexisting data exists, add to it
+    if os.path.isfile(data_opts['data_fname']): # Should probably make this an iteration check? | TAG: Improve
+        with open(data_opts['data_fname'], 'rb') as f:
+            data_dict_existing = cPickle.load(f)
+            doe_set_existing = cPickle.load(f)
+        data_dict_new = {}
+        doe_set_new = {}
+        # Add data together and doe's together
+        if not data_dict.keys() == data_dict_existing.keys():
+            raise Exception('New and old data_dicts must have same keys!')
+        # Make new combined results data structures
+        for key in data_dict:
+            data_dict_new[key] = data_dict_existing[key] + data_dict[key]
+        # Now make new combined doe data structures
+        if not doe_set.keys() == doe_set_existing.keys():
+            raise Exception('New and old doe_sets must have same keys!')
+        for key in doe_set:
+            doe_set_new[key] = np.concatenate([doe_set_existing[key], doe_set[key]])
+        # End by dumping out the new combined data
+        with open(data_opts['data_fname'], 'wb') as f:
+            cPickle.dump(data_dict_new, f)
+            cPickle.dump(doe_set_new, f)
+        del data_dict, data_dict_existing, doe_set, doe_set_existing
+        data_dict = data_dict_new
+        doe_set = doe_set_new
+    # Otherwise, make a file to store this data and add to it later
+    else:
+        with open(data_opts['data_fname'], 'wb') as f:
+            cPickle.dump(data_dict, f)
+            cPickle.dump(doe_set, f)
+    
+    return data_dict, doe_set
 
 
     
