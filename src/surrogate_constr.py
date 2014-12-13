@@ -36,6 +36,66 @@ from scipy.optimize import basinhopping
 #from scipy import optimize
 
 
+def make_meta(data_dict, doe_set, data_opts, obj_inp = 'reac'):
+    
+    obj_data = data_dict[obj_inp].data_fit
+    reac_co_data = data_dict['reac_coeff'].data_fit[:,1] # At some point, will want to make this for all bu steps | TAG: Improve
+    void_w_data = data_dict['void_worth'].data_fit[:,1]
+    max_cycle_data = data_dict['reac'].max_bu_data
+    X_t = doe_set['doe_scaled']
+    
+#    with open(data_opts['data_fname'], 'rb') as datf:
+#        run_data = cPickle.load(datf)
+#    scal = preprocessing.MinMaxScaler()
+#    X_t = scal.fit_transform(run_data['reac'].fit_dv_mtx)
+    #test = svm.SVR(C=1.0, epsilon=0.00)a
+    #test = Ridge()
+    #test = tree.DecisionTreeRegressor()
+
+    obj_val = gaussian_process.GaussianProcess()
+    reac_co = gaussian_process.GaussianProcess()
+    void_w = gaussian_process.GaussianProcess()
+    max_cycle = gaussian_process.GaussianProcess()
+    #test = neighbors.KNeighborsRegressor()
+    #test = GradientBoostingRegressor()
+    obj_val.fit(X_t, obj_data)
+    reac_co.fit(X_t, reac_co_data)
+    void_w.fit(X_t, void_w_data)
+    max_cycle.fit(X_t, max_cycle_data)
+    fit_dict = {'X_t':X_t,'obj_val':obj_val, 'reac_co':reac_co, 'void_w':void_w, \
+                'max_cycle':max_cycle}
+    with open(data_opts['fit_fname'], 'wb') as fitf:
+        cPickle.dump(fit_dict, fitf, 2)
+    return fit_dict
+    # NOTE: should plot with all values save the x-axis at 1, not 0
+#    x_plot = np.empty([1000,4])    
+#    x_plot[:,0:3] = X_t[0,0:3]
+#    x_plot[:,3] = np.linspace(0.0,1.0,1000)
+#    y_pred, MSE = test.predict(x_plot, eval_MSE=True)
+#    sigma = np.sqrt(MSE)
+#    fig = plt.figure()
+#    plt.plot(X_t[0:3,3], run_data['reac'].data_fit[0:3], 'r.', markersize=10, label=u'Observations')
+#    plt.plot(x_plot[:,3], y_pred, 'b-', label=u'Prediction')
+#    plt.fill(np.concatenate([x_plot[:,3],x_plot[:,3][::-1]]), \
+#    np.concatenate([y_pred - 1.96 * sigma, \
+#                    (y_pred + 1.96 * sigma)[::-1]]), \
+#                    alpha=.5, fc='b', ec='None', label='95% confidence interval')
+#    plt.xlabel('Enrichment (fraction of max)')
+#    plt.ylabel('Reactivity [pcm]')
+#    plt.legend(loc='upper left')
+#    fig.savefig('reac_fit_err.png', dpi=600.0)
+#    x0 = np.ones(4)
+#    mybounds = [(0.0,1.0),(0.0,1.0),(0.0,1.0),(0.0,1.0)]
+#    def positive_pred(X):
+#        return -1.0 * test.predict(X)
+##   res = minimize(test.predict, x0, method='nelder-mead', options={'disp':True})
+#    res = minimize(positive_pred, x0, method ='L-BFGS-B', bounds = mybounds, jac = False, options={'disp':True})
+#    #test = Pipeline([('minmx', preprocessing.MinMaxScaler()),('svm_r', svm.SVR(C=1.0, epsilon=0.001))])
+#    #test = Pipeline([('minmx', preprocessing.MinMaxScaler()),('rdge', Ridge())])
+#    #test.fit(run_data['reac'].fit_dv_mtx, run_data['reac'].data_fit)
+#    print res.x
+#    pass
+
 
 def make_plots(dv_dict, data_opts, plot_opts):
     type_opt = plot_opts['type']
@@ -291,61 +351,6 @@ def make_plots(dv_dict, data_opts, plot_opts):
     else:
         raise Exception(" Plot type selection does not exist; please select either '2d' or '3d' ")
         
-    
-    
-
-
-
-def make_meta(data_opts):
-    with open(data_opts['data_fname'], 'rb') as datf:
-        run_data = cPickle.load(datf)
-    scal = preprocessing.MinMaxScaler()
-    X_t = scal.fit_transform(run_data['reac'].fit_dv_mtx)
-    #test = svm.SVR(C=1.0, epsilon=0.00)a
-    #test = Ridge()
-    #test = tree.DecisionTreeRegressor()
-    obj_val = gaussian_process.GaussianProcess()
-    reac_co = gaussian_process.GaussianProcess()
-    void_w = gaussian_process.GaussianProcess()
-    max_cycle = gaussian_process.GaussianProcess()
-    #test = neighbors.KNeighborsRegressor()
-    #test = GradientBoostingRegressor()
-    obj_val.fit(X_t, run_data['reac'].data_fit)
-    reac_co.fit(X_t, run_data['reac_coeff'].data_fit)
-    void_w.fit(X_t, run_data['void_worth'].data_fit)
-    max_cycle.fit(X_t,run_data['reac'].max_bu_data)
-    fit_dict = {'X_t':X_t,'obj_val':obj_val, 'reac_co':reac_co, 'void_w':void_w, \
-                'max_cycle':max_cycle}
-    with open(data_opts['fit_fname'], 'wb') as fitf:
-        cPickle.dump(fit_dict, fitf, 2)
-    # NOTE: should plot with all values save the x-axis at 1, not 0
-#    x_plot = np.empty([1000,4])    
-#    x_plot[:,0:3] = X_t[0,0:3]
-#    x_plot[:,3] = np.linspace(0.0,1.0,1000)
-#    y_pred, MSE = test.predict(x_plot, eval_MSE=True)
-#    sigma = np.sqrt(MSE)
-#    fig = plt.figure()
-#    plt.plot(X_t[0:3,3], run_data['reac'].data_fit[0:3], 'r.', markersize=10, label=u'Observations')
-#    plt.plot(x_plot[:,3], y_pred, 'b-', label=u'Prediction')
-#    plt.fill(np.concatenate([x_plot[:,3],x_plot[:,3][::-1]]), \
-#    np.concatenate([y_pred - 1.96 * sigma, \
-#                    (y_pred + 1.96 * sigma)[::-1]]), \
-#                    alpha=.5, fc='b', ec='None', label='95% confidence interval')
-#    plt.xlabel('Enrichment (fraction of max)')
-#    plt.ylabel('Reactivity [pcm]')
-#    plt.legend(loc='upper left')
-#    fig.savefig('reac_fit_err.png', dpi=600.0)
-#    x0 = np.ones(4)
-#    mybounds = [(0.0,1.0),(0.0,1.0),(0.0,1.0),(0.0,1.0)]
-#    def positive_pred(X):
-#        return -1.0 * test.predict(X)
-##   res = minimize(test.predict, x0, method='nelder-mead', options={'disp':True})
-#    res = minimize(positive_pred, x0, method ='L-BFGS-B', bounds = mybounds, jac = False, options={'disp':True})
-#    #test = Pipeline([('minmx', preprocessing.MinMaxScaler()),('svm_r', svm.SVR(C=1.0, epsilon=0.001))])
-#    #test = Pipeline([('minmx', preprocessing.MinMaxScaler()),('rdge', Ridge())])
-#    #test.fit(run_data['reac'].fit_dv_mtx, run_data['reac'].data_fit)
-#    print res.x
-#    pass
 
 def optimize_dv(data_opts):
     with open(data_opts['fit_fname'], 'rb') as fitf:

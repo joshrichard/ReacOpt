@@ -6,7 +6,7 @@ Created on Fri Apr 11 12:58:27 2014
 """
 
 import creation_engine as c_eng
-import extract_data_v3 as ex_data
+import surrogate_constr as sur_constr
 import argparse
 from collections import OrderedDict
 import os
@@ -48,6 +48,8 @@ doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe
 doe_sets = {}
 
 data_names = {}
+
+fit_dict = {}
 
 # Rename this at some point | TAG: Improve
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
@@ -94,7 +96,7 @@ def main():
     parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='on')
     parser.add_argument("-p","--plot", default='off')
-    parser.add_argument("-l","--learn", default='off')
+    parser.add_argument("-l","--learn", default='on')
     parser.add_argument("-o","--opt", default='off')
     parser.add_argument("-i", "--iterate", default='off')
     
@@ -131,14 +133,18 @@ def main():
     if args.plot == 'on':
         #reac_pltname=('reac', 'reactivity [pcm]')
         #fflux_therm_pltname=('fuel_flux', 'Thermal irradiation position flux')
-        ex_data.make_plots(tot_dv_dict, data_opts, plot_opts)
+        sur_constr.make_plots(tot_dv_dict, data_opts, plot_opts)
         #ex_data.make_plots(tot_dv_dict, data_opts, fflux_therm_pltname)
         
     if args.learn == 'on':
-        ex_data.make_meta(data_opts)
+        with open(data_opts['data_fname'], 'rb') as f:
+            data_dict = cPickle.load(f)
+            doe_sets = cPickle.load(f)
+        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
         
     if args.opt == 'on':
-        ex_data.optimize_dv(data_opts)
+        #.optimize_dv(data_opts)
+        pass
         
     if args.iterate == 'on':
         iter_loop()
