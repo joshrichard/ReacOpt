@@ -1,0 +1,6 @@
+#PBS -l nodes=1:ppn=8
+#PBS -V
+
+cd $PBS_O_WORKDIR
+
+sss2 fhtr_opt_coreh1225_pf035_krad003_enr1725_cdens0001 -omp 8
