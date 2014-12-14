@@ -10,6 +10,7 @@ from __future__ import division
 
 
 import numpy as np
+import math
 #import operator as op
 #import itertools
 #from collections import OrderedDict
@@ -153,6 +154,48 @@ def optimize_dv(optim_options, data_opts):
     return opt_res
     
     # End optimization
+    
+def optimize_search(opt_results, optim_options, data_opts):
+    
+    x_guess = optim_options['x_guess']
+    obj_eval = optim_options['obj_eval']
+    min_kwargs = optim_options['fmin_opts']
+    myaccept = optim_options['accept_test']
+    ymin = opt_results.res
+    
+    def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
+        y_eval, MSE = obj_eval_func(x, eval_MSE=True)
+        sigma = np.sqrt(MSE)
+        if MSE == 0.0: # Check tolerances here!
+            exp_imp = 0.0
+        else:
+            ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)//(sigma*math.sqrt(2.0)) ))
+            ei_term2 = (sigma * 1.0//math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0//(2.0*MSE) )
+            exp_imp = ei_term1 + ei_term2
+        return exp_imp
+        
+    search_res = basinhopping(func=expect_improve, x0=x_guess, minimizer_kwargs=min_kwargs, \
+                        accept_test=myaccept, disp=True)
+    return search_res
+
+
+# Optimization search and infill function
+def search_infill(opt_results, optim_options, data_opts):
+    
+    search_type = optim_options['search_type']
+    #First, select whether exploitation or hybrid
+    if search_type == 'exploit':
+        new_doe = opt_results.x
+    elif search_type == 'hybrid':
+        search_point = optimize_search(opt_results, optim_options, data_opts)
+        new_doe = search_point
+        
+    print 'done!'
+    return new_doe
+        
+    
+    
+    return test
 
 #class MyBounds(object):
 #    def __init__(self, xmax=[1.0,1.0,1.0,1.0], xmin=[0.0,0.0,0.0,0.0] ):

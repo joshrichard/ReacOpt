@@ -82,6 +82,7 @@ iter_diff = 0.05
 converge_tol = 0.05
 obj_fun = []
 iter_cntr = 0
+search_type = 'hybrid'
 
 try:
     os.remove(data_opts['data_fname'])
@@ -100,6 +101,7 @@ def main():
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='on')
     parser.add_argument("-o","--opt", default='on')
+    parser.add_argument("-s","--search", default='on')
     parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()
@@ -152,7 +154,12 @@ def main():
 #            optimization_options = cPickle.load(f)
         opt_res = opt_module.optimize_dv(optimization_options, data_opts)
 
-        
+    if args.search == 'on':
+        with open(data_opts['opt_fname'], 'rb') as optf:
+            opt_res = cPickle.load(optf)
+        search_res = opt_module.optimize_search(opt_res, optimization_options, 
+                                                data_opts)
+    
     if args.iterate == 'on':
         iter_loop()
     
