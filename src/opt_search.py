@@ -47,43 +47,63 @@ def all_bounds_constr(X):
     return result
 
 def get_optim_opts(fit_dict, data_opts):
-    x_guess = np.array([0.8]*4)
+    x_guess = np.array([0.8]*4) # Need to make feature length variable here?
     obj_eval = make_neg(fit_dict['obj_val'].predict)
     reac_co_eval = make_neg(fit_dict['reac_co'].predict)
     void_w_eval = make_neg(fit_dict['void_w'].predict)
     max_cycle_eval = constr_cycle_len(fit_dict['max_cycle'].predict)
+#    bounds_eval = all_bounds_constr
     
     #global meta_dict
     # Constraints for COBYLA
-    # upper bound constraints- will need to add lower bounds | TAG: FIX
+    # Want to find a way to make work for any length of features
     # Is there a way to make all the bound constraints all into one function,
     # such that if any constraint is violated, the function returns a violation?
     # after getting optimization to work with the hardwired way, test with new way
     # TAG: Improve
-    def constr_x1_upper(x):
-        return 1 - x[0]
-    def constr_x2_upper(x):
-        return 1 - x[1]
-    def constr_x3_upper(x):
-        return 1 - x[2]
-    def constr_x4_upper(x):
-        return 1 - x[3]
-    def constr_x1_lower(x):
-        return x[0]
-    def constr_x2_lower(x):
-        return x[1]
-    def constr_x3_lower(x):
-        return x[2]
-    def constr_x4_lower(x):
-        return x[3]
+    def make_boxbound_constr_dict(x):
+        boxbound_constr_dict = []
+        for feature in xrange(len(x)):
+            def upper_constr(x, index=feature):
+                return 1 - x[index]
+            #upper_name = 'upper_bound_feature_{}'.format(feature)
+            def lower_constr(x, index=feature):
+                return x[index]
+            #lower_name = 'upper_bound_feature_{}'.format(feature)
+            boxbound_constr_dict.append({'type':'ineq', 'fun':upper_constr})
+            boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
+        return boxbound_constr_dict
     
+#    def constr_x1_upper(x):
+#        return 1 - x[0]
+#    def constr_x2_upper(x):
+#        return 1 - x[1]
+#    def constr_x3_upper(x):
+#        return 1 - x[2]
+#    def constr_x4_upper(x):
+#        return 1 - x[3]
+#    def constr_x1_lower(x):
+#        return x[0]
+#    def constr_x2_lower(x):
+#        return x[1]
+#    def constr_x3_lower(x):
+#        return x[2]
+#    def constr_x4_lower(x):
+#        return x[3]
+    boxbound_constr_dict = make_boxbound_constr_dict(x_guess)
     # Put into dictionary for use
-    cobyla_constr = [{'type':'ineq', 'fun':constr_x1_upper},{'type':'ineq', 'fun':constr_x2_upper},
-                     {'type':'ineq', 'fun':constr_x3_upper},{'type':'ineq', 'fun':constr_x4_upper}, 
-                     {'type':'ineq', 'fun':constr_x1_lower},{'type':'ineq', 'fun':constr_x2_lower},
-                     {'type':'ineq', 'fun':constr_x3_lower},{'type':'ineq', 'fun':constr_x4_lower}, 
-                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
-                      {'type':'ineq', 'fun':max_cycle_eval}]
+#    cobyla_constr = [{'type':'ineq', 'fun':constr_x1_upper},{'type':'ineq', 'fun':constr_x2_upper},
+#                     {'type':'ineq', 'fun':constr_x3_upper},{'type':'ineq', 'fun':constr_x4_upper}, 
+#                     {'type':'ineq', 'fun':constr_x1_lower},{'type':'ineq', 'fun':constr_x2_lower},
+#                     {'type':'ineq', 'fun':constr_x3_lower},{'type':'ineq', 'fun':constr_x4_lower}, 
+#                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
+#                      {'type':'ineq', 'fun':max_cycle_eval}]
+#    cobyla_constr = [{'type':'ineq', 'fun':bounds_eval}, 
+#                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
+#                      {'type':'ineq', 'fun':max_cycle_eval}]
+    cobyla_constr = [{'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
+                     {'type':'ineq', 'fun':max_cycle_eval}]
+    cobyla_constr.extend(boxbound_constr_dict)
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr}
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval)
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
