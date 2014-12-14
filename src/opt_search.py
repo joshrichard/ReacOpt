@@ -21,6 +21,8 @@ import cPickle
 from scipy.optimize import basinhopping
 #from scipy import optimize
 
+import core_objects_v5 as core
+
 # Decorator to make a function return the negative of it's usual value
 def make_neg(func):
     def inner(*args, **kwargs):
@@ -189,20 +191,32 @@ def optimize_search(opt_results, optim_options):
 
 
 # Optimization search and infill function
-def search_infill(opt_results, optim_options, data_opts):
+def search_infill(opt_results, optim_options, case_info, data_opts):
     
+    dv_bounds = case_info['dv_bounds']
     search_type = optim_options['search_type']
     #First, select whether exploitation or hybrid
     if search_type == 'exploit':
-        new_doe = opt_results.x
+        new_doe_scaled = opt_results.x
     elif search_type == 'hybrid':
         search_point = optimize_search(opt_results, optim_options)
-        new_doe = search_point.x
-    return new_doe
-        
+        new_doe_scaled = search_point.x
+    new_doe = core.dv_scaler(new_doe_scaled, dv_bounds, 'real')
+    return new_doe, new_doe_scaled
+
+
+def converge_check(prev_obs_vals, thresh_inp):
     
-    
-    return test
+    obs_obj_vals = prev_obs_vals
+    range_obs = np.abs(np.max(obs_obj_vals) - np.min(obs_obj_vals))
+    thresh = thresh_inp
+    stop_criterion = thresh * range_obs
+    delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
+    if delta_set[0] < stop_criterion: # can check a set here if desired | TAG: Improve
+        converged = True
+    else:
+        converged = False
+    return converged
 
 #class MyBounds(object):
 #    def __init__(self, xmax=[1.0,1.0,1.0,1.0], xmin=[0.0,0.0,0.0,0.0] ):

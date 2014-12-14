@@ -65,6 +65,7 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
 ('opt_inp_fname', os.path.join(os.path.expanduser(data_dir), 'opt_inp_settings.out')), \
 ('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_results.out')), \
+('iter_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_dump_iter.out')), \
 ('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_final.out')) ])
 
 detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002')])
@@ -80,12 +81,14 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 #del case_matrix_dv_dict['bu']
 
 # Initializations
-first_iter = True
-iter_diff = 0.05
-converge_tol = 0.05
-obj_fun = []
+#first_iter = True
+#iter_diff = 0.05
+#converge_tol = 0.05
+#obj_fun = []
+all_opt_res = []
 iter_cntr = 0
 search_type = 'hybrid'
+thresh_in = 1e-3
 
 try:
     os.remove(data_opts['data_fname'])
@@ -100,12 +103,13 @@ def main():
     parser.add_argument("-d","--doe", default='off')
     parser.add_argument("-m","--make", default='off')
     parser.add_argument("-r","--run", default='off')
-    parser.add_argument("-e","--extract", default='on')
+    parser.add_argument("-e","--extract", default='off') #test
     parser.add_argument("-p","--plot", default='off')
-    parser.add_argument("-l","--learn", default='on')
-    parser.add_argument("-o","--opt", default='on')
-    parser.add_argument("-s","--search", default='on')
-    parser.add_argument("-i", "--iterate", default='off')
+    parser.add_argument("-l","--learn", default='off') #Test
+    parser.add_argument("-o","--opt", default='off') #test
+    parser.add_argument("-s","--search", default='off') #test
+    parser.add_argument("-c","--check", default='off')
+    parser.add_argument("-i", "--iterate", default='on')
     
     args = parser.parse_args()
     
@@ -163,7 +167,10 @@ def main():
         optimization_options['search_type'] = search_type
 #        tst = optimization_options['obj_eval'](np.array([0.8,0.8,0.8,0.8]), eval_MSE=True)
         search_res = opt_module.search_infill(opt_res, optimization_options, 
-                                                data_opts)
+                                                case_info, data_opts)
+                                                
+    if args.check == 'on':
+        conv_res = opt_module.converge_check()
     
     if args.iterate == 'on':
         iter_loop()
@@ -171,84 +178,158 @@ def main():
 
 def iter_loop():
     # Run each element of the iteration loop to converge to optimal solution
+    converged = False
+    converged_temp = False
+    first_iter = True
 
-    # Set case matrix parameters, then run creation engine script
-    # to make input files
-    define_case_matrix()
-    
-    # Once input files have been created, execute them to create
-    # training data set for surrogate model
-    c_eng.run_case_matrix(case_matrix_dv_dict)
-    
-    # Extract training data and form surrogate
-    # read data into objects:
-    run_data = ex_data.read_data(tot_dv_dict, data_opts)
-    # Store cleaned data into a pickle datafile
-    ex_data.store_data(run_data, data_opts)
-    
-    # Use surrogate to optimize dv's
-    ex_data.optimize_dv()
-    
-    # Check for convergence in dv and obj function
-    converge_check()
-    
-    
-def define_case_matrix():
-    if first_iter:
-        case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
-        del case_matrix_dv_dict['bu']
-    else: # Change values for each dv key to +- iter_diff
-        temp_dv_vals = []
+    while not converged:
+        ####
+        # If first iteration, make an initial DoE set of eval points
+        ####
+        if first_iter:
+            doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
+                    case_info['dv_bounds'], data_opts['doe_fname'], **doe_opts)
+        # Then put current iteration's doe into a storage variable
+        doe_sets_iter = copy.deepcopy(doe_sets)
+        ####
+        # Next, make input files for current doe
+        ####
+        with open(data_opts['doe_fname'], 'rb') as f:
+            doe_sets['doe'] = cPickle.load(f)
+            doe_sets['doe_scaled'] = cPickle.load(f)
+        data_names['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+                               run_opts, data_opts)
+        ####
+        # Run the new doe cases
+        ####
+        with open(data_opts['cases_fname'], 'rb') as outpf:
+            case_info['case_set'] = cPickle.load(outpf)
+        case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts)
+        c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
+        ####
+        # Extract and post-process the doe output data
+        ####
+        global doe_sets
+        with open(data_opts['cases_fname'], 'rb') as outpf:
+            case_info['case_set'] = cPickle.load(outpf)
+        with open(data_opts['doe_fname'], 'rb') as f:
+            doe_sets['doe'] = cPickle.load(f)
+            doe_sets['doe_scaled'] = cPickle.load(f)
+        # Read data into objects:
+        data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
+        ####
+        # Form a surrogate model using the doe data
+        ####
+        with open(data_opts['data_fname'], 'rb') as f:
+            data_dict = cPickle.load(f)
+            doe_sets = cPickle.load(f)
+        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
+        ####
+        # Optimize the objective  function using the surrogate
+        ####
+        with open(data_opts['fit_fname'], 'rb') as f:
+            fit_dict = cPickle.load(f)
+        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts)
+        opt_res = opt_module.optimize_dv(optimization_options, data_opts)
+        ####
+        # Search for a new evaluation location
+        ####
         with open(data_opts['opt_fname'], 'rb') as optf:
-            opt_vals = cPickle.load(optf)
-        for idx, item in enumerate(case_matrix_dv_dict):
-            if item == 'cdens':
-                continue
-            if opt_vals.x[idx] == 1.0: # May not need two points, only one
-                # Already at bounded max: only do -iter_diff percent
-                temp_dv_vals.append(opt_vals.x[idx]*(1.0 - iter_diff))
-                temp_dv_vals.append(opt_vals.x[idx])
-            elif opt_vals.x[idx]  == 0.0:
-                # Already at bounded min: only do +iter_diff percent
-                temp_dv_vals.append(opt_vals.x[idx])
-                temp_dv_vals.append(opt_vals.x[idx]*(1.0 + iter_diff))
-            else:
-                # Do +- iter_diff for each dv key
-                temp_dv_vals.append(opt_vals.x[idx]*(1.0 - iter_diff))
-                temp_dv_vals.append(opt_vals.x[idx])
-                temp_dv_vals.append(opt_vals.x[idx]*(1.0 + iter_diff))
-                # Make sure new dv's are still within bounds
-                if temp_dv_vals[-1] > 1.0:
-                    temp_dv_vals[-1] = 1.0
-                if temp_dv_vals[0] < 0.0:
-                    temp_dv_vals[0] = 0.0
-            # Now store into dv_dict
-            case_matrix_dv_dict[item] = copy.deepcopy(temp_dv_vals)
+            opt_res = cPickle.load(optf)
+        optimization_options['search_type'] = search_type
+        search_res = opt_module.search_infill(opt_res, optimization_options, 
+                                                case_info, data_opts)
+        # Cleanup step
+        iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
+        all_opt_res.append(opt_res.fun) # TAG: Improve?
         
-    # After making dv_dict, create input files
-    c_eng.make_case_matrix(case_matrix_dv_dict, run_opts)                    
-
-
-def converge_check():
-    with open(data_opts['opt_fname'], 'rb') as optf:
-        opt_vals = cPickle.load(optf)
-    global first_iter
-    global iter_cntr
-    if first_iter:
-        obj_fun.append(opt_vals.res) # make sure this adds a float, not a list
-        first_iter = False
-        iter_cntr += 1
-    else:
-
-        diff = obj_fun[iter_cntr] - obj_fun[iter_cntr - 1]
-        if diff > converge_tol:
-            obj_fun.append(opt_vals.res) # make sure this adds a float, not a list
-            iter_cntr += 1
-            iter_loop()
+        ####
+        # Check convergence
+        ####
+        if not first_iter:
+            converged_temp = opt_module.converge_check(all_opt_res, thresh_in) 
+        ####
+        # Save data from each step into a single dump file for this iteration
+        ####
+        with open(iter_fname, 'wb') as it_f:
+            cPickle.dump(doe_sets, it_f, 2)
+            cPickle.dump(doe_sets_iter, it_f, 2)
+            cPickle.dump(search_res, it_f, 2)
+            cPickle.dump(case_info['case_set'], it_f, 2)
+            cPickle.dump(data_dict, it_f, 2)
+            cPickle.dump(fit_dict, it_f, 2)
+            cPickle.dump(opt_res, it_f, 2)
+            cPickle.dump(all_opt_res, it_f, 2)
+        ####
+        # End or prepare for next loop
+        ####
+        if converged_temp:
+            converged = True
         else:
-            #Done with optimization outer iteration
-            with open(data_opts['final_fname'], 'wb') as finalf:
-                cPickle.dump(obj_fun, finalf, 2) # Need to store run data for every iteration, not just dump and overwrite on every iteration
+            first_iter = False
+            doe_sets['doe'], doe_sets['doe_scaled'] = search_res
+            # Need to reset anyting else?
+
+        
+
+    
+    
+#def define_case_matrix():
+#    if first_iter:
+#        case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
+#        del case_matrix_dv_dict['bu']
+#    else: # Change values for each dv key to +- iter_diff
+#        temp_dv_vals = []
+#        with open(data_opts['opt_fname'], 'rb') as optf:
+#            opt_vals = cPickle.load(optf)
+#        for idx, item in enumerate(case_matrix_dv_dict):
+#            if item == 'cdens':
+#                continue
+#            if opt_vals.x[idx] == 1.0: # May not need two points, only one
+#                # Already at bounded max: only do -iter_diff percent
+#                temp_dv_vals.append(opt_vals.x[idx]*(1.0 - iter_diff))
+#                temp_dv_vals.append(opt_vals.x[idx])
+#            elif opt_vals.x[idx]  == 0.0:
+#                # Already at bounded min: only do +iter_diff percent
+#                temp_dv_vals.append(opt_vals.x[idx])
+#                temp_dv_vals.append(opt_vals.x[idx]*(1.0 + iter_diff))
+#            else:
+#                # Do +- iter_diff for each dv key
+#                temp_dv_vals.append(opt_vals.x[idx]*(1.0 - iter_diff))
+#                temp_dv_vals.append(opt_vals.x[idx])
+#                temp_dv_vals.append(opt_vals.x[idx]*(1.0 + iter_diff))
+#                # Make sure new dv's are still within bounds
+#                if temp_dv_vals[-1] > 1.0:
+#                    temp_dv_vals[-1] = 1.0
+#                if temp_dv_vals[0] < 0.0:
+#                    temp_dv_vals[0] = 0.0
+#            # Now store into dv_dict
+#            case_matrix_dv_dict[item] = copy.deepcopy(temp_dv_vals)
+#        
+#    # After making dv_dict, create input files
+#    c_eng.make_case_matrix(case_matrix_dv_dict, run_opts)                    
+#
+#
+#def converge_check():
+#    with open(data_opts['opt_fname'], 'rb') as optf:
+#        opt_vals = cPickle.load(optf)
+#    global first_iter
+#    global iter_cntr
+#    if first_iter:
+#        obj_fun.append(opt_vals.res) # make sure this adds a float, not a list
+#        first_iter = False
+#        iter_cntr += 1
+#    else:
+#
+#        diff = obj_fun[iter_cntr] - obj_fun[iter_cntr - 1]
+#        if diff > converge_tol:
+#            obj_fun.append(opt_vals.res) # make sure this adds a float, not a list
+#            iter_cntr += 1
+#            iter_loop()
+#        else:
+#            #Done with optimization outer iteration
+#            with open(data_opts['final_fname'], 'wb') as finalf:
+#                cPickle.dump(obj_fun, finalf, 2) # Need to store run data for every iteration, not just dump and overwrite on every iteration
 
 if __name__ == '__main__':
     main()
