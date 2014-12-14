@@ -24,7 +24,14 @@ from scipy.optimize import basinhopping
 # Decorator to make a function return the negative of it's usual value
 def make_neg(func):
     def inner(*args, **kwargs):
-        return -1.0 * func(*args, **kwargs)
+        res_tup = func(*args, **kwargs)
+        if 'eval_MSE' in kwargs:
+            res_neg = res_tup[0] * -1.0
+            res_MSE = res_tup[-1]
+            res_tup = tuple([res_neg, res_MSE])
+        else:
+            res_tup = res_tup * -1.0
+        return res_tup
     return inner
     
 def constr_cycle_len(func, min_cyc_len=184.0):
@@ -155,13 +162,13 @@ def optimize_dv(optim_options, data_opts):
     
     # End optimization
     
-def optimize_search(opt_results, optim_options, data_opts):
+def optimize_search(opt_results, optim_options):
     
     x_guess = optim_options['x_guess']
     obj_eval = optim_options['obj_eval']
     min_kwargs = optim_options['fmin_opts']
     myaccept = optim_options['accept_test']
-    ymin = opt_results.res
+    ymin = opt_results.fun
     
     def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
         y_eval, MSE = obj_eval_func(x, eval_MSE=True)
@@ -174,7 +181,9 @@ def optimize_search(opt_results, optim_options, data_opts):
             exp_imp = ei_term1 + ei_term2
         return exp_imp
         
-    search_res = basinhopping(func=expect_improve, x0=x_guess, minimizer_kwargs=min_kwargs, \
+    neg_expect_improve = make_neg(expect_improve)
+        
+    search_res = basinhopping(func=neg_expect_improve, x0=x_guess, minimizer_kwargs=min_kwargs, \
                         accept_test=myaccept, disp=True)
     return search_res
 
@@ -187,10 +196,8 @@ def search_infill(opt_results, optim_options, data_opts):
     if search_type == 'exploit':
         new_doe = opt_results.x
     elif search_type == 'hybrid':
-        search_point = optimize_search(opt_results, optim_options, data_opts)
-        new_doe = search_point
-        
-    print 'done!'
+        search_point = optimize_search(opt_results, optim_options)
+        new_doe = search_point.x
     return new_doe
         
     

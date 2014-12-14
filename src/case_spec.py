@@ -5,6 +5,7 @@ Created on Fri Apr 11 12:58:27 2014
 @author: jgr42_000
 """
 
+from core_objects_v5 import dv_scaler
 import creation_engine as c_eng
 import surrogate_constr as sur_constr
 import opt_search as opt_module
@@ -15,7 +16,9 @@ import copy
 import inspect
 import cPickle
 import itertools
-from core_objects_v5 import dv_scaler
+import numpy as np
+
+
 
 
 # Global access variables
@@ -157,7 +160,9 @@ def main():
     if args.search == 'on':
         with open(data_opts['opt_fname'], 'rb') as optf:
             opt_res = cPickle.load(optf)
-        search_res = opt_module.optimize_search(opt_res, optimization_options, 
+        optimization_options['search_type'] = search_type
+#        tst = optimization_options['obj_eval'](np.array([0.8,0.8,0.8,0.8]), eval_MSE=True)
+        search_res = opt_module.search_infill(opt_res, optimization_options, 
                                                 data_opts)
     
     if args.iterate == 'on':
