@@ -352,96 +352,96 @@ def make_plots(dv_dict, data_opts, plot_opts):
         raise Exception(" Plot type selection does not exist; please select either '2d' or '3d' ")
         
 
-def optimize_dv(data_opts):
-    with open(data_opts['fit_fname'], 'rb') as fitf:
-        meta_dict = cPickle.load(fitf)
-    global meta_dict
-    x_guess = np.empty(4)
-    x_guess[:] = 0.8
-    mybounds0 = [(0.0,1.0),(0.0,1.0),(0.0,1.0),(0.0,1.0)]
-    #brute_bounds = (slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1))
-    def positive_pred(X):
-        global meta_dict # Can change this to use default value such that it doesn't need to be global?
-        return -1.0 * meta_dict['obj_val'].predict(X)
-        
-    # Constraints for COBYLA
-    # upper bound constraints- will need to add lower bounds | TAG: FIX
-    def constr1(x):
-        return 1 - x[0]
-    def constr2(x):
-        return 1 - x[1]
-    def constr3(x):
-        return 1 - x[2]
-    def constr4(x):
-        return 1-x[3]
-    def constr5(x):
-        global meta_dict
-        return -1 * meta_dict['reac_co'].predict(x)
-    def constr6(x):
-        global meta_dict
-        return -1 * meta_dict['void_w'].predict(x)
-    def constr7(x):
-        global meta_dict
-        return meta_dict['max_cycle'].predict(x) - 184.0
-    # Put into dictionary for use
-    cobyla_constr = [{'type':'ineq', 'fun':constr1},{'type':'ineq', 'fun':constr2},{'type':'ineq', 'fun':constr3},{'type':'ineq', 'fun':constr4}, 
-                      {'type':'ineq', 'fun':constr5},{'type':'ineq', 'fun':constr6},{'type':'ineq', 'fun':constr7}]
-    #  Local minimizers
-    #res = minimize(positive_pred, x_guess, method='COBYLA', constraints=cobyla_constr, options={'disp':True})
-    #res = minimize(positive_pred, x0, method ='L-BFGS-B', bounds = mybounds0, jac = False, options={'disp':True})
-    #res2 = minimize(positive_pred, x0, method ='TNC', bounds = mybounds0, jac = False, options={'disp':True})
-    #print res.x
-        
-    #  Global minimizer-Basinhopping
-    min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr}
-#    min_kwargs = {"method":"TNC", "jac":False, "bounds":mybounds0} # "method":"TNC" or "L-BFGS-B", "bounds":mybounds0
-    mybounds1 = MyBounds()
-    myaccept1 = MyConstr()
-    res3 = basinhopping(func=positive_pred, x0=x_guess, minimizer_kwargs=min_kwargs, \
-                        accept_test=myaccept1, disp=True) # niter = 10, accept_test=mybounds1 or accept_test=myaccept1, stepsize=0.01, callback=print_fun
-    # to check results, call res3.x for dv's, res3.fun for val
-        
-    # Global minimizer- brute force
-    #resbrute = optimize.brute(positive_pred, brute_bounds, full_output=True)
-    
-    # save results to file
-    with open(data_opts['opt_fname'], 'wb') as optf:
-        cPickle.dump(res3, optf, 2)
-    
-    # End optimization
-
-class MyBounds(object):
-    def __init__(self, xmax=[1.0,1.0,1.0,1.0], xmin=[0.0,0.0,0.0,0.0] ):
-        self.xmax = np.array(xmax)
-        self.xmin = np.array(xmin)
-    def __call__(self, **kwargs):
-        x = kwargs["x_new"]
-        tmax = bool(np.all(x <= self.xmax))
-        tmin = bool(np.all(x >= self.xmin))
-#        if False in [tmax, tmin]:
+#def optimize_dv(data_opts):
+#    with open(data_opts['fit_fname'], 'rb') as fitf:
+#        meta_dict = cPickle.load(fitf)
+#    global meta_dict
+#    x_guess = np.empty(4)
+#    x_guess[:] = 0.8
+#    mybounds0 = [(0.0,1.0),(0.0,1.0),(0.0,1.0),(0.0,1.0)]
+#    #brute_bounds = (slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1))
+#    def positive_pred(X):
+#        global meta_dict # Can change this to use default value such that it doesn't need to be global?
+#        return -1.0 * meta_dict['obj_val'].predict(X)
+#        
+#    # Constraints for COBYLA
+#    # upper bound constraints- will need to add lower bounds | TAG: FIX
+#    def constr1(x):
+#        return 1 - x[0]
+#    def constr2(x):
+#        return 1 - x[1]
+#    def constr3(x):
+#        return 1 - x[2]
+#    def constr4(x):
+#        return 1-x[3]
+#    def constr5(x):
+#        global meta_dict
+#        return -1 * meta_dict['reac_co'].predict(x)
+#    def constr6(x):
+#        global meta_dict
+#        return -1 * meta_dict['void_w'].predict(x)
+#    def constr7(x):
+#        global meta_dict
+#        return meta_dict['max_cycle'].predict(x) - 184.0
+#    # Put into dictionary for use
+#    cobyla_constr = [{'type':'ineq', 'fun':constr1},{'type':'ineq', 'fun':constr2},{'type':'ineq', 'fun':constr3},{'type':'ineq', 'fun':constr4}, 
+#                      {'type':'ineq', 'fun':constr5},{'type':'ineq', 'fun':constr6},{'type':'ineq', 'fun':constr7}]
+#    #  Local minimizers
+#    #res = minimize(positive_pred, x_guess, method='COBYLA', constraints=cobyla_constr, options={'disp':True})
+#    #res = minimize(positive_pred, x0, method ='L-BFGS-B', bounds = mybounds0, jac = False, options={'disp':True})
+#    #res2 = minimize(positive_pred, x0, method ='TNC', bounds = mybounds0, jac = False, options={'disp':True})
+#    #print res.x
+#        
+#    #  Global minimizer-Basinhopping
+#    min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr}
+##    min_kwargs = {"method":"TNC", "jac":False, "bounds":mybounds0} # "method":"TNC" or "L-BFGS-B", "bounds":mybounds0
+#    mybounds1 = MyBounds()
+#    myaccept1 = MyConstr()
+#    res3 = basinhopping(func=positive_pred, x0=x_guess, minimizer_kwargs=min_kwargs, \
+#                        accept_test=myaccept1, disp=True) # niter = 10, accept_test=mybounds1 or accept_test=myaccept1, stepsize=0.01, callback=print_fun
+#    # to check results, call res3.x for dv's, res3.fun for val
+#        
+#    # Global minimizer- brute force
+#    #resbrute = optimize.brute(positive_pred, brute_bounds, full_output=True)
+#    
+#    # save results to file
+#    with open(data_opts['opt_fname'], 'wb') as optf:
+#        cPickle.dump(res3, optf, 2)
+#    
+#    # End optimization
+#
+#class MyBounds(object):
+#    def __init__(self, xmax=[1.0,1.0,1.0,1.0], xmin=[0.0,0.0,0.0,0.0] ):
+#        self.xmax = np.array(xmax)
+#        self.xmin = np.array(xmin)
+#    def __call__(self, **kwargs):
+#        x = kwargs["x_new"]
+#        tmax = bool(np.all(x <= self.xmax))
+#        tmin = bool(np.all(x >= self.xmin))
+##        if False in [tmax, tmin]:
+##            return False
+##        else:
+##            return True
+#        return tmax and tmin
+#        
+#class MyConstr(object):
+#    def __init__(self):
+#        pass
+#    def __call__(self, **kwargs):
+#        x = kwargs["x_new"]
+#        # now evaluate the constraint function here using x_new
+#        reac_coeff = bool(meta_dict['reac_co'].predict(x) < 0.0)
+#        void_worth = bool(meta_dict['void_w'].predict(x) < 0.0)
+#        max_cycle = bool(meta_dict['max_cycle'].predict(x) > 184.0)
+#        # cycle_len next
+#        #return reac_coeff and void_worth
+#        if False in [reac_coeff, void_worth, max_cycle]:
 #            return False
 #        else:
 #            return True
-        return tmax and tmin
-        
-class MyConstr(object):
-    def __init__(self):
-        pass
-    def __call__(self, **kwargs):
-        x = kwargs["x_new"]
-        # now evaluate the constraint function here using x_new
-        reac_coeff = bool(meta_dict['reac_co'].predict(x) < 0.0)
-        void_worth = bool(meta_dict['void_w'].predict(x) < 0.0)
-        max_cycle = bool(meta_dict['max_cycle'].predict(x) > 184.0)
-        # cycle_len next
-        #return reac_coeff and void_worth
-        if False in [reac_coeff, void_worth, max_cycle]:
-            return False
-        else:
-            return True
-        
-def print_fun(x, f, accepted):
-    print("at minima %.4f accepted %d" % (f, int(accepted)))
+#        
+#def print_fun(x, f, accepted):
+#    print("at minima %.4f accepted %d" % (f, int(accepted)))
 
 
 

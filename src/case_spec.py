@@ -7,6 +7,7 @@ Created on Fri Apr 11 12:58:27 2014
 
 import creation_engine as c_eng
 import surrogate_constr as sur_constr
+import opt_search as opt_module
 import argparse
 from collections import OrderedDict
 import os
@@ -59,6 +60,7 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('jobs_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_jobids.out')), \
 ('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_data.out')), \
 ('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
+('opt_inp_fname', os.path.join(os.path.expanduser(data_dir), 'opt_inp_settings.out')), \
 ('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_results.out')), \
 ('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_final.out')) ])
 
@@ -97,7 +99,7 @@ def main():
     parser.add_argument("-e","--extract", default='on')
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='on')
-    parser.add_argument("-o","--opt", default='off')
+    parser.add_argument("-o","--opt", default='on')
     parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()
@@ -143,8 +145,13 @@ def main():
         fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
         
     if args.opt == 'on':
-        #.optimize_dv(data_opts)
-        pass
+        with open(data_opts['fit_fname'], 'rb') as f:
+            fit_dict = cPickle.load(f)
+        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts)
+#        with open(data_opts['opt_inp_fname'], 'rb') as f:
+#            optimization_options = cPickle.load(f)
+        opt_res = opt_module.optimize_dv(optimization_options, data_opts)
+
         
     if args.iterate == 'on':
         iter_loop()
