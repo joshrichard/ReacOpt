@@ -535,7 +535,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         if not doe_set.keys() == doe_set_existing.keys():
             raise Exception('New and old doe_sets must have same keys!')
         for key in doe_set:
-            doe_set_new[key] = np.concatenate([doe_set_existing[key], doe_set[key]])
+            doe_set_new[key] = np.vstack([doe_set_existing[key], doe_set[key]])
         # End by dumping out the new combined data
         with open(data_opts['data_fname'], 'wb') as f:
             cPickle.dump(data_dict_new, f, 2)

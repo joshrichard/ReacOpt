@@ -5,7 +5,7 @@ Created on Fri Apr 11 12:58:27 2014
 @author: jgr42_000
 """
 
-from core_objects_v5 import dv_scaler
+#from core_objects_v5 import dv_scaler
 import creation_engine as c_eng
 import surrogate_constr as sur_constr
 import opt_search as opt_module
@@ -13,10 +13,12 @@ import argparse
 from collections import OrderedDict
 import os
 import copy
-import inspect
+#import inspect
 import cPickle
-import itertools
-import numpy as np
+#import itertools
+import sys
+import logging
+#import numpy as np
 
 
 
@@ -47,7 +49,7 @@ data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_new')
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':10, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
 doe_sets = {}
 
@@ -57,6 +59,7 @@ fit_dict = {}
 
 # Rename this at some point | TAG: Improve
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
+('log_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_log.out')), \
 ('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), \
 ('doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_doe.out')), \
 ('cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_cases.out')), \
@@ -65,6 +68,7 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
 ('opt_inp_fname', os.path.join(os.path.expanduser(data_dir), 'opt_inp_settings.out')), \
 ('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_results.out')), \
+('search_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_search.out')), \
 ('iter_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_dump_iter.out')), \
 ('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_final.out')) ])
 
@@ -86,14 +90,16 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 #converge_tol = 0.05
 #obj_fun = []
 all_opt_res = []
-iter_cntr = 0
-search_type = 'hybrid'
+all_expec_val_res = []
+search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
+run_mode = 'normal' # either 'restart' or 'normal'
 
-try:
-    os.remove(data_opts['data_fname'])
-except OSError:
-    pass
+if run_mode == 'normal':
+    try:
+        os.remove(data_opts['data_fname'])
+    except OSError:
+        pass
 
 def main():
     
@@ -181,27 +187,37 @@ def iter_loop():
     converged = False
     converged_temp = False
     first_iter = True
+    iter_cntr = 0
 
     while not converged:
         ####
         # If first iteration, make an initial DoE set of eval points
         ####
         if first_iter:
+            print 'First iteration!'
+            print 'Making initial DoE'
             doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
                     case_info['dv_bounds'], data_opts['doe_fname'], **doe_opts)
+        print 'Current DoE:'
+        print doe_sets['doe']
+        print doe_sets['doe_scaled']
         # Then put current iteration's doe into a storage variable
         doe_sets_iter = copy.deepcopy(doe_sets)
         ####
         # Next, make input files for current doe
         ####
+        print 'Making input files'
         with open(data_opts['doe_fname'], 'rb') as f:
             doe_sets['doe'] = cPickle.load(f)
             doe_sets['doe_scaled'] = cPickle.load(f)
         case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts, data_opts)
+        print 'Current case set:'
+        print case_info['case_set']
         ####
         # Run the new doe cases
         ####
+        print 'Running current case set'
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
         case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts)
@@ -210,6 +226,7 @@ def iter_loop():
         # Extract and post-process the doe output data
         ####
         global doe_sets
+        print 'Extracting output data'
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
         with open(data_opts['doe_fname'], 'rb') as f:
@@ -217,40 +234,64 @@ def iter_loop():
             doe_sets['doe_scaled'] = cPickle.load(f)
         # Read data into objects:
         data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
+        print 'All output data:'
+        print data_dict
+        print 'Full DoE set:'
+        print doe_sets
         ####
         # Form a surrogate model using the doe data
         ####
+        print 'Making surrogate'
         with open(data_opts['data_fname'], 'rb') as f:
             data_dict = cPickle.load(f)
             doe_sets = cPickle.load(f)
         fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
+        print 'Created surrogate:'
+        print fit_dict
         ####
-        # Optimize the objective  function using the surrogate
+        # Optimize the objective function using the surrogate
         ####
+        print 'Optimizing on objective function of surrogate'
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
         optimization_options = opt_module.get_optim_opts(fit_dict, data_opts)
         opt_res = opt_module.optimize_dv(optimization_options, data_opts)
+        print 'Results of optimization:'
+        print opt_res
         ####
         # Search for a new evaluation location
         ####
+        print 'Searching for new evaluation location'
         with open(data_opts['opt_fname'], 'rb') as optf:
             opt_res = cPickle.load(optf)
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, 
                                                 case_info, data_opts)
+        print 'Search result:'
+        print search_res
         # Cleanup step
+        iter_cntr += 1
         iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
         all_opt_res.append(opt_res.fun) # TAG: Improve?
+        all_expec_val_res.append(search_res[1])
+        print 'Currently observed best obj fun values:'
+        print all_opt_res
+        print 'Currently identified expected improvements:'
+        print all_expec_val_res
         
         ####
         # Check convergence
         ####
+        print 'Checking for convergence'
         if not first_iter:
-            converged_temp = opt_module.converge_check(all_opt_res, thresh_in) 
+            if search_type == 'exploit':
+                converged_temp = opt_module.converge_check(all_opt_res, thresh_in)
+            elif search_type == 'hybrid':
+                converged_temp = opt_module.converge_check(all_expec_val_res, thresh_in)
         ####
         # Save data from each step into a single dump file for this iteration
         ####
+        print 'Saving iteration {} data'.format(iter_cntr)
         with open(iter_fname, 'wb') as it_f:
             cPickle.dump(doe_sets, it_f, 2)
             cPickle.dump(doe_sets_iter, it_f, 2)
@@ -264,10 +305,12 @@ def iter_loop():
         # End or prepare for next loop
         ####
         if converged_temp:
+            print 'Converged on iteration {}'.format(iter_cntr)
             converged = True
         else:
+            print 'Iteration {} not converged'.format(iter_cntr)
             first_iter = False
-            doe_sets['doe'], doe_sets['doe_scaled'] = search_res
+            doe_sets['doe'], doe_sets['doe_scaled'] = search_res[0]
             with open(data_opts['doe_fname'], 'wb') as outpf:
                 cPickle.dump(doe_sets['doe'], outpf, 2)
                 cPickle.dump(doe_sets['doe_scaled'], outpf, 2)
@@ -333,6 +376,37 @@ def iter_loop():
 #            #Done with optimization outer iteration
 #            with open(data_opts['final_fname'], 'wb') as finalf:
 #                cPickle.dump(obj_fun, finalf, 2) # Need to store run data for every iteration, not just dump and overwrite on every iteration
+
+# Logging streamer functionality courtesy of Ferry Boender
+# http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
+# GPL license
+class StreamToLogger(object):
+   """
+   Fake file-like stream object that redirects writes to a logger instance.
+   """
+   def __init__(self, logger, log_level=logging.INFO):
+      self.logger = logger
+      self.log_level = log_level
+      self.linebuf = ''
+ 
+   def write(self, buf):
+      for line in buf.rstrip().splitlines():
+         self.logger.log(self.log_level, line.rstrip())
+ 
+logging.basicConfig(
+   level=logging.DEBUG,
+   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+   filename=data_opts['log_fname'],
+   filemode='a'
+)
+ 
+stdout_logger = logging.getLogger('STDOUT')
+sl = StreamToLogger(stdout_logger, logging.INFO)
+sys.stdout = sl
+ 
+stderr_logger = logging.getLogger('STDERR')
+sl = StreamToLogger(stderr_logger, logging.ERROR)
+sys.stderr = sl
 
 if __name__ == '__main__':
     main()

@@ -198,11 +198,15 @@ def search_infill(opt_results, optim_options, case_info, data_opts):
     #First, select whether exploitation or hybrid
     if search_type == 'exploit':
         new_doe_scaled = opt_results.x
+        obj_res = opt_results.fun
     elif search_type == 'hybrid':
         search_point = optimize_search(opt_results, optim_options)
         new_doe_scaled = search_point.x
+        obj_res = search_point.fun
+        with open(data_opts['search_fname'], 'wb') as f:
+            cPickle.dump(search_point, f, 2)
     new_doe = core.dv_scaler(new_doe_scaled, dv_bounds, 'real')
-    return new_doe, new_doe_scaled
+    return (new_doe, new_doe_scaled), obj_res
 
 
 def converge_check(prev_obs_vals, thresh_inp):
