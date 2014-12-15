@@ -121,7 +121,7 @@ def main():
         with open(data_opts['doe_fname'], 'rb') as f:
             doe_sets['doe'] = cPickle.load(f)
             doe_sets['doe_scaled'] = cPickle.load(f)
-        data_names['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+        case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts, data_opts)
         
     if args.run == 'on':
@@ -197,7 +197,7 @@ def iter_loop():
         with open(data_opts['doe_fname'], 'rb') as f:
             doe_sets['doe'] = cPickle.load(f)
             doe_sets['doe_scaled'] = cPickle.load(f)
-        data_names['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+        case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts, data_opts)
         ####
         # Run the new doe cases
@@ -268,6 +268,9 @@ def iter_loop():
         else:
             first_iter = False
             doe_sets['doe'], doe_sets['doe_scaled'] = search_res
+            with open(data_opts['doe_fname'], 'wb') as outpf:
+                cPickle.dump(doe_sets['doe'], outpf, 2)
+                cPickle.dump(doe_sets['doe_scaled'], outpf, 2)
             # Need to reset anyting else?
 
         

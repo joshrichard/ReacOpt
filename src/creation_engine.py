@@ -40,8 +40,8 @@ def make_doe(case_bounds, output_fname, **kwargs):
         raise TypeError(msg)
     
     with open(output_fname, 'wb') as outpf:
-        cPickle.dump(doe, outpf)
-        cPickle.dump(doe_scaled, outpf)
+        cPickle.dump(doe, outpf, 2)
+        cPickle.dump(doe_scaled, outpf, 2)
         
     return doe, doe_scaled
 
@@ -131,20 +131,23 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # 
                 os.mkdir(make_filepath)
             save_filepath = combine_path
         final_path = os.path.join( file_path, save_filepath)
-        for the_file in os.listdir(final_path): # Note that if there's a directory in here, will fail
+        for the_file in [main_inp_fname, main_qsub_fname]: # os.listdir(final_path) Note that if there's a directory in here, will fail
             file_path = os.path.join(final_path, the_file)
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
         shutil.move(main_inp_fname, final_path)
         shutil.move(main_qsub_fname, final_path)
-#        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
-#            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
-#            shutil.move(main_pdist_fname, pdist_path)
+        if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
+            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
+            shutil.move(main_pdist_fname, pdist_path)
         save_filepath = os.path.join(save_filepath, main_inp_fname)
         created_filepaths.append(save_filepath)
         reload(core)
 
     with open(data_opts['cases_fname'], 'wb') as outpf:
-        cPickle.dump(created_filepaths, outpf)
+        cPickle.dump(created_filepaths, outpf, 2)
 
     return created_filepaths
 
@@ -166,7 +169,7 @@ def run_case_matrix(case_set_names, data_opts):
         job_set_names.append(jobid)
         
     with open(data_opts['jobs_fname'], 'wb') as outpf: # Will this work if file already exists? Will it overwrite correctly?
-        cPickle.dump(job_set_names, outpf)
+        cPickle.dump(job_set_names, outpf, 2)
     
     return job_set_names
 
@@ -535,8 +538,8 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
             doe_set_new[key] = np.concatenate([doe_set_existing[key], doe_set[key]])
         # End by dumping out the new combined data
         with open(data_opts['data_fname'], 'wb') as f:
-            cPickle.dump(data_dict_new, f)
-            cPickle.dump(doe_set_new, f)
+            cPickle.dump(data_dict_new, f, 2)
+            cPickle.dump(doe_set_new, f, 2)
         del data_dict, data_dict_existing, doe_set, doe_set_existing
         data_dict = data_dict_new
         doe_set = doe_set_new
