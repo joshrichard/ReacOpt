@@ -45,6 +45,7 @@ tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_new')
+dump_dir = os.path.join(data_dir, 'run_dump_files')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -59,20 +60,20 @@ fit_dict = {}
 
 # Rename this at some point | TAG: Improve
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
-('log_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_log.out')), \
+('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
 ('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), \
-('doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_doe.out')), \
-('init_doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_initdoe.out')), \
-('cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_cases.out')), \
-('res_cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_rescases.out')), \
-('jobs_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_jobids.out')), \
-('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_data.out')), \
-('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
-('opt_inp_fname', os.path.join(os.path.expanduser(data_dir), 'opt_inp_settings.out')), \
-('opt_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_results.out')), \
-('search_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_search.out')), \
-('iter_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_dump_iter.out')), \
-('final_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_final.out')) ])
+('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')), \
+('init_doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_initdoe.out')), \
+('cases_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_cases.out')), \
+('res_cases_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_rescases.out')), \
+('jobs_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_jobids.out')), \
+('data_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_data.out')), \
+('fit_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_fit.out')), \
+('opt_inp_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_inp_settings.out')), \
+('opt_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_results.out')), \
+('search_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_search.out')), \
+('iter_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_dump_iter.out')), \
+('final_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_final.out')) ])
 
 detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002')])
 
@@ -95,7 +96,7 @@ all_opt_res = []
 all_expec_val_res = []
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
-run_mode = 'normal' # either 'restart' or 'normal'
+run_mode = 'restart' # either 'restart' or 'normal'
 
 if run_mode == 'normal':
     try:
@@ -399,33 +400,34 @@ def iter_loop():
 # Logging streamer functionality courtesy of Ferry Boender
 # http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
 # GPL license
-class StreamToLogger(object):
-   """
-   Fake file-like stream object that redirects writes to a logger instance.
-   """
-   def __init__(self, logger, log_level=logging.INFO):
-      self.logger = logger
-      self.log_level = log_level
-      self.linebuf = ''
- 
-   def write(self, buf):
-      for line in buf.rstrip().splitlines():
-         self.logger.log(self.log_level, line.rstrip())
- 
-logging.basicConfig(
-   level=logging.DEBUG,
-   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-   filename=data_opts['log_fname'],
-   filemode='a'
-)
- 
-stdout_logger = logging.getLogger('STDOUT')
-sl = StreamToLogger(stdout_logger, logging.INFO)
-sys.stdout = sl
- 
-stderr_logger = logging.getLogger('STDERR')
-sl = StreamToLogger(stderr_logger, logging.ERROR)
-sys.stderr = sl
+
+#class StreamToLogger(object):
+#   """
+#   Fake file-like stream object that redirects writes to a logger instance.
+#   """
+#   def __init__(self, logger, log_level=logging.INFO):
+#      self.logger = logger
+#      self.log_level = log_level
+#      self.linebuf = ''
+# 
+#   def write(self, buf):
+#      for line in buf.rstrip().splitlines():
+#         self.logger.log(self.log_level, line.rstrip())
+# 
+#logging.basicConfig(
+#   level=logging.DEBUG,
+#   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+#   filename=data_opts['log_fname'],
+#   filemode='a'
+#)
+# 
+#stdout_logger = logging.getLogger('STDOUT')
+#sl = StreamToLogger(stdout_logger, logging.INFO)
+#sys.stdout = sl
+# 
+#stderr_logger = logging.getLogger('STDERR')
+#sl = StreamToLogger(stderr_logger, logging.ERROR)
+#sys.stderr = sl
 
 if __name__ == '__main__':
     main()
