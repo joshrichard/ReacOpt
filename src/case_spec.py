@@ -62,7 +62,9 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('log_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_log.out')), \
 ('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), \
 ('doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_doe.out')), \
+('init_doe_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_initdoe.out')), \
 ('cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_cases.out')), \
+('res_cases_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_rescases.out')), \
 ('jobs_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_jobids.out')), \
 ('data_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_data.out')), \
 ('fit_fname', os.path.join(os.path.expanduser(data_dir), 'opt_run_fit.out')), \
@@ -128,7 +130,7 @@ def main():
             doe_sets['doe'] = cPickle.load(f)
             doe_sets['doe_scaled'] = cPickle.load(f)
         case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
-                               run_opts, data_opts)
+                               run_opts, data_opts, first_iter)
         
     if args.run == 'on':
         with open(data_opts['cases_fname'], 'rb') as outpf:
@@ -195,9 +197,16 @@ def iter_loop():
         ####
         if first_iter:
             print 'First iteration!'
-            print 'Making initial DoE'
-            doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
-                    case_info['dv_bounds'], data_opts['doe_fname'], **doe_opts)
+            if run_mode == 'normal':
+                print 'run_type = normal: Making initial DoE'
+                doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
+                        case_info['dv_bounds'], data_opts['doe_fname'], 
+                        data_opts['init_doe_fname'], **doe_opts)
+            elif run_mode == 'restart':
+                print 'run_type = restart: Using preexisting DoE'
+                with open(data_opts['init_doe_fname'], 'rb') as f:
+                    doe_sets['doe'] = cPickle.load(f)
+                    doe_sets['doe_scaled'] = cPickle.load(f)
         print 'Current DoE:'
         print doe_sets['doe']
         print doe_sets['doe_scaled']
@@ -206,32 +215,42 @@ def iter_loop():
         ####
         # Next, make input files for current doe
         ####
-        print 'Making input files'
-        with open(data_opts['doe_fname'], 'rb') as f:
-            doe_sets['doe'] = cPickle.load(f)
-            doe_sets['doe_scaled'] = cPickle.load(f)
-        case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
-                               run_opts, data_opts)
-        print 'Current case set:'
-        print case_info['case_set']
-        ####
-        # Run the new doe cases
-        ####
-        print 'Running current case set'
-        with open(data_opts['cases_fname'], 'rb') as outpf:
-            case_info['case_set'] = cPickle.load(outpf)
-        case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts)
-        c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
-        ####
-        # Extract and post-process the doe output data
-        ####
-        global doe_sets
-        print 'Extracting output data'
-        with open(data_opts['cases_fname'], 'rb') as outpf:
-            case_info['case_set'] = cPickle.load(outpf)
-        with open(data_opts['doe_fname'], 'rb') as f:
-            doe_sets['doe'] = cPickle.load(f)
-            doe_sets['doe_scaled'] = cPickle.load(f)
+        if first_iter and run_mode == 'restart':
+            print 'first iter in restart mode: skipping case creation and execution'
+            global doe_sets
+            print 'Extracting preexisting output data'
+            with open(data_opts['res_cases_fname'], 'rb') as outpf:
+                case_info['case_set'] = cPickle.load(outpf)
+            with open(data_opts['init_doe_fname'], 'rb') as f:
+                doe_sets['doe'] = cPickle.load(f)
+                doe_sets['doe_scaled'] = cPickle.load(f)
+        else:
+            print 'Making input files'
+            with open(data_opts['doe_fname'], 'rb') as f:
+                doe_sets['doe'] = cPickle.load(f)
+                doe_sets['doe_scaled'] = cPickle.load(f)
+            case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+                                   run_opts, data_opts, first_iter)
+            print 'Current case set:'
+            print case_info['case_set']
+            ####
+            # Run the new doe cases
+            ####
+            print 'Running current case set'
+            with open(data_opts['cases_fname'], 'rb') as outpf:
+                case_info['case_set'] = cPickle.load(outpf)
+            case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts)
+            c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
+            ####
+            # Extract and post-process the doe output data
+            ####
+            global doe_sets
+            print 'Extracting output data'
+            with open(data_opts['cases_fname'], 'rb') as outpf:
+                case_info['case_set'] = cPickle.load(outpf)
+            with open(data_opts['doe_fname'], 'rb') as f:
+                doe_sets['doe'] = cPickle.load(f)
+                doe_sets['doe_scaled'] = cPickle.load(f)
         # Read data into objects:
         data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
         print 'All output data:'

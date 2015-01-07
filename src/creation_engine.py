@@ -24,7 +24,7 @@ import time
 import cPickle
 
         
-def make_doe(case_bounds, output_fname, **kwargs):
+def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
     if kwargs['doe_type'] == 'FF':
         ff_shape = [kwargs['FF_num']] * len(case_bounds)
         doe = pyDOE.fullfact(ff_shape)
@@ -88,7 +88,8 @@ def calc_extra_states(extra_states):
 # Formatted as:
 #   - Return the names and store into a data_names dict
 
-def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # change from case_matrix... to a case_set that can be updated?
+def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts, 
+                     first_iter): # change from case_matrix... to a case_set that can be updated?
 
     created_filepaths = []
 
@@ -148,6 +149,9 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts): # 
 
     with open(data_opts['cases_fname'], 'wb') as outpf:
         cPickle.dump(created_filepaths, outpf, 2)
+    if first_iter:
+        with open(data_opts['res_cases_fname'], 'wb') as outpf:
+            cPickle.dump(created_filepaths, outpf, 2)
 
     return created_filepaths
 
