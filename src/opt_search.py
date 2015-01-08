@@ -200,7 +200,12 @@ def search_infill(opt_results, optim_options, case_info, data_opts):
         new_doe_scaled = opt_results.x
         obj_res = opt_results.fun
     elif search_type == 'hybrid':
-        search_point = optimize_search(opt_results, optim_options)
+        try:
+            search_point = optimize_search(opt_results, optim_options)
+        except ValueError:
+            print 'ValueError in Basinhopping, trying again....'
+            search_res = search_infill(opt_results, optim_options, case_info, data_opts)
+            return search_res
         new_doe_scaled = search_point.x
         obj_res = search_point.fun
         with open(data_opts['search_fname'], 'wb') as f:
