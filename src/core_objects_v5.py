@@ -354,7 +354,7 @@ class Lattice(object):
         serp_str = ""
         if self.comment != None:
             serp_str += """% {0:<40} \n """.format(self.comment)
-        serp_str += """lat {id:>6} {typ} {ref_point:>15} {dimension:>8} {width:.5f} \n""".format( \
+        serp_str += """lat {id:>6} {typ} {ref_point:>15} {dimension:>8} {width:>6} \n""".format( \
                        id = self.id, typ = self.typ, ref_point = self.ref_point, \
                        dimension = self.dimension, width = self.width)
         serp_str += """{univs} \n""".format(univs = self.universes)
