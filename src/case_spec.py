@@ -19,6 +19,7 @@ import cPickle
 import sys
 import logging
 import numpy as np
+import time
 
 
 
@@ -27,19 +28,19 @@ import numpy as np
 
 # Hardwired inputs
 
-design_vars = ('coreh', 'pf', 'krad', 'enr')
-case_vars = ('cdens',)
-extra_vars= ('bu',)
+#design_vars = ('coreh', 'pf', 'krad', 'enr', 'f2f')
+#case_vars = ('cdens',)
+#extra_vars= ('bu',)
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
-    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5])])
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0])])
     
-extra_states = OrderedDict([('cdens',[0.001, 0.75, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
+extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
-tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
-    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
-    ('bu', [0.0, 5.0, 89.0, 183.0]) ])
+#tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
+#    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
+#    ('bu', [0.0, 5.0, 89.0, 183.0]) ])
     
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -96,12 +97,15 @@ all_opt_res = []
 all_expec_val_res = []
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
-run_mode = 'restart' # either 'restart' or 'normal'
-debug = 'on'
+run_mode = 'normal' # either 'restart' or 'normal'
+debug = 'off'
 
 if run_mode == 'normal':
     try:
-        os.remove(data_opts['data_fname'])
+        timenow = time.localtime()
+        timestring = '_{}_{}_{}_{}_{}_{}'.format(*timenow[0:6])
+        namestring = data_opts['data_fname'][:-4] + timestring + '.out'
+        os.rename(data_opts['data_fname'], namestring)
     except OSError:
         pass
 

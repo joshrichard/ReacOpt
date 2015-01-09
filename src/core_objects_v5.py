@@ -354,7 +354,7 @@ class Lattice(object):
         serp_str = ""
         if self.comment != None:
             serp_str += """% {0:<40} \n """.format(self.comment)
-        serp_str += """lat {id:>6} {typ} {ref_point:>15} {dimension:>8} {width:>6} \n""".format( \
+        serp_str += """lat {id:>6} {typ} {ref_point:>15} {dimension:>8} {width:.5f} \n""".format( \
                        id = self.id, typ = self.typ, ref_point = self.ref_point, \
                        dimension = self.dimension, width = self.width)
         serp_str += """{univs} \n""".format(univs = self.universes)
@@ -664,7 +664,7 @@ class FhtrCoreLat(Lattice):
 # class that takes a lattice object and SerpPin objects and makes surrounding
 #  cells and associated universes
 class LatFill(object):
-    def __init__(self, root_name, core_key, lat_typ, assm_dict_spec, pin_dict_spec, surf_key, fill_mat, isurf_key=None, ip_mat=None):
+    def __init__(self, root_name, core_key, lat_typ, assm_dict_spec, pin_dict_spec, surf_key, fill_mat, isurf_key=None, ip_mat=None, width=None):
         self.root_name = root_name
         self.core_key = core_key
         self.assm_dict_spec = assm_dict_spec
@@ -675,6 +675,7 @@ class LatFill(object):
             self.ip_surface = isurf_key
         self.fill_mat = fill_mat
         self.ip_mat = ip_mat
+        self.width = width
         self.lat_typ = lat_typ
         self.pin_dict_spec = pin_dict_spec
         self.lat_name = self.root_name + '_L'
@@ -690,7 +691,10 @@ class LatFill(object):
         elif self.lat_typ == 'ip':
             FhtrIPLat(self.lat_name)
         elif self.lat_typ == 'core':
-            FhtrCoreLat(self.lat_name)
+            if self.width != None:
+                FhtrCoreLat(self.lat_name, width=self.width)
+            else:
+                FhtrCoreLat(self.lat_name)
         else:
             raise Exception('Not a recognized lattice type!')
         lat_dict.intdict[self.lat_name].update_univs(self.pin_dict_spec)

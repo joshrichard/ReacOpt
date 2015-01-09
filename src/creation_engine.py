@@ -7,7 +7,7 @@ Created on Thu Mar 06 18:18:22 2014
 
 
 
-
+import math
 import argparse
 import itertools
 import os
@@ -204,7 +204,7 @@ def make_std_inp(inp_tuple, fmake_inp_fname, fmake_pdist_fname, run_opts):
 def make_mats(mats_inp_tuple, run_opts):
     
     u235_enrich = mats_inp_tuple[3]
-    salt_dens_frac = float(mats_inp_tuple[4])
+    salt_dens_frac = float(mats_inp_tuple[5])
     
     
     
@@ -277,6 +277,10 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     core_h = float(run_opts['total_coreh'])
     act_core_h = float(geom_inp_tuple[0])
     k_rad = float(geom_inp_tuple[2])
+    assm_f2f = float(geom_inp_tuple[4])
+    half_f2f = assm_f2f * 0.5
+    block_hf2f = half_f2f - 0.1
+    core_width = (assm_f2f / math.sqrt(3.0)) * 9.0
     void_mat = core.Material('void', density='')
     outside_mat = core.Material('outside', density='')
     
@@ -309,7 +313,7 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     
     
     # Surface for bounding assemblies
-    core.Surface('fuel_assm_edge_s', 'hexyc', coeffs = '0.0 0.0 12.4')
+    core.Surface('fuel_assm_edge_s', 'hexyc', coeffs = '0.0 0.0 {blockhf2f:.5f}'.format(blockhf2f = block_hf2f))
     core.Surface('fuel_assm_ip_s', 'cylz', coeffs = '0.0 0.0 2.1')
     
     # Create fuel assembly lattice (active region) and surrounding cell
@@ -329,7 +333,7 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     
     # Active core lattice
     core.Surface('core_edge_s', 'hexxc', coeffs = '0.0 0.0 125.0')
-    core.LatFill(root_name='act_core', core_key=None, lat_typ='core', assm_dict_spec=None, pin_dict_spec=core.assm_dict, surf_key='core_edge_s', fill_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='act_core', core_key=None, lat_typ='core', width=assm_f2f, assm_dict_spec=None, pin_dict_spec=core.assm_dict, surf_key='core_edge_s', fill_mat=run_opts['cool_mat'])
     
     # Assemblies for reflector-slice lattice
     
@@ -343,7 +347,7 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     core.LatFill(root_name='cr_assm_ref', core_key='cr', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'])
     
     # Reflector core lattice
-    core.LatFill(root_name='ax_ref', core_key=None, lat_typ='core', assm_dict_spec=None, pin_dict_spec=core.ref_dict, surf_key='core_edge_s', fill_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='ax_ref', core_key=None, lat_typ='core', width=assm_f2f, assm_dict_spec=None, pin_dict_spec=core.ref_dict, surf_key='core_edge_s', fill_mat=run_opts['cool_mat'])
     
     # Axial salt cell
     core.Surface('ax_inf_s', 'inf')
@@ -356,12 +360,12 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     
     
     # Universe zero
-    core.Surface('total_core_s', 'hexxprism', '0.0 0.0 130.0 {min_h} {max_h}'.format(min_h=ax_stack.lower_stack_bound, max_h=ax_stack.upper_stack_bound))
+    core.Surface('total_core_s', 'hexxprism', '0.0 0.0 {core_wide:.1f} {min_h} {max_h}'.format(core_wide=core_width, min_h=ax_stack.lower_stack_bound, max_h=ax_stack.upper_stack_bound))
     core.Cell('total_core_c', '-{0}'.format(core.surf_dict.intdict['total_core_s'].id), fill=core.lat_dict.intdict['core_stack_L'].id)
     core.Cell('total_core_outside_c', '{0}'.format(core.surf_dict.intdict['total_core_s'].id), material=outside_mat)
     
     # Fuel irradiation position ghost surface
-    core.Surface('fuel_ip_det_s', 'hexyprism', '0.0 0.0 12.5 0.0 {act_h}'.format(act_h = act_core_h))
+    core.Surface('fuel_ip_det_s', 'hexyprism', '0.0 0.0 {halff2f:.5f} 0.0 {height}'.format(halff2f = half_f2f, height = core_h))
     
     
     
@@ -499,10 +503,10 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     for bu_dim in xrange(bu_stride):
         reac_bu1 = data_dict['reac'].data[bu_dim::bu_stride] # These strides only hold if 
         reac_bu1_error = data_dict['reac'].error[bu_dim::bu_stride]
-        void_worth = reac_bu1[0::cl_stride] - reac_bu1[2::cl_stride]
+        void_worth = reac_bu1[0::cl_stride] - reac_bu1[1::cl_stride] # Only works for 2 cdens! | TAG: hardcode, improve
         reac_coeff = void_worth / delta
         vw_err = ( ( reac_bu1[0::cl_stride] * reac_bu1_error[0::cl_stride] )**2  + \
-                   ( reac_bu1[2::cl_stride] * reac_bu1_error[2::cl_stride] )**2 ) \
+                   ( reac_bu1[1::cl_stride] * reac_bu1_error[1::cl_stride] )**2 ) \
                    / abs(void_worth)
         temp_reac_coeff.append(np.array(reac_coeff))
         temp_void_worth.append(np.array(void_worth))
