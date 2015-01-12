@@ -280,7 +280,9 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     assm_f2f = float(geom_inp_tuple[4])
     half_f2f = assm_f2f * 0.5
     block_hf2f = half_f2f - 0.1
-    core_width = (assm_f2f / math.sqrt(3.0)) * 9.0
+    assm_side_w = (assm_f2f / math.sqrt(3.0))
+    core_lat_width = assm_side_w * 8.5
+    core_width = assm_side_w * 9.0 # 9.0 based on number of rings in core | TAG: hardcode
     void_mat = core.Material('void', density='')
     outside_mat = core.Material('outside', density='')
     
@@ -315,15 +317,16 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     # Surface for bounding assemblies
     core.Surface('fuel_assm_edge_s', 'hexyc', coeffs = '0.0 0.0 {blockhf2f:.5f}'.format(blockhf2f = block_hf2f))
     core.Surface('fuel_assm_ip_s', 'cylz', coeffs = '0.0 0.0 2.1')
+    core.Surface('fuel_assm_ring_s', 'hexyc', coeffs = '0.0 0.0 9.0')
     
     # Create fuel assembly lattice (active region) and surrounding cell
-    core.LatFill(root_name='fuel_assm_act', core_key='fa', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='fuel_assm_act', core_key='fa', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create irradiation position lattice (active region) and surrounding cell
-    core.LatFill(root_name='ip_assm_act', core_key='ip', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='ip_assm_act', core_key='ip', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create control rod position lattice (active region) and surrounding cell
-    core.LatFill(root_name='cr_assm_act', core_key='cr', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='cr_assm_act', core_key='cr', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create solid salt 'assembly'
     core.SolidFill(root_name='salt_assm', core_key='st', solid_typ='solid', surf_key='fuel_assm_edge_s', solid_mat=run_opts['cool_mat'], outside_mat=run_opts['cool_mat'])
@@ -332,19 +335,19 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     core.SolidFill(root_name='ref_assm', core_key='rf', solid_typ='solid', surf_key='fuel_assm_edge_s', solid_mat='block', outside_mat=run_opts['cool_mat'])
     
     # Active core lattice
-    core.Surface('core_edge_s', 'hexxc', coeffs = '0.0 0.0 125.0')
+    core.Surface('core_edge_s', 'hexxc', coeffs = '0.0 0.0 {core_lat_wid:.5f}'.format(core_lat_wid = core_lat_width))
     core.LatFill(root_name='act_core', core_key=None, lat_typ='core', width=assm_f2f, assm_dict_spec=None, pin_dict_spec=core.assm_dict, surf_key='core_edge_s', fill_mat=run_opts['cool_mat'])
     
     # Assemblies for reflector-slice lattice
     
     # Standard fuel assembly lattice (reflector region) and surrounding cell
-    core.LatFill(root_name='fuel_assm_ref', core_key='fa', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='fuel_assm_ref', core_key='fa', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create irradiation position lattice (active region) and surrounding cell
-    core.LatFill(root_name='ip_assm_ref', core_key='ip', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='ip_assm_ref', core_key='ip', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create control rod position lattice (active region) and surrounding cell
-    core.LatFill(root_name='cr_assm_ref', core_key='cr', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'])
+    core.LatFill(root_name='cr_assm_ref', core_key='cr', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Reflector core lattice
     core.LatFill(root_name='ax_ref', core_key=None, lat_typ='core', width=assm_f2f, assm_dict_spec=None, pin_dict_spec=core.ref_dict, surf_key='core_edge_s', fill_mat=run_opts['cool_mat'])

@@ -548,7 +548,7 @@ class FhtrInFuelLat(Lattice):
         self.ny = dimension.split()[1]
 
 
-class FhtrIPLat(Lattice):    
+class FhtrIPLat(Lattice):    # 1.8
     def __init__(self, key, typ = '2', dimension = '19 19', ref_point = '0.0 0.0', width = '1.8', comment=None):
         global n_lattices, n_universes
         n_lattices += 1
@@ -664,7 +664,7 @@ class FhtrCoreLat(Lattice):
 # class that takes a lattice object and SerpPin objects and makes surrounding
 #  cells and associated universes
 class LatFill(object):
-    def __init__(self, root_name, core_key, lat_typ, assm_dict_spec, pin_dict_spec, surf_key, fill_mat, isurf_key=None, ip_mat=None, width=None):
+    def __init__(self, root_name, core_key, lat_typ, assm_dict_spec, pin_dict_spec, surf_key, fill_mat, isurf_key=None, ip_mat=None, ring_key=None, ring_mat=None, width=None):
         self.root_name = root_name
         self.core_key = core_key
         self.assm_dict_spec = assm_dict_spec
@@ -673,8 +673,13 @@ class LatFill(object):
             self.ip_surface = surf_dict.intdict[isurf_key].id
         else:
             self.ip_surface = isurf_key
+        if ring_key != None:
+            self.ring_surf = surf_dict.intdict[ring_key].id
+        else:
+            self.ring_surf = ring_key
         self.fill_mat = fill_mat
         self.ip_mat = ip_mat
+        self.ring_mat = ring_mat
         self.width = width
         self.lat_typ = lat_typ
         self.pin_dict_spec = pin_dict_spec
@@ -683,6 +688,7 @@ class LatFill(object):
         self.latcell_name = self.root_name + '_c'
         self.outcell_name = self.root_name + '_out_c'
         self.ipcell_name = self.root_name + '_ipcell_c'
+        self.ringcell_name = self.root_name + '_ring_c'
         self.make_assm()
         
     def make_assm(self):
@@ -703,7 +709,8 @@ class LatFill(object):
             Cell(self.outcell_name, surfs = '{0}'.format(self.surface), universe = self.univ_name, material = mat_dict.intdict[self.fill_mat])
         elif self.lat_typ == 'ip':
             Cell(self.ipcell_name, surfs = '-{0}'.format(self.ip_surface), universe = self.univ_name, material = mat_dict.intdict[self.ip_mat])
-            Cell(self.latcell_name, surfs = '{0} -{1}'.format(self.ip_surface, self.surface), universe = self.univ_name, fill = lat_dict.intdict[self.lat_name].id)
+            Cell(self.latcell_name, surfs = '{0} -{1}'.format(self.ip_surface, self.ring_surf), universe = self.univ_name, fill = lat_dict.intdict[self.lat_name].id)
+            Cell(self.ringcell_name, surfs = '{0} -{1}'.format(self.ring_surf, self.surface), universe = self.univ_name, material = mat_dict.intdict[self.ring_mat])
             Cell(self.outcell_name, surfs = '{0}'.format(self.surface), universe = self.univ_name, material = mat_dict.intdict[self.fill_mat])
         if self.lat_typ != 'core':
             self.assm_dict_spec.update({self.core_key:univ_dict.intdict[self.univ_name].id})
