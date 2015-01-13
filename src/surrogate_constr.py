@@ -23,6 +23,7 @@ from matplotlib import cm
 from matplotlib.colors import Normalize
 #from sklearn.pipeline import Pipeline
 from sklearn import preprocessing
+from sklearn import cross_validation
 from sklearn import svm
 from sklearn import tree
 from sklearn.linear_model import LinearRegression # Ridge
@@ -96,6 +97,21 @@ def make_meta(data_dict, doe_set, data_opts, obj_inp = 'reac'):
 #    print res.x
 #    pass
 
+def eval_meta(data_dict, fit_dict, data_opts, obj_inp):
+    
+    obj_data = data_dict[obj_inp].data_fit
+    obj_gpm = fit_dict['obj_val']
+    X_t = fit_dict['X_t']
+    
+    scores = cross_validation.cross_val_score(obj_gpm, X_t, obj_data, cv = 5)
+    fit_dict.update({'scores':scores})
+
+    with open(data_opts['fit_fname'], 'wb') as fitf:
+        cPickle.dump(fit_dict, fitf, 2)
+    return fit_dict
+    
+    
+    
 
 def make_plots(dv_dict, data_opts, plot_opts):
     type_opt = plot_opts['type']

@@ -95,6 +95,7 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 #obj_fun = []
 all_opt_res = []
 all_expec_val_res = []
+obj_spec = 'reac'
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
 run_mode = 'normal' # either 'restart' or 'normal'
@@ -283,9 +284,12 @@ def iter_loop():
 #            with open(data_opts['data_fname'], 'wb') as f:
 #                cPickle.dump(data_dict, f, 2)
 #                cPickle.dump(doe_sets, f, 2)
-        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
+        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, obj_inp = obj_spec)
         print 'Created surrogate:'
         print fit_dict
+        print 'Evaluating surrogate'
+        fit_dict = sur_constr.eval_meta(data_dict, fit_dict, data_opts, obj_inp = obj_spec)
+        print fit_dict['scores']
         ####
         # Optimize the objective function using the surrogate
         ####
