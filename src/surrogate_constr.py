@@ -37,7 +37,7 @@ from scipy.optimize import basinhopping
 #from scipy import optimize
 
 
-def make_meta(data_dict, doe_set, data_opts, obj_inp = 'reac', sur_type = 'interp'):
+def make_meta(data_dict, doe_set, data_opts, obj_inp, sur_type):
     
     obj_data = data_dict[obj_inp].data_fit
     obj_err = np.square(data_dict[obj_inp].error_fit)
