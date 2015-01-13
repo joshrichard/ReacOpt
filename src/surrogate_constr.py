@@ -37,23 +37,32 @@ from scipy.optimize import basinhopping
 #from scipy import optimize
 
 
-def make_meta(data_dict, doe_set, data_opts, obj_inp = 'reac'):
+def make_meta(data_dict, doe_set, data_opts, obj_inp = 'reac', sur_type = 'interp'):
     
     obj_data = data_dict[obj_inp].data_fit
+    obj_err = np.square(data_dict[obj_inp].error_fit)
     reac_co_data = data_dict['reac_coeff'].data_fit[:,1] # At some point, will want to make this for all bu steps | TAG: Improve
     void_w_data = data_dict['void_worth'].data_fit[:,1]
     max_cycle_data = data_dict['reac'].max_bu_data
     X_t = doe_set['doe_scaled']
     
-#    with open(data_opts['data_fname'], 'rb') as datf:
-#        run_data = cPickle.load(datf)
-#    scal = preprocessing.MinMaxScaler()
-#    X_t = scal.fit_transform(run_data['reac'].fit_dv_mtx)
-    #test = svm.SVR(C=1.0, epsilon=0.00)a
-    #test = Ridge()
-    #test = tree.DecisionTreeRegressor()
+    if sur_type == 'interp':
+        
+    #    with open(data_opts['data_fname'], 'rb') as datf:
+    #        run_data = cPickle.load(datf)
+    #    scal = preprocessing.MinMaxScaler()
+    #    X_t = scal.fit_transform(run_data['reac'].fit_dv_mtx)
+        #test = svm.SVR(C=1.0, epsilon=0.00)a
+        #test = Ridge()
+        #test = tree.DecisionTreeRegressor()
+    
+        obj_val = gaussian_process.GaussianProcess()
+        
+    elif sur_type == 'regress':
+        obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
+    else:
+        raise Exception('{} is not a valid sur_type option!'.format(sur_type))
 
-    obj_val = gaussian_process.GaussianProcess()
     reac_co = gaussian_process.GaussianProcess()
     void_w = gaussian_process.GaussianProcess()
     max_cycle = gaussian_process.GaussianProcess()
@@ -67,7 +76,10 @@ def make_meta(data_dict, doe_set, data_opts, obj_inp = 'reac'):
                 'max_cycle':max_cycle}
     with open(data_opts['fit_fname'], 'wb') as fitf:
         cPickle.dump(fit_dict, fitf, 2)
+
     return fit_dict
+    
+    
     # NOTE: should plot with all values save the x-axis at 1, not 0
 #    x_plot = np.empty([1000,4])    
 #    x_plot[:,0:3] = X_t[0,0:3]
