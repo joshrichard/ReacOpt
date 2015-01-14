@@ -99,8 +99,8 @@ obj_spec = 'reac'
 sur_typ_spec = 'interp'
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
-run_mode = 'normal' # either 'restart' or 'normal'
-debug = 'off'
+run_mode = 'restart' # either 'restart' or 'normal'
+use_exist_data = 'off'
 
 if run_mode == 'normal':
     try:
@@ -108,6 +108,11 @@ if run_mode == 'normal':
         timestring = '_{}_{}_{}_{}_{}_{}'.format(*timenow[0:6])
         namestring = data_opts['data_fname'][:-4] + timestring + '.out'
         os.rename(data_opts['data_fname'], namestring)
+    except OSError:
+        pass
+elif run_mode == 'restart' and use_exist_data == 'off': # careful with this!
+    try:
+        os.remove(data_opts['data_fname'])
     except OSError:
         pass
 
@@ -229,7 +234,7 @@ def iter_loop():
             print 'Extracting preexisting output data'
             with open(data_opts['res_cases_fname'], 'rb') as outpf:
                 case_info['case_set'] = cPickle.load(outpf)
-            with open(data_opts['init_doe_fname'], 'rb') as f:
+            with open(data_opts['init_doe_fname'], 'rb') as f: # could get rid of this?
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
         else:
@@ -260,7 +265,7 @@ def iter_loop():
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
         # Read data into objects:
-        if first_iter and debug == 'on':
+        if first_iter and use_exist_data == 'on':
             print 'not extracting new data...for now'
         else:
             data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)

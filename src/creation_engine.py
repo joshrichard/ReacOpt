@@ -42,6 +42,9 @@ def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
     with open(output_fname, 'wb') as outpf:
         cPickle.dump(doe, outpf, 2)
         cPickle.dump(doe_scaled, outpf, 2)
+    with open(first_output_fname, 'wb') as outpf:
+        cPickle.dump(doe, outpf, 2)
+        cPickle.dump(doe_scaled, outpf, 2)
         
     return doe, doe_scaled
 
@@ -447,9 +450,9 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     doe_set = data_sets
 
     
-    data_dict = dict([ ('reac', core.CaseMatrix()), ('fuel_flux', core.MultCaseMat()), \
-                     ('mat_flux', core.MultCaseMat()), ('reac_coeff', core.CoeffCaseMat()), \
-                     ('void_worth', core.CoeffCaseMat()) ])
+    data_dict = dict([ ('reac', core.CaseMatrix('1d')), ('fuel_flux', core.MultCaseMat('1d')), \
+                     ('mat_flux', core.MultCaseMat('1d')), ('reac_coeff', core.CoeffCaseMat('2d')), \
+                     ('void_worth', core.CoeffCaseMat('2d')) ])
     
 
     for case in case_set:
@@ -515,15 +518,15 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         temp_void_worth.append(np.array(void_worth))
         temp_vw_err.append(np.array(vw_err))
     
-    data_dict['reac_coeff'].data = np.hstack(temp_reac_coeff) # .reshape([-1, bu_stride])
-    data_dict['reac_coeff'].error = np.hstack(temp_vw_err)
-    data_dict['void_worth'].data = np.hstack(temp_void_worth)
-    data_dict['void_worth'].error = np.hstack(temp_vw_err)
+    data_dict['reac_coeff'].data = np.vstack(temp_reac_coeff).T.ravel() # .reshape([-1, bu_stride])
+    data_dict['reac_coeff'].error = np.vstack(temp_vw_err).T.ravel()
+    data_dict['void_worth'].data = np.vstack(temp_void_worth).T.ravel()
+    data_dict['void_worth'].error = np.vstack(temp_vw_err).T.ravel()
         
     
     for obj in data_dict.values():
         obj.set_shape_extras(bu_stride, cl_stride)
-        obj.final_shape()
+        obj.final_shape(file_point_idx = 1, extra_state_idx = 1)
     
     # Calc max cycle lengths using reac data
     data_dict['reac'].make_bu_fit(case_info['bu_steps'][1:]) # Must specify here | TAG: Hardcode

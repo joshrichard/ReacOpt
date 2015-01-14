@@ -1153,7 +1153,7 @@ sss2 {inpfname} -omp 8"""
 
 # Object CaseMatrix() for storing data as a function of design variables investigated
 class CaseMatrix(object):
-    def __init__(self, FF_num=None):
+    def __init__(self, shape_typ, FF_num=None):
         #self.myshapetot = tuple((len(dv_list) for dv_list in self.tot_dv_dict.values())) # Must calc these first to later reshape the numpy array
         #self.mysizetot = reduce(operator.mul, self.myshapetot)
         #self.myshapefit = tuple((len(dv_list) for dv_list in self.fit_dv_dict.values())) # Must calc these first to later reshape the numpy array
@@ -1165,6 +1165,7 @@ class CaseMatrix(object):
         self.data = numpy.array([], dtype=float)
         self.error = numpy.array([], dtype=float)
         self.ff_shape = FF_num
+        self.shape_typ = shape_typ
 
 
     def __add__(self, other):
@@ -1194,19 +1195,25 @@ class CaseMatrix(object):
     
     # Note: Could only thin from cdens, then opt over a single bu or avg of all bu
     # TAG: Improve
-    def final_shape(self, file_point_idx=1, extra_state_idx=2):
+    def final_shape(self, file_point_idx, extra_state_idx):
         # First, reshape data array for easy plotting        
         #self.data_shape = numpy.array(self.data).reshape(self.myshapetot)
         #self.error_shape = numpy.array(self.error).reshape(self.myshapetot)
         # Then, make an array with data only from 2nd bu step (xe equil) and dens=1.0 for fitting purposes       
         self.data_fit = copy.deepcopy(self.data)
         self.error_fit = copy.deepcopy(self.error)
-        if hasattr(self, 'file_points'):
+        if self.shape_typ == '1d':
+            #if hasattr(self, 'file_points'): # Need this check?
             self.data_fit = self.data_fit[file_point_idx::self.file_points] # narrow from BU
             self.error_fit = self.error_fit[file_point_idx::self.file_points]
-        if hasattr(self, 'extra_states'):
+            #if hasattr(self, 'extra_states'): # Need this check?
             self.data_fit = self.data_fit[extra_state_idx::self.extra_states] # narrow from cdens
             self.error_fit = self.error_fit[extra_state_idx::self.extra_states] # narrow from cdens
+        elif self.shape_typ == '2d': # Not really extensible to multiple extra_states past cdens
+            self.data_fit = self.data_fit.reshape([-1,self.file_points])
+            self.error_fit = self.error_fit.reshape([-1, self.file_points])
+        else:
+            raise Exception("{} is not a recognized .shape_typ attribute. Specify (as a string) either '1d' or '2d'".format(self.shape_typ))
             
     def make_bu_fit(self, bu_vals, extra_state_idx=2):
         # only called for 'reac' CaseMatrix        
@@ -1233,10 +1240,10 @@ class CoeffCaseMat(CaseMatrix):
 # Object MultCaseMat() for creating multiple CaseMatrix() objects inside a single object
 # to store groupwise data
 class MultCaseMat(object):
-    def __init__(self, ff_shape=None):
-        self.fast = CaseMatrix(ff_shape)
-        self.epi = CaseMatrix(ff_shape)
-        self.therm = CaseMatrix(ff_shape)
+    def __init__(self, shape_typ, ff_shape=None):
+        self.fast = CaseMatrix(shape_typ, ff_shape)
+        self.epi = CaseMatrix(shape_typ, ff_shape)
+        self.therm = CaseMatrix(shape_typ, ff_shape)
         
     def __add__(self, other):
         new = copy.deepcopy(self)
