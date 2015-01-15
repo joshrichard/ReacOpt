@@ -96,7 +96,8 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 all_opt_res = []
 all_expec_val_res = []
 obj_spec = 'reac'
-sur_typ_spec = 'interp'
+fit_opts = {'sur_type':'interp', 'theta_opt':'default', 'num_k_folds':5, 'obj_spec':'reac'} # 'regress' or 'interp', 
+sur_typ_spec = 'regress'
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
 run_mode = 'restart' # either 'restart' or 'normal'
@@ -231,7 +232,7 @@ def iter_loop():
         if first_iter and run_mode == 'restart':
             print 'first iter in restart mode: skipping case creation and execution'
             global doe_sets
-            print 'Extracting preexisting output data'
+            print 'Extracting preexisting doe data'
             with open(data_opts['res_cases_fname'], 'rb') as outpf:
                 case_info['case_set'] = cPickle.load(outpf)
             with open(data_opts['init_doe_fname'], 'rb') as f: # could get rid of this?
@@ -290,11 +291,11 @@ def iter_loop():
 #            with open(data_opts['data_fname'], 'wb') as f:
 #                cPickle.dump(data_dict, f, 2)
 #                cPickle.dump(doe_sets, f, 2)
-        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, obj_inp = obj_spec, sur_type = sur_typ_spec)
+        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, fit_opts)
         print 'Created surrogate:'
         print fit_dict
         print 'Evaluating surrogate'
-        fit_dict = sur_constr.eval_meta(data_dict, fit_dict, data_opts, obj_inp = obj_spec)
+        fit_dict = sur_constr.eval_meta(data_dict, fit_dict, data_opts, fit_opts)
         print fit_dict['scores']
         ####
         # Optimize the objective function using the surrogate

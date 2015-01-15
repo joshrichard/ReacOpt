@@ -37,8 +37,9 @@ from scipy.optimize import basinhopping
 #from scipy import optimize
 
 
-def make_meta(data_dict, doe_set, data_opts, obj_inp, sur_type):
+def make_meta(data_dict, doe_set, data_opts, fit_opts):
     
+    obj_inp = fit_opts['obj_spec']
     obj_data = data_dict[obj_inp].data_fit
     obj_err = np.square(data_dict[obj_inp].error_fit)
     reac_co_data = data_dict['reac_coeff'].data_fit[:,1] # At some point, will want to make this for all bu steps | TAG: Improve
@@ -46,18 +47,13 @@ def make_meta(data_dict, doe_set, data_opts, obj_inp, sur_type):
     max_cycle_data = data_dict['reac'].max_bu_data
     X_t = doe_set['doe_scaled']
     
-    if sur_type == 'interp':
-        
-    #    with open(data_opts['data_fname'], 'rb') as datf:
-    #        run_data = cPickle.load(datf)
-    #    scal = preprocessing.MinMaxScaler()
-    #    X_t = scal.fit_transform(run_data['reac'].fit_dv_mtx)
-        #test = svm.SVR(C=1.0, epsilon=0.00)a
-        #test = Ridge()
-        #test = tree.DecisionTreeRegressor()
+    sur_type = fit_opts['sur_type']
+    theta_opt = fit_opts['theta_opt']
     
-        obj_val = gaussian_process.GaussianProcess()
-        
+    # select theta type for obj_val only for now
+    if sur_type == 'interp':
+        if theta_opt == 'default':
+            obj_val = gaussian_process.GaussianProcess()
     elif sur_type == 'regress':
         obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
     else:
@@ -68,6 +64,14 @@ def make_meta(data_dict, doe_set, data_opts, obj_inp, sur_type):
     max_cycle = gaussian_process.GaussianProcess()
     #test = neighbors.KNeighborsRegressor()
     #test = GradientBoostingRegressor()
+    #    with open(data_opts['data_fname'], 'rb') as datf:
+    #        run_data = cPickle.load(datf)
+    #    scal = preprocessing.MinMaxScaler()
+    #    X_t = scal.fit_transform(run_data['reac'].fit_dv_mtx)
+        #test = svm.SVR(C=1.0, epsilon=0.00)a
+        #test = Ridge()
+        #test = tree.DecisionTreeRegressor()    
+    
     obj_val.fit(X_t, obj_data)
     reac_co.fit(X_t, reac_co_data)
     void_w.fit(X_t, void_w_data)
@@ -109,14 +113,19 @@ def make_meta(data_dict, doe_set, data_opts, obj_inp, sur_type):
 #    print res.x
 #    pass
 
-def eval_meta(data_dict, fit_dict, data_opts, obj_inp):
+def eval_meta(data_dict, fit_dict, data_opts, fit_opts):
     
+    obj_inp = fit_opts['obj_spec']
     obj_data = data_dict[obj_inp].data_fit
-    obj_gpm = fit_dict['obj_val']
+    #obj_gpm = fit_dict['obj_val']
     X_t = fit_dict['X_t']
+    k_num = fit_opts['num_k_folds']
     
-    scores = cross_validation.cross_val_score(obj_gpm, X_t, obj_data, cv = 5)
-    fit_dict.update({'scores':scores})
+    # Doesn't work with GPM regression? | TAG: Improve
+    scores = cross_validation.cross_val_score(gaussian_process.GaussianProcess(), X_t, obj_data, cv = k_num)
+    fit_dict.update({'scores':scores}) 
+    # Return coefficient of determination (R^2) value of the fit
+    # Best possible score = 1.0, lower values worse
 
     with open(data_opts['fit_fname'], 'wb') as fitf:
         cPickle.dump(fit_dict, fitf, 2)

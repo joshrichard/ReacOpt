@@ -501,6 +501,8 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     bu_stride = len(case_info['bu_steps'])
     cl_stride = calc_extra_states(case_info['extra_states']) # Only if cdens is the only extra state? | TAG: Improve
     delta =  (2960 - 2960 * 0.001)/ (0.889)
+    estate_start_idx = 0
+    estate_end_idx = 1
        
     # New style (with array striding) calculation of reac_coeff from reac | TAG: Improve
     temp_reac_coeff = []
@@ -509,10 +511,10 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     for bu_dim in xrange(bu_stride):
         reac_bu1 = data_dict['reac'].data[bu_dim::bu_stride] # These strides only hold if 
         reac_bu1_error = data_dict['reac'].error[bu_dim::bu_stride]
-        void_worth = reac_bu1[0::cl_stride] - reac_bu1[1::cl_stride] # Only works for 2 cdens! | TAG: hardcode, improve
+        void_worth = reac_bu1[estate_start_idx::cl_stride] - reac_bu1[estate_end_idx::cl_stride] # Only works for 2 cdens! | TAG: hardcode, improve
         reac_coeff = void_worth / delta
-        vw_err = ( ( reac_bu1[0::cl_stride] * reac_bu1_error[0::cl_stride] )**2  + \
-                   ( reac_bu1[1::cl_stride] * reac_bu1_error[1::cl_stride] )**2 ) \
+        vw_err = ( ( reac_bu1[estate_start_idx::cl_stride] * reac_bu1_error[estate_start_idx::cl_stride] )**2  + \
+                   ( reac_bu1[estate_end_idx::cl_stride] * reac_bu1_error[estate_end_idx::cl_stride] )**2 ) \
                    / abs(void_worth)
         temp_reac_coeff.append(np.array(reac_coeff))
         temp_void_worth.append(np.array(void_worth))
@@ -526,10 +528,10 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     
     for obj in data_dict.values():
         obj.set_shape_extras(bu_stride, cl_stride)
-        obj.final_shape(file_point_idx = 1, extra_state_idx = 1)
+        obj.final_shape(file_point_idx = 1, extra_state_idx = estate_end_idx)
     
     # Calc max cycle lengths using reac data
-    data_dict['reac'].make_bu_fit(case_info['bu_steps'][1:]) # Must specify here | TAG: Hardcode
+    data_dict['reac'].make_bu_fit(case_info['bu_steps'][1:], estate_end_idx) # Must specify here | TAG: Hardcode
     
     # Could combine output data and doe data sets into single dict... | TAG: Improve
     # If preexisting data exists, add to it
