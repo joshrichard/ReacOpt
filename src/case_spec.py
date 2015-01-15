@@ -51,7 +51,7 @@ dump_dir = os.path.join(data_dir, 'run_dump_files')
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':10, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':80, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
 doe_sets = {}
 
@@ -95,12 +95,11 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 #obj_fun = []
 all_opt_res = []
 all_expec_val_res = []
-obj_spec = 'reac'
-fit_opts = {'sur_type':'interp', 'theta_opt':'default', 'num_k_folds':5, 'obj_spec':'reac'} # 'regress' or 'interp', 
-sur_typ_spec = 'regress'
+# 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or <irr_flux?>
+fit_opts = {'sur_type':'interp', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'reac'} 
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
-run_mode = 'restart' # either 'restart' or 'normal'
+run_mode = 'normal' # either 'restart' or 'normal'
 use_exist_data = 'off'
 
 if run_mode == 'normal':

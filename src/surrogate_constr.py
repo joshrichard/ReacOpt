@@ -49,13 +49,37 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     
     sur_type = fit_opts['sur_type']
     theta_opt = fit_opts['theta_opt']
+    theta_bounds = (1e-1, 1e-4, 0.5)
+    if fit_opts['num_theta'] == 'single':
+        num_feat = 1
+    elif fit_opts['num_theta'] == 'all':
+        num_feat = X_t.shape[-1]
+    else:
+        raise Exception('{} is not a supported option for num_theta!'.format(fit_opts['num_theta']))
+    theta_guess = [theta_bounds[0]] * num_feat
+    theta_lowb = [theta_bounds[1]] * num_feat
+    theta_upb = [theta_bounds[2]] * num_feat
+
     
     # select theta type for obj_val only for now
     if sur_type == 'interp':
         if theta_opt == 'default':
             obj_val = gaussian_process.GaussianProcess()
+        elif theta_opt == 'custom':
+            #theta_guess = [theta_bounds[0]] * X_t.shape[-1]
+            obj_val = gaussian_process.GaussianProcess(theta0=theta_guess, thetaL=theta_lowb,
+                                                       thetaU = theta_upb)
+        else:
+            raise Exception('{} is not a valid theta_opt specification!'.format(theta_opt))
     elif sur_type == 'regress':
-        obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
+        if theta_opt == 'default':
+            obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
+        elif theta_opt == 'custom':
+            #theta_guess = [theta_bounds[0]] * X_t.shape[-1]
+            obj_val = gaussian_process.GaussianProcess(nugget = obj_err, theta0=theta_guess,
+                                                       thetaL=theta_lowb, thetaU = theta_upb)
+        else:
+            raise Exception('{} is not a valid theta_opt specification!'.format(theta_opt))
     else:
         raise Exception('{} is not a valid sur_type option!'.format(sur_type))
 
@@ -117,12 +141,12 @@ def eval_meta(data_dict, fit_dict, data_opts, fit_opts):
     
     obj_inp = fit_opts['obj_spec']
     obj_data = data_dict[obj_inp].data_fit
-    #obj_gpm = fit_dict['obj_val']
+    obj_gpm = fit_dict['obj_val']
     X_t = fit_dict['X_t']
     k_num = fit_opts['num_k_folds']
     
     # Doesn't work with GPM regression? | TAG: Improve
-    scores = cross_validation.cross_val_score(gaussian_process.GaussianProcess(), X_t, obj_data, cv = k_num)
+    scores = cross_validation.cross_val_score(obj_gpm, X_t, obj_data, cv = k_num)
     fit_dict.update({'scores':scores}) 
     # Return coefficient of determination (R^2) value of the fit
     # Best possible score = 1.0, lower values worse
