@@ -46,7 +46,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
-dump_dir = os.path.join(data_dir, 'run_dump_files')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_worktest1')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -96,10 +96,10 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 all_opt_res = []
 all_expec_val_res = []
 # 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or <irr_flux?>
-fit_opts = {'sur_type':'interp', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'reac'} 
+fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'reac'} 
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
-run_mode = 'normal' # either 'restart' or 'normal'
+run_mode = 'restart' # either 'restart' or 'normal'
 use_exist_data = 'off'
 
 if run_mode == 'normal':

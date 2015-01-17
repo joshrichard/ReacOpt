@@ -1177,7 +1177,8 @@ class CaseMatrix(object):
             new.error_fit = np.concatenate([self.error_fit, other.error_fit])
         if hasattr(self, 'max_bu_data') and hasattr(other, 'max_bu_data'):
             new.max_bu_data = np.concatenate([self.max_bu_data, other.max_bu_data])
-        return new
+        return new # Can redo this to put name of each attribute for addition into a dict
+                   # then loop through dict
         
     def add_vals(self, val, error):
         self.data = numpy.append(self.data, float(val))
@@ -1185,6 +1186,12 @@ class CaseMatrix(object):
         
     def calc_length(self):
         self.mysizetot = len(self.data.ravel())
+        
+    def get_abs_error(self):
+        return self.error * self.data
+    
+    def get_abs_error_fit(self):
+        return self.error_fit * self.data_fit
         
     def set_ff_num(self, ff_num):
         self.ff_num = ff_num

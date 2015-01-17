@@ -67,17 +67,21 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
             obj_val = gaussian_process.GaussianProcess()
         elif theta_opt == 'custom':
             #theta_guess = [theta_bounds[0]] * X_t.shape[-1]
-            obj_val = gaussian_process.GaussianProcess(theta0=theta_guess, thetaL=theta_lowb,
+            obj_val = gaussian_process.GaussianProcess(theta0 = theta_guess, thetaL = theta_lowb,
                                                        thetaU = theta_upb)
         else:
             raise Exception('{} is not a valid theta_opt specification!'.format(theta_opt))
+        xval_obj_val = copy.deepcopy(obj_val)
     elif sur_type == 'regress':
         if theta_opt == 'default':
             obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
+            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err))
         elif theta_opt == 'custom':
             #theta_guess = [theta_bounds[0]] * X_t.shape[-1]
             obj_val = gaussian_process.GaussianProcess(nugget = obj_err, theta0=theta_guess,
-                                                       thetaL=theta_lowb, thetaU = theta_upb)
+                                                       thetaL = theta_lowb, thetaU = theta_upb)
+            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err), theta0=theta_guess,
+                                                       thetaL = theta_lowb, thetaU = theta_upb)
         else:
             raise Exception('{} is not a valid theta_opt specification!'.format(theta_opt))
     else:
@@ -101,7 +105,7 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     void_w.fit(X_t, void_w_data)
     max_cycle.fit(X_t, max_cycle_data)
     fit_dict = {'X_t':X_t,'obj_val':obj_val, 'reac_co':reac_co, 'void_w':void_w, \
-                'max_cycle':max_cycle}
+                'max_cycle':max_cycle, 'xval_obj_val':xval_obj_val}
     with open(data_opts['fit_fname'], 'wb') as fitf:
         cPickle.dump(fit_dict, fitf, 2)
 
@@ -141,7 +145,7 @@ def eval_meta(data_dict, fit_dict, data_opts, fit_opts):
     
     obj_inp = fit_opts['obj_spec']
     obj_data = data_dict[obj_inp].data_fit
-    obj_gpm = fit_dict['obj_val']
+    obj_gpm = fit_dict['xval_obj_val'] #fit_dict['obj_val']
     X_t = fit_dict['X_t']
     k_num = fit_opts['num_k_folds']
     
