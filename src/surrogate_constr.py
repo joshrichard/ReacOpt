@@ -75,7 +75,7 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     elif sur_type == 'regress':
         if theta_opt == 'default':
             obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
-            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err))
+            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err)) # Could make this np.max() to be conservative | TAG: CHANGE
         elif theta_opt == 'custom':
             #theta_guess = [theta_bounds[0]] * X_t.shape[-1]
             obj_val = gaussian_process.GaussianProcess(nugget = obj_err, theta0=theta_guess,
@@ -149,7 +149,7 @@ def eval_meta(data_dict, fit_dict, data_opts, fit_opts):
     X_t = fit_dict['X_t']
     k_num = fit_opts['num_k_folds']
     
-    # Doesn't work with GPM regression? | TAG: Improve
+    # Modified to work with GPM regression by using an average 'nugget' instead of pointwise nugget
     scores = cross_validation.cross_val_score(obj_gpm, X_t, obj_data, cv = k_num)
     fit_dict.update({'scores':scores}) 
     # Return coefficient of determination (R^2) value of the fit

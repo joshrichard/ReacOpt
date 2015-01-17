@@ -268,6 +268,7 @@ def iter_loop():
         if first_iter and use_exist_data == 'on':
             print 'not extracting new data...for now'
         else:
+            print 're-extracting output data in restart mode'
             data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
             print 'All output data:'
             print data_dict

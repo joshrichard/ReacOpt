@@ -57,7 +57,8 @@ def all_bounds_constr(X):
     return result
 
 def get_optim_opts(fit_dict, data_opts):
-    x_guess = np.array([0.8]*4) # Need to make feature length variable here?
+    num_feat = fit_dict['X_t'].shape[-1]
+    x_guess = np.array([0.8]*num_feat) # Improve guess spot? | TAG: Improve
     obj_eval = make_neg(fit_dict['obj_val'].predict)
     reac_co_eval = make_neg(fit_dict['reac_co'].predict)
     void_w_eval = make_neg(fit_dict['void_w'].predict)
@@ -115,7 +116,7 @@ def get_optim_opts(fit_dict, data_opts):
                      {'type':'ineq', 'fun':max_cycle_eval}]
     cobyla_constr.extend(boxbound_constr_dict)
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr}
-    myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval)
+    myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, num_feat)
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval} # want the constr_dict here explicitly? | TAG: Question
 #    with open(data_opts['opt_inp_fname'], 'wb') as f:
@@ -242,9 +243,9 @@ def converge_check(prev_obs_vals, thresh_inp):
 #        return tmax and tmin
         
 class MyConstr(object):
-    def __init__(self, reac_co_eval, void_w_eval, max_cycle_eval, xmax=[1.0,1.0,1.0,1.0], xmin=[0.0,0.0,0.0,0.0], ): # need to make work for n-length feature set | TAG: Improve
-        self.xmax = np.array(xmax)
-        self.xmin = np.array(xmin)
+    def __init__(self, reac_co_eval, void_w_eval, max_cycle_eval, x_len): # need to make work for n-length feature set | TAG: Improve
+        self.xmax = np.ones(x_len)
+        self.xmin = np.zeros(x_len)
         self.reac_co_eval = reac_co_eval
         self.void_w_eval = void_w_eval
         self.max_cycle_eval = max_cycle_eval
