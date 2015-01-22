@@ -22,7 +22,7 @@ import pyDOE
 from sklearn import preprocessing
 import time
 import cPickle
-#from uncertainties import ufloat
+from uncertainties import ufloat, umath
 
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
@@ -465,12 +465,13 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
                     if line.split()[0] == 'COL_KEFF':
                         reac_tmp = float(line.split()[6:7][0])
                         err_tmp = float(line.split()[7:8][0]) # Note that this is relative error all the way through
-                        err_tmp = err_tmp * 1.0 / abs( reac_tmp - 1.0 )
-                        reac_tmp = ( 1.0 -  1.0 / reac_tmp ) * 1.0E5
-#                        reac_uncert = ufloat(reac_tmp, reac_tmp*err_tmp)
+#                        err_tmp = err_tmp * 1.0 / abs( reac_tmp - 1.0 )
+#                        reac_tmp = ( 1.0 -  1.0 / reac_tmp ) * 1.0E5
+                        reac_uncert = ufloat(reac_tmp, reac_tmp*err_tmp)
+                        reac_uncert = umath.log(reac_uncert) *1E5
 #                        reac_uncert = ( 1.0 -  1.0 / reac_uncert ) * 1.0E5
-#                        reac_tmp = reac_uncert.nominal_value
-#                        err_tmp = reac_uncert.std_dev
+                        reac_tmp = reac_uncert.nominal_value
+                        err_tmp = reac_uncert.std_dev / reac_uncert.nominal_value # Relative error
 
                         data_dict['reac'].add_vals(reac_tmp, err_tmp)
                 except IndexError:
