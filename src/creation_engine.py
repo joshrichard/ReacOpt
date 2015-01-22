@@ -471,7 +471,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
                         reac_uncert = umath.log(reac_uncert) *1E5
 #                        reac_uncert = ( 1.0 -  1.0 / reac_uncert ) * 1.0E5
                         reac_tmp = reac_uncert.nominal_value
-                        err_tmp = reac_uncert.std_dev / reac_uncert.nominal_value # Relative error
+                        err_tmp = abs(reac_uncert.std_dev / reac_uncert.nominal_value) # Relative error
 
                         data_dict['reac'].add_vals(reac_tmp, err_tmp)
                 except IndexError:
