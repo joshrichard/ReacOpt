@@ -320,10 +320,12 @@ def iter_loop():
         print 'Search result:'
         print search_res
         # Check for duplicate search result
-        if search_res[-1].x in doe_sets['doe_scaled']:
-            print 'Duplicate search result - already in DoE!'
-            converged_temp = True
-            search_duplicate = True
+        for dv_set in doe_sets['doe_scaled']:
+            if np.allclose(dv_set, search_res[0][-1]):
+                print 'Duplicate search result - already in DoE!'
+                converged_temp = True
+                search_duplicate = True
+                break
         # Cleanup step
         iter_cntr += 1
         iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
