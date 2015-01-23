@@ -17,7 +17,7 @@ import math
 import cPickle
 
 
-#from scipy.optimize import minimize
+from scipy.optimize import minimize
 from scipy.optimize import basinhopping
 #from scipy import optimize
 
@@ -185,9 +185,25 @@ def optimize_search(opt_results, optim_options):
         return exp_imp
         
     neg_expect_improve = make_neg(expect_improve)
-        
+
+    # Try the local minimizer first, make sure that it doesn't fail
+    # otherwise try a new starting guess and repeat
+    x_guess_ok = False
+    while not x_guess_ok:
+        # do a local optimize with current x_guess
+        local_res = minimize(neg_expect_improve, x_guess, **min_kwargs)
+        if local_res.success:
+            print 'x_guess ok! = {}'.format(x_guess)
+            x_guess_ok = True
+        else:
+            print 'x_guess not ok! = {}'.format(x_guess)
+            print 'making new x_guess'
+            x_guess = np.random.random_sample([len(x_guess)])
+            print 'new x_guess: {}'.format(x_guess)
+    # Once the inital local fmin works, start the basinhopping
     search_res = basinhopping(func=neg_expect_improve, x0=x_guess, minimizer_kwargs=min_kwargs, \
                         accept_test=myaccept, disp=True)
+    
     return search_res
 
 
