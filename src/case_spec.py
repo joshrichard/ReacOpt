@@ -201,6 +201,7 @@ def iter_loop():
     # Run each element of the iteration loop to converge to optimal solution
     converged = False
     converged_temp = False
+    search_duplicate = False
     first_iter = True
     iter_cntr = 0
 
@@ -318,11 +319,17 @@ def iter_loop():
                                                 case_info, data_opts)
         print 'Search result:'
         print search_res
+        # Check for duplicate search result
+        if search_res[-1].x in doe_sets['doe_scaled']:
+            print 'Duplicate search result - already in DoE!'
+            converged_temp = True
+            search_duplicate = True
         # Cleanup step
         iter_cntr += 1
         iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
         all_opt_res.append(opt_res.fun) # TAG: Improve?
-        all_expec_val_res.append(search_res[1])
+        if not search_duplicate:
+            all_expec_val_res.append(search_res[-1])
         print 'Currently observed best obj fun values:'
         print all_opt_res
         print 'Currently identified expected improvements:'
@@ -332,7 +339,7 @@ def iter_loop():
         # Check convergence
         ####
         print 'Checking for convergence'
-        if not first_iter:
+        if not first_iter and not converged_temp:
             if search_type == 'exploit':
                 converged_temp = opt_module.converge_check(all_opt_res, thresh_in)
             elif search_type == 'hybrid':
@@ -430,33 +437,33 @@ def iter_loop():
 # http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
 # GPL license
 
-#class StreamToLogger(object):
-#   """
-#   Fake file-like stream object that redirects writes to a logger instance.
-#   """
-#   def __init__(self, logger, log_level=logging.INFO):
-#      self.logger = logger
-#      self.log_level = log_level
-#      self.linebuf = ''
-# 
-#   def write(self, buf):
-#      for line in buf.rstrip().splitlines():
-#         self.logger.log(self.log_level, line.rstrip())
-# 
-#logging.basicConfig(
-#   level=logging.DEBUG,
-#   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-#   filename=data_opts['log_fname'],
-#   filemode='a'
-#)
-# 
-#stdout_logger = logging.getLogger('STDOUT')
-#sl = StreamToLogger(stdout_logger, logging.INFO)
-#sys.stdout = sl
-# 
-#stderr_logger = logging.getLogger('STDERR')
-#sl = StreamToLogger(stderr_logger, logging.ERROR)
-#sys.stderr = sl
+class StreamToLogger(object):
+   """
+   Fake file-like stream object that redirects writes to a logger instance.
+   """
+   def __init__(self, logger, log_level=logging.INFO):
+      self.logger = logger
+      self.log_level = log_level
+      self.linebuf = ''
+ 
+   def write(self, buf):
+      for line in buf.rstrip().splitlines():
+         self.logger.log(self.log_level, line.rstrip())
+ 
+logging.basicConfig(
+   level=logging.DEBUG,
+   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+   filename=data_opts['log_fname'],
+   filemode='a'
+)
+ 
+stdout_logger = logging.getLogger('STDOUT')
+sl = StreamToLogger(stdout_logger, logging.INFO)
+sys.stdout = sl
+ 
+stderr_logger = logging.getLogger('STDERR')
+sl = StreamToLogger(stderr_logger, logging.ERROR)
+sys.stderr = sl
 
 if __name__ == '__main__':
     main()
