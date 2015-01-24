@@ -115,10 +115,13 @@ def get_optim_opts(fit_dict, data_opts):
     cobyla_constr = [{'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
                      {'type':'ineq', 'fun':max_cycle_eval}]
     cobyla_constr.extend(boxbound_constr_dict)
-    min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr}
+    cobyla_opts = {'catol':1E-6}
+    basinhopping_opts = {'interval':15}
+    min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, num_feat)
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
-                     'x_guess':x_guess, 'obj_eval':obj_eval} # want the constr_dict here explicitly? | TAG: Question
+                     'x_guess':x_guess, 'obj_eval':obj_eval,
+                     'basin_opts':basinhopping_opts} # want the constr_dict here explicitly? | TAG: Question
 #    with open(data_opts['opt_inp_fname'], 'wb') as f:
 #        cPickle.dump(optim_options, f)
     return optim_options
@@ -129,9 +132,24 @@ def optimize_dv(optim_options, data_opts):
     obj_eval = optim_options['obj_eval']
     min_kwargs = optim_options['fmin_opts']
     myaccept = optim_options['accept_test']
+    basin_interval = optim_options['basin_opts']['interval']
+    
+    # As with search, try local dv first and make sure guess
+    # results in a successful initial local optimum
+    x_guess_ok = False
+    while not x_guess_ok:
+        local_res = minimize(obj_eval, x_guess, **min_kwargs)
+        if local_res.success:
+            print 'x_guess ok! = {}'.format(x_guess)
+            x_guess_ok = True
+        else:
+            print 'x_guess not ok! = {}'.format(x_guess)
+            print 'making new x_guess'
+            x_guess = np.random.random_sample([len(x_guess)])
+            print 'new x_guess: {}'.format(x_guess)
     
     opt_res = basinhopping(func=obj_eval, x0=x_guess, minimizer_kwargs=min_kwargs, \
-                        accept_test=myaccept, disp=True) # niter = 10, accept_test=mybounds1 or accept_test=myaccept1, stepsize=0.01, callback=print_fun
+                        accept_test=myaccept, disp=True, interval=basin_interval) # niter = 10, accept_test=mybounds1 or accept_test=myaccept1, stepsize=0.01, callback=print_fun
     # to check results, call res3.x for dv's, res3.fun for val
 
     #mybounds0 = [(0.0,1.0),(0.0,1.0),(0.0,1.0),(0.0,1.0)]
@@ -171,6 +189,7 @@ def optimize_search(opt_results, optim_options):
     obj_eval = optim_options['obj_eval']
     min_kwargs = optim_options['fmin_opts']
     myaccept = optim_options['accept_test']
+    basin_interval = optim_options['basin_opts']['interval']
     ymin = opt_results.fun
     
     def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
@@ -202,7 +221,7 @@ def optimize_search(opt_results, optim_options):
             print 'new x_guess: {}'.format(x_guess)
     # Once the inital local fmin works, start the basinhopping
     search_res = basinhopping(func=neg_expect_improve, x0=x_guess, minimizer_kwargs=min_kwargs, \
-                        accept_test=myaccept, disp=True)
+                        accept_test=myaccept, disp=True, interval=basin_interval)
     
     return search_res
 

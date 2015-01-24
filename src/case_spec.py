@@ -20,6 +20,7 @@ import sys
 import logging
 import numpy as np
 import time
+from scipy.spatial.distance import euclidean
 
 
 
@@ -46,7 +47,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_worktest1')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -99,6 +100,7 @@ all_expec_val_res = []
 fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'reac'} 
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
+euclid_tol = 1e-3
 run_mode = 'restart' # either 'restart' or 'normal'
 use_exist_data = 'on'
 
@@ -439,33 +441,33 @@ def iter_loop():
 # http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
 # GPL license
 
-class StreamToLogger(object):
-   """
-   Fake file-like stream object that redirects writes to a logger instance.
-   """
-   def __init__(self, logger, log_level=logging.INFO):
-      self.logger = logger
-      self.log_level = log_level
-      self.linebuf = ''
- 
-   def write(self, buf):
-      for line in buf.rstrip().splitlines():
-         self.logger.log(self.log_level, line.rstrip())
- 
-logging.basicConfig(
-   level=logging.DEBUG,
-   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-   filename=data_opts['log_fname'],
-   filemode='a'
-)
- 
-stdout_logger = logging.getLogger('STDOUT')
-sl = StreamToLogger(stdout_logger, logging.INFO)
-sys.stdout = sl
- 
-stderr_logger = logging.getLogger('STDERR')
-sl = StreamToLogger(stderr_logger, logging.ERROR)
-sys.stderr = sl
+#class StreamToLogger(object):
+#   """
+#   Fake file-like stream object that redirects writes to a logger instance.
+#   """
+#   def __init__(self, logger, log_level=logging.INFO):
+#      self.logger = logger
+#      self.log_level = log_level
+#      self.linebuf = ''
+# 
+#   def write(self, buf):
+#      for line in buf.rstrip().splitlines():
+#         self.logger.log(self.log_level, line.rstrip())
+# 
+#logging.basicConfig(
+#   level=logging.DEBUG,
+#   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+#   filename=data_opts['log_fname'],
+#   filemode='a'
+#)
+# 
+#stdout_logger = logging.getLogger('STDOUT')
+#sl = StreamToLogger(stdout_logger, logging.INFO)
+#sys.stdout = sl
+# 
+#stderr_logger = logging.getLogger('STDERR')
+#sl = StreamToLogger(stderr_logger, logging.ERROR)
+#sys.stderr = sl
 
 if __name__ == '__main__':
     main()
