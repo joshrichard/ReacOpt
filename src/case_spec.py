@@ -322,18 +322,22 @@ def iter_loop():
         print 'Search result:'
         print search_res
         # Check for duplicate search result
+        new_search_dv = search_res[0][-1]
         for dv_set in doe_sets['doe_scaled']:
-            if np.allclose(dv_set, search_res[0][-1]):
-                print 'Duplicate search result - already in DoE!'
+            new_point_distance = euclidean(dv_set, new_search_dv)
+            if new_point_distance < euclid_tol:
+                print 'new point {} is {} away from previous point {}, within tol {}'.format(
+                       new_search_dv, new_point_distance, dv_set, euclid_tol)
+                print 'thus counting as converged!'
                 converged_temp = True
-                search_duplicate = True
+                #search_duplicate = True
                 break
         # Cleanup step
         iter_cntr += 1
         iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
         all_opt_res.append(opt_res.fun) # TAG: Improve?
-        if not search_duplicate:
-            all_expec_val_res.append(search_res[-1])
+        #if not search_duplicate:
+        all_expec_val_res.append(search_res[-1])
         print 'Currently observed best obj fun values:'
         print all_opt_res
         print 'Currently identified expected improvements:'
