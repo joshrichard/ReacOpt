@@ -1233,6 +1233,12 @@ class CaseMatrix(object):
             self.max_bu_data.append(float(-1.0 * bu_fit.intercept_ / bu_fit.coef_))
         self.max_bu_data = np.array(self.max_bu_data)
         
+    def get_surro_data(self):
+        return self.data_fit
+        
+    def get_surro_err(self):
+        return self.error_fit
+        
 
 class CoeffCaseMat(CaseMatrix):
     
@@ -1258,7 +1264,6 @@ class MultCaseMat(object):
             new.__dict__[key] = self.__dict__[key] + other.__dict__[key]
         return new
         
-
     def final_shape(self, file_point_idx=1, extra_state_idx=2):
         [obj.final_shape(file_point_idx, extra_state_idx) for obj in self.__dict__.values()]
         
@@ -1267,6 +1272,12 @@ class MultCaseMat(object):
         
     def set_shape_extras(self, file_points, extra_states):
         [obj.set_shape_extras(file_points, extra_states) for obj in self.__dict__.values()]
+
+    def get_surro_data(self, spec='therm'):
+        return getattr(self, spec).get_surro_data()
+        
+    def get_surro_err(self, spec='therm'):
+        return getattr(self, spec).get_surro_err()
 
 
 # Functions for use in building input file

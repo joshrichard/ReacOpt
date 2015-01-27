@@ -297,7 +297,11 @@ class MyConstr(object):
         if False in [reac_coeff, void_worth, max_cycle, tmax, tmin]:
             return False
         else:
-            return True
+            return True    
+    def print_result(self, x):
+        print 'Reac coeff constr is {}'.format(self.reac_co_eval(x))
+        print 'Void worth constr is {}'.format(self.void_w_eval(x))
+        print 'Max cycle len constr is {}'.format(self.max_cycle_eval(x))
         
 def print_fun(x, f, accepted):
     print("at minima %.4f accepted %d" % (f, int(accepted)))

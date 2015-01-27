@@ -47,7 +47,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_worktest1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -96,13 +96,13 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 #obj_fun = []
 all_opt_res = []
 all_expec_val_res = []
-# 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or <irr_flux?>
-fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'reac'} 
+# 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or 'fuel_flux' or 'mat_flux'
+fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'fuel_flux'} 
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
 euclid_tol = 1e-3
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'on'
+use_exist_data = 'off'
 
 if run_mode == 'normal':
     try:
@@ -310,6 +310,7 @@ def iter_loop():
         opt_res = opt_module.optimize_dv(optimization_options, data_opts)
         print 'Results of optimization:'
         print opt_res
+        optimization_options['accept_test'].print_result(opt_res.x)
         ####
         # Search for a new evaluation location
         ####
@@ -319,10 +320,11 @@ def iter_loop():
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, 
                                                 case_info, data_opts)
+        new_search_dv = search_res[0][-1]
         print 'Search result:'
         print search_res
+        optimization_options['accept_test'].print_result(new_search_dv)
         # Check for duplicate search result
-        new_search_dv = search_res[0][-1]
         for dv_set in doe_sets['doe_scaled']:
             new_point_distance = euclidean(dv_set, new_search_dv)
             if new_point_distance < euclid_tol:
@@ -445,33 +447,33 @@ def iter_loop():
 # http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
 # GPL license
 
-#class StreamToLogger(object):
-#   """
-#   Fake file-like stream object that redirects writes to a logger instance.
-#   """
-#   def __init__(self, logger, log_level=logging.INFO):
-#      self.logger = logger
-#      self.log_level = log_level
-#      self.linebuf = ''
-# 
-#   def write(self, buf):
-#      for line in buf.rstrip().splitlines():
-#         self.logger.log(self.log_level, line.rstrip())
-# 
-#logging.basicConfig(
-#   level=logging.DEBUG,
-#   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-#   filename=data_opts['log_fname'],
-#   filemode='a'
-#)
-# 
-#stdout_logger = logging.getLogger('STDOUT')
-#sl = StreamToLogger(stdout_logger, logging.INFO)
-#sys.stdout = sl
-# 
-#stderr_logger = logging.getLogger('STDERR')
-#sl = StreamToLogger(stderr_logger, logging.ERROR)
-#sys.stderr = sl
+class StreamToLogger(object):
+   """
+   Fake file-like stream object that redirects writes to a logger instance.
+   """
+   def __init__(self, logger, log_level=logging.INFO):
+      self.logger = logger
+      self.log_level = log_level
+      self.linebuf = ''
+ 
+   def write(self, buf):
+      for line in buf.rstrip().splitlines():
+         self.logger.log(self.log_level, line.rstrip())
+ 
+logging.basicConfig(
+   level=logging.DEBUG,
+   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+   filename=data_opts['log_fname'],
+   filemode='a'
+)
+ 
+stdout_logger = logging.getLogger('STDOUT')
+sl = StreamToLogger(stdout_logger, logging.INFO)
+sys.stdout = sl
+ 
+stderr_logger = logging.getLogger('STDERR')
+sl = StreamToLogger(stderr_logger, logging.ERROR)
+sys.stderr = sl
 
 if __name__ == '__main__':
     main()

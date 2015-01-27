@@ -40,8 +40,8 @@ from scipy.optimize import basinhopping
 def make_meta(data_dict, doe_set, data_opts, fit_opts):
     
     obj_inp = fit_opts['obj_spec']
-    obj_data = data_dict[obj_inp].data_fit
-    obj_err = np.square(data_dict[obj_inp].error_fit)
+    obj_data = data_dict[obj_inp].get_surro_data()
+    obj_err = np.square(data_dict[obj_inp].get_surro_err())
     reac_co_data = data_dict['reac_coeff'].data_fit[:,1] # At some point, will want to make this for all bu steps | TAG: Improve
     void_w_data = data_dict['void_worth'].data_fit[:,1]
     max_cycle_data = data_dict['reac'].max_bu_data
@@ -144,7 +144,7 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
 def eval_meta(data_dict, fit_dict, data_opts, fit_opts):
     
     obj_inp = fit_opts['obj_spec']
-    obj_data = data_dict[obj_inp].data_fit
+    obj_data = data_dict[obj_inp].get_surro_data()
     obj_gpm = fit_dict['xval_obj_val'] #fit_dict['obj_val']
     X_t = fit_dict['X_t']
     k_num = fit_opts['num_k_folds']
