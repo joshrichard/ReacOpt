@@ -117,12 +117,14 @@ def get_optim_opts(fit_dict, data_opts):
     cobyla_constr.extend(boxbound_constr_dict)
     cobyla_opts = {'catol':1E-6}
     basinhopping_opts = {'interval':15, 'disp':False}
+    randomized_opts = {'niter':100}
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, num_feat)
     global_type = 'random'
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval,
-                     'basin_opts':basinhopping_opts, 'global_type':global_type} # want the constr_dict here explicitly? | TAG: Question
+                     'basin_opts':basinhopping_opts, 'global_type':global_type,
+                     'random_opts':randomized_opts} # want the constr_dict here explicitly? | TAG: Question
 #    with open(data_opts['opt_inp_fname'], 'wb') as f:
 #        cPickle.dump(optim_options, f)
     return optim_options
@@ -294,7 +296,7 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
     elif global_type == 'random':
         global_obj = RandGlobal()
         for local_iter in xrange(random_iter):
-            x_guess = np.random_sample([len(x_guess)])
+            x_guess = np.random.random_sample([len(x_guess)])
             global_obj.add_x_guess(x_guess)
             local_res = minimize(opt_fun, x_guess, **min_kwargs)
             global_obj.add_result(local_res)
@@ -321,8 +323,9 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
     search_type = optim_options['search_type']
     #First, select whether exploitation or hybrid
     if search_type == 'exploit':
-        new_doe_scaled = opt_result.x
-        obj_res = opt_result.fun
+        search_res = {'new_doe_scaled':opt_result.x, 'obj_res':opt_result.fun,
+                      'new_doe':core.dv_scaler(opt_result.x, dv_bounds, 'real'),
+                      }
     elif search_type == 'hybrid':
         try:
             search_point = optimize_wrapper(optim_options, opt_purpose = 'search_opt',
@@ -334,8 +337,8 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
         search_res = {'new_doe_scaled':search_point.x, 'obj_res':search_point.fun,
                       'new_doe':core.dv_scaler(search_point.x, dv_bounds, 'real'),
                       'search_res_obj':search_point}
-        with open(data_opts['search_fname'], 'wb') as f:
-            cPickle.dump(search_res, f, 2)
+    with open(data_opts['search_fname'], 'wb') as f:
+        cPickle.dump(search_res, f, 2)
 #    new_doe = core.dv_scaler(new_doe_scaled, dv_bounds, 'real')
     return search_res
 
@@ -438,10 +441,22 @@ Final opt location: {}
         self.x = self.best.x
         self.fun = self.best.fun
         
+    def combine_internal_lists(self):
+        self.x_guesses = np.vstack(self.x_guesses)
+        self.loc_success = np.vstack(self.loc_success)
+        self.loc_failure = np.vstack(self.loc_failure)
+        self.fun_success = np.array(self.fun_success)
+        self.fun_failure = np.array(self.fun_failure)
+        
+    def finish_step(self):
+        self.make_scipy_like()
+        self.combine_internal_lists()
+        self.print_results()
+        
 #msg = """New optimum found: {} at loc {}"""        
 
 
-        
+
         
 def print_fun(x, f, accepted):
     print("at minima %.4f accepted %d" % (f, int(accepted)))
