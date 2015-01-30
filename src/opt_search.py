@@ -19,6 +19,7 @@ import cPickle
 
 from scipy.optimize import minimize
 from scipy.optimize import basinhopping
+from scipy.spatial.distance import euclidean
 #from scipy import optimize
 
 import core_objects_v5 as core
@@ -342,18 +343,54 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
     return search_res
 
 
-def converge_check(prev_obs_vals, thresh_inp):
+#def converge_check(prev_obs_vals, thresh_inp):
+#    
+#    obs_obj_vals = prev_obs_vals
+#    range_obs = np.abs(np.max(obs_obj_vals) - np.min(obs_obj_vals))
+#    thresh = thresh_inp
+#    stop_criterion = thresh * range_obs
+#    delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
+#    if delta_set[0] < stop_criterion: # can check a set here if desired | TAG: Improve
+#        converged = True
+#    else:
+#        converged = False
+#    return converged
+    
+def converge_check(prev_obs_vals, converge_opts):
+    
+    converge_tol = converge_opts['converge_tol']
+    converge_points = converge_opts['converge_points']
     
     obs_obj_vals = prev_obs_vals
-    range_obs = np.abs(np.max(obs_obj_vals) - np.min(obs_obj_vals))
-    thresh = thresh_inp
-    stop_criterion = thresh * range_obs
-    delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
-    if delta_set[0] < stop_criterion: # can check a set here if desired | TAG: Improve
+    #range_obs = np.abs(np.max(obs_obj_vals) - np.min(obs_obj_vals))
+    #thresh = thresh_inp
+    #stop_criterion = thresh * range_obs
+    #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
+    delta_set = np.array(obs_obj_vals[1:]-obs_obj_vals[:-1])
+    rel_delta_set = delta_set / obs_obj_vals[:-1]
+    pos_rel_delta_set = np.abs(rel_delta_set)
+    # and np.all(np.less(rel_delta_set, 0.0))
+    if np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol)): # can check a set here if desired | TAG: Improve
         converged = True
     else:
         converged = False
     return converged
+    
+def prox_check(doe_sets, new_search_dv, euclid_tol):
+    
+    for dv_set in doe_sets['doe_scaled']:
+        new_point_distance = euclidean(dv_set, new_search_dv)
+        if new_point_distance < euclid_tol:
+            print 'new point {} is {} away from previous point {}, within tol {}'.format(
+                   new_search_dv, new_point_distance, dv_set, euclid_tol)
+            print 'thus counting as converged!'
+            converged_temp = True
+            return converged_temp
+    print 'new point is not euclidean proximal within {} of any existing points'.format(
+              euclid_tol)
+    print 'thus calculation is not proximally converged'
+    converged_temp = False
+    return converged_temp
 
 #class MyBounds(object):
 #    def __init__(self, xmax=[1.0,1.0,1.0,1.0], xmin=[0.0,0.0,0.0,0.0] ):

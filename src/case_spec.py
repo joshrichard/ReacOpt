@@ -99,6 +99,7 @@ all_expec_val_res = []
 # 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or 'fuel_flux' or 'mat_flux'
 fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'fuel_flux'} 
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
+converge_opts = {'converge_tol':1e-3, 'converge_points':3}
 thresh_in = 1e-3
 euclid_tol = 1e-3
 run_mode = 'restart' # either 'restart' or 'normal'
@@ -315,16 +316,20 @@ def iter_loop():
         print 'Search result:'
         print search_res
         optimization_options['accept_test'].print_result(new_search_dv)
-        # Check for duplicate search result
-        for dv_set in doe_sets['doe_scaled']:
-            new_point_distance = euclidean(dv_set, new_search_dv)
-            if new_point_distance < euclid_tol:
-                print 'new point {} is {} away from previous point {}, within tol {}'.format(
-                       new_search_dv, new_point_distance, dv_set, euclid_tol)
-                print 'thus counting as converged!'
-                converged_temp = True
-                #search_duplicate = True
-                break
+        ####
+        # Check for proximity convergence
+        ####
+        print 'checking for duplicate search result'
+        converged_temp = opt_module.prox_check(doe_sets, new_search_dv, euclid_tol)
+#        for dv_set in doe_sets['doe_scaled']:
+#            new_point_distance = euclidean(dv_set, new_search_dv)
+#            if new_point_distance < euclid_tol:
+#                print 'new point {} is {} away from previous point {}, within tol {}'.format(
+#                       new_search_dv, new_point_distance, dv_set, euclid_tol)
+#                print 'thus counting as converged!'
+#                converged_temp = True
+#                #search_duplicate = True
+#                break
         # Cleanup step
         iter_cntr += 1
         iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
@@ -337,14 +342,14 @@ def iter_loop():
         print all_expec_val_res
         
         ####
-        # Check convergence
+        # Check expect val convergence
         ####
         print 'Checking for convergence'
         if not first_iter and not converged_temp:
             if search_type == 'exploit':
-                converged_temp = opt_module.converge_check(all_opt_res, thresh_in)
+                converged_temp = opt_module.converge_check(all_opt_res, converge_opts)
             elif search_type == 'hybrid':
-                converged_temp = opt_module.converge_check(all_expec_val_res, thresh_in)
+                converged_temp = opt_module.converge_check(all_expec_val_res, converge_opts)
         ####
         # Save data from each step into a single dump file for this iteration
         ####
