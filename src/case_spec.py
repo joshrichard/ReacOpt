@@ -297,7 +297,7 @@ def iter_loop():
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
         optimization_options = opt_module.get_optim_opts(fit_dict, data_opts)
-        opt_res = opt_module.optimize_wrapper(optimization_options, 
+        opt_res = opt_module.optimize_wrapper(optimization_options, opt_purpose = 'dv_opt', 
                                               outp_name = data_opts['opt_fname'])
         print 'Results of optimization:'
         print opt_res # Make this work with new data struc from opt

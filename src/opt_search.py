@@ -242,7 +242,7 @@ please specify either 'basin' or 'random'""".format(global_type)
     return search_res
 
 
-def optimize_wrapper(optim_options, outp_name = None, opt_results=None):
+def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=None):
     
     x_guess = optim_options['x_guess']
     obj_eval = optim_options['obj_eval']
@@ -255,7 +255,6 @@ def optimize_wrapper(optim_options, outp_name = None, opt_results=None):
         basin_disp = optim_options['basin_opts']['disp']
     elif global_type == 'random':
         random_iter = optim_options['random_opts']['niter']
-    opt_purpose = optim_options['purpose']
     if opt_purpose == 'dv_opt':
         opt_fun = obj_eval
     elif opt_purpose == 'search_opt':
@@ -326,11 +325,11 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
         obj_res = opt_result.fun
     elif search_type == 'hybrid':
         try:
-            search_point = optimize_wrapper(optim_options, outp_name = data_opts['search_fname'],
-                            opt_results = opt_result)
+            search_point = optimize_wrapper(optim_options, opt_purpose = 'search_opt',
+                                            outp_name = data_opts['search_fname'], opt_results = opt_result)
         except ValueError:
             print 'ValueError in Basinhopping, trying again....'
-            search_res = search_infill(opt_results, optim_options, case_info, data_opts)
+            search_res = search_infill(opt_result, optim_options, case_info, data_opts)
             return search_res
         new_doe_scaled = search_point.x
         obj_res = search_point.fun
