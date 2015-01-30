@@ -20,7 +20,7 @@ import sys
 import logging
 import numpy as np
 import time
-from scipy.spatial.distance import euclidean
+#from scipy.spatial.distance import euclidean
 
 
 
@@ -95,7 +95,8 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 #converge_tol = 0.05
 #obj_fun = []
 all_opt_res = []
-all_expec_val_res = []
+all_search_res = []
+run_dump_data_list = []
 # 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or 'fuel_flux' or 'mat_flux'
 fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'fuel_flux'} 
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
@@ -103,7 +104,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3}
 thresh_in = 1e-3
 euclid_tol = 1e-3
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'off'
+use_exist_data = 'on'
 
 if run_mode == 'normal':
     try:
@@ -204,7 +205,7 @@ def iter_loop():
     # Run each element of the iteration loop to converge to optimal solution
     converged = False
     converged_temp = False
-    search_duplicate = False
+    #search_duplicate = False
     first_iter = True
     iter_cntr = 0
 
@@ -331,15 +332,28 @@ def iter_loop():
 #                #search_duplicate = True
 #                break
         # Cleanup step
+        # Load data from previous iterations if it exists
+        # and in restart mode using existing data
+        if first_iter and use_exist_data == 'off':
+            print 'Not using prexisting opt and search res data'
+        else:
+            try:
+                with open(data_opts['iter_fname'], 'rb') as it_f:
+                    run_dump_data_list = cPickle.load(it_f)
+                all_opt_res = run_dump_data_list['all_opt_res']
+                all_search_res = run_dump_data_list['all_search_res']
+            except IOError:
+                print "Couldn't find input file, dumping new data out"
+                pass
         iter_cntr += 1
-        iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
+        #iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
         all_opt_res.append(opt_res.fun) # TAG: Improve?
         #if not search_duplicate:
-        all_expec_val_res.append(search_res['search_val'])
+        all_search_res.append(search_res['search_val'])
         print 'Currently observed best obj fun values:'
         print all_opt_res
         print 'Currently identified expected improvements:'
-        print all_expec_val_res
+        print all_search_res
         
         ####
         # Check expect val convergence
@@ -349,20 +363,30 @@ def iter_loop():
             if search_type == 'exploit':
                 converged_temp = opt_module.converge_check(all_opt_res, converge_opts)
             elif search_type == 'hybrid':
-                converged_temp = opt_module.converge_check(all_expec_val_res, converge_opts)
+                converged_temp = opt_module.converge_check(all_search_res, converge_opts)
+        ####
+        #
+        ####
+        iter_dump_data = {'doe_sets':doe_sets, 'doe_sets_iter':doe_sets_iter, 
+                          'search_res':search_res, 'all_search_res':all_search_res,
+                          'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
+                          'opt_res':opt_res, 'all_opt_res':all_opt_res}
         ####
         # Save data from each step into a single dump file for this iteration
         ####
         print 'Saving iteration {} data'.format(iter_cntr)
-        with open(iter_fname, 'wb') as it_f:
-            cPickle.dump(doe_sets, it_f, 2)
-            cPickle.dump(doe_sets_iter, it_f, 2)
-            cPickle.dump(search_res, it_f, 2)
-            cPickle.dump(case_info['case_set'], it_f, 2)
-            cPickle.dump(data_dict, it_f, 2)
-            cPickle.dump(fit_dict, it_f, 2)
-            cPickle.dump(opt_res, it_f, 2)
-            cPickle.dump(all_opt_res, it_f, 2)
+        run_dump_data_list.append(iter_dump_data)
+        # Add current iteration data
+        with open(data_opts['iter_fname'], 'wb') as it_f:
+            cPickle.dump(run_dump_data_list, it_f, 2)
+#            cPickle.dump(doe_sets, it_f, 2)
+#            cPickle.dump(doe_sets_iter, it_f, 2)
+#            cPickle.dump(search_res, it_f, 2)
+#            cPickle.dump(case_info['case_set'], it_f, 2)
+#            cPickle.dump(data_dict, it_f, 2)
+#            cPickle.dump(fit_dict, it_f, 2)
+#            cPickle.dump(opt_res, it_f, 2)
+#            cPickle.dump(all_opt_res, it_f, 2)
         ####
         # End or prepare for next loop
         ####
