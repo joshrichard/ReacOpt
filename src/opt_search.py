@@ -116,12 +116,13 @@ def get_optim_opts(fit_dict, data_opts):
                      {'type':'ineq', 'fun':max_cycle_eval}]
     cobyla_constr.extend(boxbound_constr_dict)
     cobyla_opts = {'catol':1E-6}
-    basinhopping_opts = {'interval':15}
+    basinhopping_opts = {'interval':15, 'disp':False}
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, num_feat)
+    global_type = 'basin'
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval,
-                     'basin_opts':basinhopping_opts} # want the constr_dict here explicitly? | TAG: Question
+                     'basin_opts':basinhopping_opts, 'global_type':global_type} # want the constr_dict here explicitly? | TAG: Question
 #    with open(data_opts['opt_inp_fname'], 'wb') as f:
 #        cPickle.dump(optim_options, f)
     return optim_options
@@ -132,48 +133,46 @@ def optimize_dv(optim_options, data_opts):
     obj_eval = optim_options['obj_eval']
     min_kwargs = optim_options['fmin_opts']
     myaccept = optim_options['accept_test']
-    basin_interval = optim_options['basin_opts']['interval']
+    global_type = optim_options['global_type']
+    if global_type == 'basin':
+        basin_interval = optim_options['basin_opts']['interval']
+        basin_disp = optim_options['basin_opts']['disp']
+    elif global_type == 'random':
+        random_iter = optim_options['random_opts']['niter']
     
-    # As with search, try local dv first and make sure guess
-    # results in a successful initial local optimum
-    x_guess_ok = False
-    while not x_guess_ok:
-        local_res = minimize(obj_eval, x_guess, **min_kwargs)
-        if local_res.success:
-            print 'x_guess ok! = {}'.format(x_guess)
-            x_guess_ok = True
-        else:
-            print 'x_guess not ok! = {}'.format(x_guess)
-            print 'making new x_guess'
-            x_guess = np.random.random_sample([len(x_guess)])
-            print 'new x_guess: {}'.format(x_guess)
     
-    opt_res = basinhopping(func=obj_eval, x0=x_guess, minimizer_kwargs=min_kwargs, \
-                        accept_test=myaccept, disp=True, interval=basin_interval) # niter = 10, accept_test=mybounds1 or accept_test=myaccept1, stepsize=0.01, callback=print_fun
-    # to check results, call res3.x for dv's, res3.fun for val
-
-    #mybounds0 = [(0.0,1.0),(0.0,1.0),(0.0,1.0),(0.0,1.0)]
-    #brute_bounds = (slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1), slice(0.0,1.0,.1))
-#    def positive_pred(X):
-#        global meta_dict # Can change this to use default value such that it doesn't need to be global?
-#        return -1.0 * meta_dict['obj_val'].predict(X)
+    # Basinhopping global search
+    if global_type == 'basin':
+        # As with search, try local dv first and make sure guess
+        # results in a successful initial local optimum
+        x_guess_ok = False
+        while not x_guess_ok:
+            local_res = minimize(obj_eval, x_guess, **min_kwargs)
+            if local_res.success:
+                print 'x_guess ok! = {}'.format(x_guess)
+                x_guess_ok = True
+            else:
+                print 'x_guess not ok! = {}'.format(x_guess)
+                print 'making new x_guess'
+                x_guess = np.random.random_sample([len(x_guess)])
+                print 'new x_guess: {}'.format(x_guess)
         
-
-    #  Local minimizers
-    #res = minimize(positive_pred, x_guess, method='COBYLA', constraints=cobyla_constr, options={'disp':True})
-    #res = minimize(positive_pred, x0, method ='L-BFGS-B', bounds = mybounds0, jac = False, options={'disp':True})
-    #res2 = minimize(positive_pred, x0, method ='TNC', bounds = mybounds0, jac = False, options={'disp':True})
-    #print res.x
+        opt_res = basinhopping(func=obj_eval, x0=x_guess, minimizer_kwargs=min_kwargs, \
+                            accept_test=myaccept, disp=basin_disp, interval=basin_interval) # niter = 10, accept_test=mybounds1 or accept_test=myaccept1, stepsize=0.01, callback=print_fun
+                            
+    elif global_type == 'random':
+        dv_global = RandGlobal()
+        for local_iter in xrange(random_iter):
+            local_res = minimize(obj_eval, x_guess, **min_kwargs)
+            dv_global.add_result(local_res)
+        dv_global.print_results()
         
-    #  Global minimizer-Basinhopping
-#    min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr}
-#    min_kwargs = {"method":"TNC", "jac":False, "bounds":mybounds0} # "method":"TNC" or "L-BFGS-B", "bounds":mybounds0
-#    mybounds1 = MyBounds()
-#    myaccept1 = MyConstr()
+    else:
+        msg = """
+{} is not a recognized global opt type,
+please specify either 'basin' or 'random'""".format(global_type)
+        raise Exception(msg)
 
-        
-    # Global minimizer- brute force
-    #resbrute = optimize.brute(positive_pred, brute_bounds, full_output=True)
     
     # save results to file
     with open(data_opts['opt_fname'], 'wb') as optf:
@@ -181,7 +180,7 @@ def optimize_dv(optim_options, data_opts):
         
     return opt_res
     
-    # End optimization
+
     
 def optimize_search(opt_results, optim_options):
     
@@ -189,8 +188,13 @@ def optimize_search(opt_results, optim_options):
     obj_eval = optim_options['obj_eval']
     min_kwargs = optim_options['fmin_opts']
     myaccept = optim_options['accept_test']
-    basin_interval = optim_options['basin_opts']['interval']
     ymin = opt_results.fun
+    global_type = optim_options['global_type']
+    if global_type == 'basin':
+        basin_interval = optim_options['basin_opts']['interval']
+        basin_disp = optim_options['basin_opts']['disp']
+    elif global_type == 'random':
+        random_iter = optim_options['random_opts']['niter']
     
     def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
         y_eval, MSE = obj_eval_func(x, eval_MSE=True)
@@ -204,48 +208,134 @@ def optimize_search(opt_results, optim_options):
         return exp_imp
         
     neg_expect_improve = make_neg(expect_improve)
-
-    # Try the local minimizer first, make sure that it doesn't fail
-    # otherwise try a new starting guess and repeat
-    x_guess_ok = False
-    while not x_guess_ok:
-        # do a local optimize with current x_guess
-        local_res = minimize(neg_expect_improve, x_guess, **min_kwargs)
-        if local_res.success:
-            print 'x_guess ok! = {}'.format(x_guess)
-            x_guess_ok = True
-        else:
-            print 'x_guess not ok! = {}'.format(x_guess)
-            print 'making new x_guess'
-            x_guess = np.random.random_sample([len(x_guess)])
-            print 'new x_guess: {}'.format(x_guess)
-    # Once the inital local fmin works, start the basinhopping
-    search_res = basinhopping(func=neg_expect_improve, x0=x_guess, minimizer_kwargs=min_kwargs, \
-                        accept_test=myaccept, disp=True, interval=basin_interval)
+    
+    if global_type == 'basin':
+        # Try the local minimizer first, make sure that it doesn't fail
+        # otherwise try a new starting guess and repeat
+        x_guess_ok = False
+        while not x_guess_ok:
+            # do a local optimize with current x_guess
+            local_res = minimize(neg_expect_improve, x_guess, **min_kwargs)
+            if local_res.success:
+                print 'x_guess ok! = {}'.format(x_guess)
+                x_guess_ok = True
+            else:
+                print 'x_guess not ok! = {}'.format(x_guess)
+                print 'making new x_guess'
+                x_guess = np.random.random_sample([len(x_guess)])
+                print 'new x_guess: {}'.format(x_guess)
+        # Once the inital local fmin works, start the basinhopping
+        search_res = basinhopping(func=neg_expect_improve, x0=x_guess, minimizer_kwargs=min_kwargs, \
+                            accept_test=myaccept, disp=basin_disp, interval=basin_interval)
+    elif global_type == 'random':
+        search_global = RandGlobal()
+        for local_iter in xrange(random_iter):
+            local_res = minimize(obj_eval, x_guess, **min_kwargs)
+            search_global.add_result(local_res)
+        search_global.print_results()
+    else:
+        msg = """
+{} is not a recognized global opt type,
+please specify either 'basin' or 'random'""".format(global_type)
+        raise Exception(msg)
     
     return search_res
 
 
+def optimize_wrapper(optim_options, outp_name = None, opt_results=None):
+    
+    x_guess = optim_options['x_guess']
+    obj_eval = optim_options['obj_eval']
+    min_kwargs = optim_options['fmin_opts']
+    myaccept = optim_options['accept_test']
+    global_type = optim_options['global_type']
+    outp_fname = outp_name
+    if global_type == 'basin':
+        basin_interval = optim_options['basin_opts']['interval']
+        basin_disp = optim_options['basin_opts']['disp']
+    elif global_type == 'random':
+        random_iter = optim_options['random_opts']['niter']
+    opt_purpose = optim_options['purpose']
+    if opt_purpose == 'dv_opt':
+        opt_fun = obj_eval
+    elif opt_purpose == 'search_opt':
+        ymin = opt_results.fun
+        def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
+            y_eval, MSE = obj_eval_func(x, eval_MSE=True)
+            sigma = np.sqrt(MSE)
+            if MSE == 0.0: # Check tolerances here!
+                exp_imp = 0.0
+            else:
+                ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)//(sigma*math.sqrt(2.0)) ))
+                ei_term2 = (sigma * 1.0//math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0//(2.0*MSE) )
+                exp_imp = ei_term1 + ei_term2
+            return exp_imp
+        neg_expect_improve = make_neg(expect_improve)
+        opt_fun = neg_expect_improve
+    
+    if global_type == 'basin':
+        # Try the local minimizer first, make sure that it doesn't fail
+        # otherwise try a new starting guess and repeat
+        x_guess_ok = False
+        while not x_guess_ok:
+            # do a local optimize with current x_guess
+            local_res = minimize(opt_fun, x_guess, **min_kwargs)
+            if local_res.success:
+                print 'x_guess ok! = {}'.format(x_guess)
+                x_guess_ok = True
+            else:
+                print 'x_guess not ok! = {}'.format(x_guess)
+                print 'making new x_guess'
+                x_guess = np.random.random_sample([len(x_guess)])
+                print 'new x_guess: {}'.format(x_guess)
+        # Once the inital local fmin works, start the basinhopping
+        global_res = basinhopping(func=opt_fun, x0=x_guess, minimizer_kwargs=min_kwargs, \
+                            accept_test=myaccept, disp=basin_disp, interval=basin_interval)
+        
+    elif global_type == 'random':
+        global_obj = RandGlobal()
+        for local_iter in xrange(random_iter):
+            x_guess = np.random_sample([len(x_guess)])
+            global_obj.add_x_guess(x_guess)
+            local_res = minimize(opt_fun, x_guess, **min_kwargs)
+            global_obj.add_result(local_res)
+        global_obj.print_results()
+        global_obj.make_scipy_like()
+        global_res = global_obj
+    else:
+        msg = """
+{} is not a recognized global opt type,
+please specify either 'basin' or 'random'""".format(global_type)
+        raise Exception(msg)
+        
+    if outp_fname != None:
+        with open(outp_fname, 'wb') as optf:
+            cPickle.dump(global_res, optf, 2)
+    
+    return global_res
+
+
 # Optimization search and infill function
-def search_infill(opt_results, optim_options, case_info, data_opts):
+def search_infill(opt_result, optim_options, case_info, data_opts):
     
     dv_bounds = case_info['dv_bounds']
     search_type = optim_options['search_type']
     #First, select whether exploitation or hybrid
     if search_type == 'exploit':
-        new_doe_scaled = opt_results.x
-        obj_res = opt_results.fun
+        new_doe_scaled = opt_result.x
+        obj_res = opt_result.fun
     elif search_type == 'hybrid':
         try:
-            search_point = optimize_search(opt_results, optim_options)
+            search_point = optimize_wrapper(optim_options, outp_name = data_opts['search_fname'],
+                            opt_results = opt_result)
         except ValueError:
             print 'ValueError in Basinhopping, trying again....'
             search_res = search_infill(opt_results, optim_options, case_info, data_opts)
             return search_res
         new_doe_scaled = search_point.x
         obj_res = search_point.fun
-        with open(data_opts['search_fname'], 'wb') as f:
-            cPickle.dump(search_point, f, 2)
+#        with open(data_opts['search_fname'], 'wb') as f:
+#            cPickle.dump(search_point, f, 2)
     new_doe = core.dv_scaler(new_doe_scaled, dv_bounds, 'real')
     return (new_doe, new_doe_scaled), obj_res
 
@@ -302,6 +392,56 @@ class MyConstr(object):
         print 'Reac coeff constr is {}'.format(self.reac_co_eval(x))
         print 'Void worth constr is {}'.format(self.void_w_eval(x))
         print 'Max cycle len constr is {}'.format(self.max_cycle_eval(x))
+        
+        
+class RandGlobal(object):
+    def __init__(self):
+        self.res_success = []
+        self.res_failure = []
+        self.loc_success = []
+        self.loc_failure = []
+        self.fun_success = []
+        self.fun_failure = []
+        self.x_guesses = []
+        self.feval_tot = 0
+        self.best = None
+        
+    def add_result(self, result): # Can add a check here to make sure result is a OptimizeResult object | TAG: Improve
+        if result.success:
+            if self.best == None:
+                self.best = result
+            elif self.best.fun > result.fun:
+                # Found a new best location
+                self.best = result
+            self.loc_success.append(result.x)
+            self.fun_success.append(result.fun)
+            self.res_success.append(result)
+        else:
+            self.loc_failure.append(result.x)
+            self.fun_failure.append(result.fun)
+            self.res_failure.append(result)
+        self.feval_tot += result.nfev
+        
+    def add_x_guess(self, x):
+        self.x_guesses.append(x)
+        
+    def print_results(self):
+        selfstr = """
+Global optimization result
+Total func evals: {}
+Final optimum: {}
+Final opt location: {}
+""".format(self.feval_tot, self.best.fun, self.best.x)
+        print selfstr
+        
+    def make_scipy_like(self):
+        self.x = self.best.x
+        self.fun = self.best.fun
+        
+#msg = """New optimum found: {} at loc {}"""        
+
+
+        
         
 def print_fun(x, f, accepted):
     print("at minima %.4f accepted %d" % (f, int(accepted)))

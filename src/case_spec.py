@@ -102,7 +102,7 @@ search_type = 'hybrid' # either 'hybrid' or 'exploit'
 thresh_in = 1e-3
 euclid_tol = 1e-3
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'on'
+use_exist_data = 'off'
 
 if run_mode == 'normal':
     try:
@@ -284,16 +284,6 @@ def iter_loop():
         with open(data_opts['data_fname'], 'rb') as f:
             data_dict = cPickle.load(f)
             doe_sets = cPickle.load(f)
-#        if first_iter and debug == 'on':
-#            data_dict['reac'].data_fit = np.hstack([data_dict['reac'].data_fit[:-3], data_dict['reac'].data_fit[-1]]) 
-#            data_dict['reac_coeff'].data_fit = np.vstack([data_dict['reac_coeff'].data_fit[:-3], data_dict['reac_coeff'].data_fit[-1]])
-#            data_dict['void_worth'].data_fit = np.vstack([data_dict['void_worth'].data_fit[:-3], data_dict['void_worth'].data_fit[-1]])
-#            data_dict['reac'].max_bu_data = np.hstack([data_dict['reac'].max_bu_data[:-3], data_dict['reac'].max_bu_data[-1]])
-#            doe_sets['doe'] = np.vstack([doe_sets['doe'][:-3,:], doe_sets['doe'][-1]])
-#            doe_sets['doe_scaled'] = np.vstack([doe_sets['doe_scaled'][:-3,:], doe_sets['doe_scaled'][-1]])
-#            with open(data_opts['data_fname'], 'wb') as f:
-#                cPickle.dump(data_dict, f, 2)
-#                cPickle.dump(doe_sets, f, 2)
         fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, fit_opts)
         print 'Created surrogate:'
         print fit_dict
@@ -307,9 +297,10 @@ def iter_loop():
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
         optimization_options = opt_module.get_optim_opts(fit_dict, data_opts)
-        opt_res = opt_module.optimize_dv(optimization_options, data_opts)
+        opt_res = opt_module.optimize_wrapper(optimization_options, 
+                                              outp_name = data_opts['opt_fname'])
         print 'Results of optimization:'
-        print opt_res
+        print opt_res # Make this work with new data struc from opt
         optimization_options['accept_test'].print_result(opt_res.x)
         ####
         # Search for a new evaluation location
@@ -447,33 +438,33 @@ def iter_loop():
 # http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
 # GPL license
 
-class StreamToLogger(object):
-   """
-   Fake file-like stream object that redirects writes to a logger instance.
-   """
-   def __init__(self, logger, log_level=logging.INFO):
-      self.logger = logger
-      self.log_level = log_level
-      self.linebuf = ''
- 
-   def write(self, buf):
-      for line in buf.rstrip().splitlines():
-         self.logger.log(self.log_level, line.rstrip())
- 
-logging.basicConfig(
-   level=logging.DEBUG,
-   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-   filename=data_opts['log_fname'],
-   filemode='a'
-)
- 
-stdout_logger = logging.getLogger('STDOUT')
-sl = StreamToLogger(stdout_logger, logging.INFO)
-sys.stdout = sl
- 
-stderr_logger = logging.getLogger('STDERR')
-sl = StreamToLogger(stderr_logger, logging.ERROR)
-sys.stderr = sl
+#class StreamToLogger(object):
+#   """
+#   Fake file-like stream object that redirects writes to a logger instance.
+#   """
+#   def __init__(self, logger, log_level=logging.INFO):
+#      self.logger = logger
+#      self.log_level = log_level
+#      self.linebuf = ''
+# 
+#   def write(self, buf):
+#      for line in buf.rstrip().splitlines():
+#         self.logger.log(self.log_level, line.rstrip())
+# 
+#logging.basicConfig(
+#   level=logging.DEBUG,
+#   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+#   filename=data_opts['log_fname'],
+#   filemode='a'
+#)
+# 
+#stdout_logger = logging.getLogger('STDOUT')
+#sl = StreamToLogger(stdout_logger, logging.INFO)
+#sys.stdout = sl
+# 
+#stderr_logger = logging.getLogger('STDERR')
+#sl = StreamToLogger(stderr_logger, logging.ERROR)
+#sys.stderr = sl
 
 if __name__ == '__main__':
     main()
