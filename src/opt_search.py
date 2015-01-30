@@ -119,7 +119,7 @@ def get_optim_opts(fit_dict, data_opts):
     basinhopping_opts = {'interval':15, 'disp':False}
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, num_feat)
-    global_type = 'basin'
+    global_type = 'random'
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval,
                      'basin_opts':basinhopping_opts, 'global_type':global_type} # want the constr_dict here explicitly? | TAG: Question
@@ -326,17 +326,18 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
     elif search_type == 'hybrid':
         try:
             search_point = optimize_wrapper(optim_options, opt_purpose = 'search_opt',
-                                            outp_name = data_opts['search_fname'], opt_results = opt_result)
+                                            opt_results = opt_result)
         except ValueError:
             print 'ValueError in Basinhopping, trying again....'
             search_res = search_infill(opt_result, optim_options, case_info, data_opts)
             return search_res
-        new_doe_scaled = search_point.x
-        obj_res = search_point.fun
-#        with open(data_opts['search_fname'], 'wb') as f:
-#            cPickle.dump(search_point, f, 2)
-    new_doe = core.dv_scaler(new_doe_scaled, dv_bounds, 'real')
-    return (new_doe, new_doe_scaled), obj_res
+        search_res = {'new_doe_scaled':search_point.x, 'obj_res':search_point.fun,
+                      'new_doe':core.dv_scaler(search_point.x, dv_bounds, 'real'),
+                      'search_res_obj':search_point}
+        with open(data_opts['search_fname'], 'wb') as f:
+            cPickle.dump(search_res, f, 2)
+#    new_doe = core.dv_scaler(new_doe_scaled, dv_bounds, 'real')
+    return search_res
 
 
 def converge_check(prev_obs_vals, thresh_inp):
