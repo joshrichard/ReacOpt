@@ -300,8 +300,7 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
             global_obj.add_x_guess(x_guess)
             local_res = minimize(opt_fun, x_guess, **min_kwargs)
             global_obj.add_result(local_res)
-        global_obj.print_results()
-        global_obj.make_scipy_like()
+        global_obj.finish_step()
         global_res = global_obj
     else:
         msg = """
@@ -323,7 +322,7 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
     search_type = optim_options['search_type']
     #First, select whether exploitation or hybrid
     if search_type == 'exploit':
-        search_res = {'new_doe_scaled':opt_result.x, 'obj_res':opt_result.fun,
+        search_res = {'new_doe_scaled':opt_result.x, 'search_val':opt_result.fun,
                       'new_doe':core.dv_scaler(opt_result.x, dv_bounds, 'real'),
                       }
     elif search_type == 'hybrid':
@@ -334,7 +333,7 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
             print 'ValueError in Basinhopping, trying again....'
             search_res = search_infill(opt_result, optim_options, case_info, data_opts)
             return search_res
-        search_res = {'new_doe_scaled':search_point.x, 'obj_res':search_point.fun,
+        search_res = {'new_doe_scaled':search_point.x, 'search_val':search_point.fun,
                       'new_doe':core.dv_scaler(search_point.x, dv_bounds, 'real'),
                       'search_res_obj':search_point}
     with open(data_opts['search_fname'], 'wb') as f:

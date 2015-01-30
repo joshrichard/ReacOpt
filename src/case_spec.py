@@ -311,7 +311,7 @@ def iter_loop():
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, 
                                                 case_info, data_opts)
-        new_search_dv = search_res[0][-1]
+        new_search_dv = search_res['new_doe_scaled']
         print 'Search result:'
         print search_res
         optimization_options['accept_test'].print_result(new_search_dv)
@@ -330,7 +330,7 @@ def iter_loop():
         iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
         all_opt_res.append(opt_res.fun) # TAG: Improve?
         #if not search_duplicate:
-        all_expec_val_res.append(search_res[-1])
+        all_expec_val_res.append(search_res['search_val'])
         print 'Currently observed best obj fun values:'
         print all_opt_res
         print 'Currently identified expected improvements:'
@@ -367,7 +367,8 @@ def iter_loop():
         else:
             print 'Iteration {} not converged'.format(iter_cntr)
             first_iter = False
-            doe_sets['doe'], doe_sets['doe_scaled'] = search_res[0]
+            doe_sets['doe'] = search_res['new_doe']
+            doe_sets['doe_scaled'] = search_res['new_doe_scaled'] 
             with open(data_opts['doe_fname'], 'wb') as outpf:
                 cPickle.dump(doe_sets['doe'], outpf, 2)
                 cPickle.dump(doe_sets['doe_scaled'], outpf, 2)
