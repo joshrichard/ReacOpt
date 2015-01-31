@@ -361,12 +361,12 @@ def converge_check(prev_obs_vals, converge_opts):
     converge_tol = converge_opts['converge_tol']
     converge_points = converge_opts['converge_points']
     
-    obs_obj_vals = prev_obs_vals
+    obs_obj_vals = np.array(prev_obs_vals)
     #range_obs = np.abs(np.max(obs_obj_vals) - np.min(obs_obj_vals))
     #thresh = thresh_inp
     #stop_criterion = thresh * range_obs
     #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
-    delta_set = np.array(obs_obj_vals[1:]-obs_obj_vals[:-1])
+    delta_set = obs_obj_vals[1:] - obs_obj_vals[:-1]
     rel_delta_set = delta_set / obs_obj_vals[:-1]
     pos_rel_delta_set = np.abs(rel_delta_set)
     # and np.all(np.less(rel_delta_set, 0.0))

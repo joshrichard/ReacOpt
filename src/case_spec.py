@@ -6,6 +6,7 @@ Created on Fri Apr 11 12:58:27 2014
 """
 
 #from core_objects_v5 import dv_scaler
+from core_objects_v5 import StreamToLogger
 import creation_engine as c_eng
 import surrogate_constr as sur_constr
 import opt_search as opt_module
@@ -103,8 +104,9 @@ search_type = 'hybrid' # either 'hybrid' or 'exploit'
 converge_opts = {'converge_tol':1e-3, 'converge_points':3}
 thresh_in = 1e-3
 euclid_tol = 1e-3
+outp_mode = 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'off'
+use_exist_data = 'on'
 
 if run_mode == 'normal':
     try:
@@ -343,8 +345,8 @@ def iter_loop():
                 global all_search_res
                 with open(data_opts['iter_fname'], 'rb') as it_f:
                     run_dump_data_list = cPickle.load(it_f)
-                all_opt_res = run_dump_data_list['all_opt_res']
-                all_search_res = run_dump_data_list['all_search_res']
+                all_opt_res = run_dump_data_list[-1]['all_opt_res']
+                all_search_res = run_dump_data_list[-1]['all_search_res']
             except IOError:
                 print "Couldn't find input file, dumping new data out"
                 pass
@@ -361,8 +363,12 @@ def iter_loop():
         ####
         # Check expect val convergence
         ####
-        print 'Checking for convergence'
-        if not first_iter and not converged_temp:
+        if len(all_search_res) <= converge_opts['converge_points']:
+            print 'Only have {} search results, need at least 4 or more'.format(
+                   len(all_search_res))
+            print 'not checking for expect val convergence'
+        else:
+            print 'Checking for convergence'
             if search_type == 'exploit':
                 converged_temp = opt_module.converge_check(all_opt_res, converge_opts)
             elif search_type == 'hybrid':
@@ -467,37 +473,24 @@ def iter_loop():
 #            with open(data_opts['final_fname'], 'wb') as finalf:
 #                cPickle.dump(obj_fun, finalf, 2) # Need to store run data for every iteration, not just dump and overwrite on every iteration
 
-# Logging streamer functionality courtesy of Ferry Boender
-# http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
-# GPL license
 
-class StreamToLogger(object):
-   """
-   Fake file-like stream object that redirects writes to a logger instance.
-   """
-   def __init__(self, logger, log_level=logging.INFO):
-      self.logger = logger
-      self.log_level = log_level
-      self.linebuf = ''
  
-   def write(self, buf):
-      for line in buf.rstrip().splitlines():
-         self.logger.log(self.log_level, line.rstrip())
- 
-logging.basicConfig(
-   level=logging.DEBUG,
-   format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
-   filename=data_opts['log_fname'],
-   filemode='a'
-)
- 
-stdout_logger = logging.getLogger('STDOUT')
-sl = StreamToLogger(stdout_logger, logging.INFO)
-sys.stdout = sl
- 
-stderr_logger = logging.getLogger('STDERR')
-sl = StreamToLogger(stderr_logger, logging.ERROR)
-sys.stderr = sl
+if outp_mode == 'iterate':
+    
+    logging.basicConfig(
+       level=logging.DEBUG,
+       format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
+       filename=data_opts['log_fname'],
+       filemode='a'
+    )
+    
+    stdout_logger = logging.getLogger('STDOUT')
+    sl = StreamToLogger(stdout_logger, logging.INFO)
+    sys.stdout = sl
+     
+    stderr_logger = logging.getLogger('STDERR')
+    sl = StreamToLogger(stderr_logger, logging.ERROR)
+    sys.stderr = sl
 
 if __name__ == '__main__':
     main()
