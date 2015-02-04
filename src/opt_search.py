@@ -258,6 +258,7 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
         basin_disp = optim_options['basin_opts']['disp']
     elif global_type == 'random':
         random_iter = optim_options['random_opts']['niter']
+        random_repeat_stop = optim_options['random_opts']['repeat_stop']
     if opt_purpose == 'dv_opt':
         opt_fun = obj_eval
     elif opt_purpose == 'search_opt':
@@ -301,6 +302,11 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
             global_obj.add_x_guess(x_guess)
             local_res = minimize(opt_fun, x_guess, **min_kwargs)
             global_obj.add_result(local_res)
+            # Check to see if not finding improved result
+            if global_obj.best_count >= random_repeat_stop:
+                print 'Have not found improved global opt after {} iter'.format(random_repeat_stop)
+                print 'stopping global optimization on iteration {}'.format(local_iter)
+                break                
         global_obj.finish_step()
         global_res = global_obj
     else:
@@ -447,15 +453,23 @@ class RandGlobal(object):
         
     def add_result(self, result): # Can add a check here to make sure result is a OptimizeResult object | TAG: Improve
         if result.success:
+            self.num_success += 1
             if self.best == None:
                 self.best = result
             elif self.best.fun > result.fun:
                 # Found a new best location
                 self.best = result
+                self.best_count = 0
+            else:
+                # not any better than current best
+                # increment counter that tracks number of iterations
+                # with same global best
+                self.best_count += 1
             self.loc_success.append(result.x)
             self.fun_success.append(result.fun)
             self.res_success.append(result)
         else:
+            self.num_failure += 1
             self.loc_failure.append(result.x)
             self.fun_failure.append(result.fun)
             self.res_failure.append(result)
