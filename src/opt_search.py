@@ -57,13 +57,16 @@ def all_bounds_constr(X):
             result = feature
     return result
 
-def get_optim_opts(fit_dict, data_opts):
+def get_optim_opts(fit_dict, data_opts, fit_opts):
     num_feat = fit_dict['X_t'].shape[-1]
     x_guess = np.array([0.8]*num_feat) # Improve guess spot? | TAG: Improve
     obj_eval = make_neg(fit_dict['obj_val'].predict)
     reac_co_eval = make_neg(fit_dict['reac_co'].predict)
     void_w_eval = make_neg(fit_dict['void_w'].predict)
     max_cycle_eval = constr_cycle_len(fit_dict['max_cycle'].predict)
+    sur_type = fit_opts['sur_type']
+    if sur_type == 'regress':
+        igpm_obj_eval = make_neg(fit_dict['igpm_obj_val'].predict)
 #    bounds_eval = all_bounds_constr
     
     #global meta_dict
@@ -126,6 +129,8 @@ def get_optim_opts(fit_dict, data_opts):
                      'x_guess':x_guess, 'obj_eval':obj_eval,
                      'basin_opts':basinhopping_opts, 'global_type':global_type,
                      'random_opts':randomized_opts} # want the constr_dict here explicitly? | TAG: Question
+    if sur_type == 'regress':
+        optim_options.update({'igpm_obj_eval':igpm_obj_eval})
 #    with open(data_opts['opt_inp_fname'], 'wb') as f:
 #        cPickle.dump(optim_options, f)
     return optim_options
@@ -245,7 +250,7 @@ please specify either 'basin' or 'random'""".format(global_type)
     return search_res
 
 
-def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=None):
+def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=None, fit_opts=None):
     
     x_guess = optim_options['x_guess']
     obj_eval = optim_options['obj_eval']
@@ -262,6 +267,10 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
     if opt_purpose == 'dv_opt':
         opt_fun = obj_eval
     elif opt_purpose == 'search_opt':
+        sur_type = fit_opts['sur_type']
+        if sur_type == 'regress':
+            obj_eval = optim_options['igpm_obj_eval']
+            # Use same ymin here, or use the igpm to estimate it? For now, use same | TAG: Check            
         ymin = opt_results.fun
         def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
             y_eval, MSE = obj_eval_func(x, eval_MSE=True)
@@ -302,11 +311,11 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
             global_obj.add_x_guess(x_guess)
             local_res = minimize(opt_fun, x_guess, **min_kwargs)
             global_obj.add_result(local_res)
-            # Check to see if not finding improved result
-            if global_obj.best_count >= random_repeat_stop:
-                print 'Have not found improved global opt after {} iter'.format(random_repeat_stop)
-                print 'stopping global optimization on iteration {}'.format(local_iter)
-                break                
+            # Check to see if not finding improved result | TAG: outtest
+#            if global_obj.best_count >= random_repeat_stop:
+#                print 'Have not found improved global opt after {} iter'.format(random_repeat_stop)
+#                print 'stopping global optimization on iteration {}'.format(local_iter)
+#                break                
         global_obj.finish_step()
         global_res = global_obj
     else:
@@ -368,15 +377,17 @@ def converge_check(prev_obs_vals, converge_opts):
     converge_points = converge_opts['converge_points']
     
     obs_obj_vals = np.array(prev_obs_vals)
-    #range_obs = np.abs(np.max(obs_obj_vals) - np.min(obs_obj_vals))
-    #thresh = thresh_inp
-    #stop_criterion = thresh * range_obs
+    range_obs = np.abs(np.max(obs_obj_vals[:-1]) - np.min(obs_obj_vals[:-1]))
+    stop_criterion = converge_tol * range_obs
     #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
-    delta_set = obs_obj_vals[1:] - obs_obj_vals[:-1]
-    rel_delta_set = delta_set / obs_obj_vals[:-1]
-    pos_rel_delta_set = np.abs(rel_delta_set)
-    # and np.all(np.less(rel_delta_set, 0.0))
-    if np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol)): # can check a set here if desired | TAG: Improve
+    delta_set = np.diff(obs_obj_vals)
+    pos_delta_set = np.abs(delta_set)
+    # Code to do relative diff converge check | TAG: outtest
+#    rel_delta_set = delta_set / obs_obj_vals[:-1]
+#    pos_rel_delta_set = np.abs(rel_delta_set)
+    # and np.all(np.less(rel_delta_set, 0.0)) not used
+#    if np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol)):
+    if np.all(np.less(pos_delta_set[-converge_points:], stop_criterion)): # can check a set here if desired | TAG: Improve
         converged = True
     else:
         converged = False

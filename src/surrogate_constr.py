@@ -49,16 +49,17 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     
     sur_type = fit_opts['sur_type']
     theta_opt = fit_opts['theta_opt']
-    theta_bounds = (1e-1, 1e-4, 0.5)
-    if fit_opts['num_theta'] == 'single':
-        num_feat = 1
-    elif fit_opts['num_theta'] == 'all':
-        num_feat = X_t.shape[-1]
-    else:
-        raise Exception('{} is not a supported option for num_theta!'.format(fit_opts['num_theta']))
-    theta_guess = [theta_bounds[0]] * num_feat
-    theta_lowb = [theta_bounds[1]] * num_feat
-    theta_upb = [theta_bounds[2]] * num_feat
+    if theta_opt == 'custom':
+        theta_bounds = fit_opts['theta_bounds']
+        if fit_opts['num_theta'] == 'single':
+            num_feat = 1
+        elif fit_opts['num_theta'] == 'all':
+            num_feat = X_t.shape[-1]
+        else:
+            raise Exception('{} is not a supported option for num_theta!'.format(fit_opts['num_theta']))
+        theta_guess = [theta_bounds['guess']] * num_feat
+        theta_lowb = [theta_bounds['low']] * num_feat
+        theta_upb = [theta_bounds['up']] * num_feat
 
     
     # select theta type for obj_val only for now
@@ -66,7 +67,6 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
         if theta_opt == 'default':
             obj_val = gaussian_process.GaussianProcess()
         elif theta_opt == 'custom':
-            #theta_guess = [theta_bounds[0]] * X_t.shape[-1]
             obj_val = gaussian_process.GaussianProcess(theta0 = theta_guess, thetaL = theta_lowb,
                                                        thetaU = theta_upb)
         else:
@@ -77,7 +77,6 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
             obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
             xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err)) # Could make this np.max() to be conservative | TAG: CHANGE
         elif theta_opt == 'custom':
-            #theta_guess = [theta_bounds[0]] * X_t.shape[-1]
             obj_val = gaussian_process.GaussianProcess(nugget = obj_err, theta0=theta_guess,
                                                        thetaL = theta_lowb, thetaU = theta_upb)
             xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err), theta0=theta_guess,
@@ -104,8 +103,21 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     reac_co.fit(X_t, reac_co_data)
     void_w.fit(X_t, void_w_data)
     max_cycle.fit(X_t, max_cycle_data)
+    
     fit_dict = {'X_t':X_t,'obj_val':obj_val, 'reac_co':reac_co, 'void_w':void_w, \
                 'max_cycle':max_cycle, 'xval_obj_val':xval_obj_val}
+    
+    # If using a regressing GPM, build a re-interpolator for use in search-and-infill
+    if sur_type == 'regress':
+        # Start by getting the rGPM data at each DOE location
+        igpm_obj_val_data = obj_val.predict(X_t)
+        # Now, use this as the data to fit with a new interpolating GPM (iGPM)
+        # that uses the same hyperparameters as the rGPM
+        igpm_obj_val = gaussian_process.GaussianProcess(theta0=obj_val.theta_)
+        igpm_obj_val.fit(X_t, igpm_obj_val_data)
+        fit_dict.update({'igpm_obj_val':igpm_obj_val})
+    
+
     with open(data_opts['fit_fname'], 'wb') as fitf:
         cPickle.dump(fit_dict, fitf, 2)
 

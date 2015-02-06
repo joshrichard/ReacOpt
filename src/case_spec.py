@@ -99,9 +99,10 @@ all_opt_res = []
 all_search_res = []
 run_dump_data_list = []
 # 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or 'fuel_flux' or 'mat_flux'
-fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'fuel_flux'} 
+fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'fuel_flux',
+            'theta_bounds':{'up':1e2, 'low':1e-3, 'guess':1e-1}}
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
-converge_opts = {'converge_tol':1e-3, 'converge_points':3}
+converge_opts = {'converge_tol':1e-3, 'converge_points':1}
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate'
@@ -300,7 +301,7 @@ def iter_loop():
         print 'Optimizing on objective function of surrogate'
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
-        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts)
+        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts, fit_opts)
         opt_res = opt_module.optimize_wrapper(optimization_options, opt_purpose = 'dv_opt', 
                                               outp_name = data_opts['opt_fname'])
         print 'Results of optimization:'
@@ -320,10 +321,10 @@ def iter_loop():
         print search_res
         optimization_options['accept_test'].print_result(new_search_dv)
         ####
-        # Check for proximity convergence
+        # Check for proximity convergence | commented out for testing | TAG: outtest
         ####
-        print 'checking for duplicate search result'
-        converged_temp = opt_module.prox_check(doe_sets, new_search_dv, euclid_tol)
+        #print 'checking for duplicate search result'
+        #converged_temp = opt_module.prox_check(doe_sets, new_search_dv, euclid_tol)
 #        for dv_set in doe_sets['doe_scaled']:
 #            new_point_distance = euclidean(dv_set, new_search_dv)
 #            if new_point_distance < euclid_tol:
