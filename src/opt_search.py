@@ -122,7 +122,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts):
     cobyla_constr.extend(boxbound_constr_dict)
     cobyla_opts = {'catol':1E-6}
     basinhopping_opts = {'interval':15, 'disp':False}
-    randomized_opts = {'niter':100}
+    randomized_opts = {'niter':100, 'repeat_stop':15}
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, num_feat)
     global_type = 'random'
@@ -264,7 +264,7 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
         basin_disp = optim_options['basin_opts']['disp']
     elif global_type == 'random':
         random_iter = optim_options['random_opts']['niter']
-        random_repeat_stop = optim_options['random_opts']['repeat_stop']
+        #random_repeat_stop = optim_options['random_opts']['repeat_stop'] # |TAG: outtest
     if opt_purpose == 'dv_opt':
         opt_fun = obj_eval
     elif opt_purpose == 'search_opt':
@@ -461,6 +461,8 @@ class MyConstr(object):
         
 class RandGlobal(object):
     def __init__(self):
+        self.num_success = 0
+        self.num_failure = 0
         self.res_success = []
         self.res_failure = []
         self.loc_success = []
@@ -470,6 +472,7 @@ class RandGlobal(object):
         self.x_guesses = []
         self.feval_tot = 0
         self.best = None
+        self.best_count = 0
         
     def add_result(self, result): # Can add a check here to make sure result is a OptimizeResult object | TAG: Improve
         if result.success:

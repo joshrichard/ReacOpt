@@ -110,7 +110,7 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     # If using a regressing GPM, build a re-interpolator for use in search-and-infill
     if sur_type == 'regress':
         # Start by getting the rGPM data at each DOE location
-        igpm_obj_val_data = obj_val.predict(X_t)
+        igpm_obj_val_data = np.apply_along_axis(obj_val.predict, 1, X_t).sum(1)
         # Now, use this as the data to fit with a new interpolating GPM (iGPM)
         # that uses the same hyperparameters as the rGPM
         igpm_obj_val = gaussian_process.GaussianProcess(theta0=obj_val.theta_)

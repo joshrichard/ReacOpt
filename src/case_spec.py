@@ -105,9 +105,9 @@ search_type = 'hybrid' # either 'hybrid' or 'exploit'
 converge_opts = {'converge_tol':1e-3, 'converge_points':1}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'on'
+use_exist_data = 'off'
 
 if run_mode == 'normal':
     try:
