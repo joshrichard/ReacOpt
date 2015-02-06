@@ -332,7 +332,7 @@ please specify either 'basin' or 'random'""".format(global_type)
 
 
 # Optimization search and infill function
-def search_infill(opt_result, optim_options, case_info, data_opts):
+def search_infill(opt_result, optim_options, case_info, data_opts, fit_op):
     
     dv_bounds = case_info['dv_bounds']
     search_type = optim_options['search_type']
@@ -344,7 +344,7 @@ def search_infill(opt_result, optim_options, case_info, data_opts):
     elif search_type == 'hybrid':
         try:
             search_point = optimize_wrapper(optim_options, opt_purpose = 'search_opt',
-                                            opt_results = opt_result)
+                                            opt_results = opt_result, fit_opts = fit_op)
         except ValueError:
             print 'ValueError in Basinhopping, trying again....'
             search_res = search_infill(opt_result, optim_options, case_info, data_opts)

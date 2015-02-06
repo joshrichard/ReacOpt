@@ -315,7 +315,7 @@ def iter_loop():
             opt_res = cPickle.load(optf)
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, 
-                                                case_info, data_opts)
+                                                case_info, data_opts, fit_opts)
         new_search_dv = search_res['new_doe_scaled']
         print 'Search result:'
         print search_res
