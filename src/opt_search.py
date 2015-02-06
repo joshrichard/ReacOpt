@@ -20,6 +20,7 @@ import cPickle
 from scipy.optimize import minimize
 from scipy.optimize import basinhopping
 from scipy.spatial.distance import euclidean
+from scipy.misc import factorial2
 #from scipy import optimize
 
 import core_objects_v5 as core
@@ -277,6 +278,14 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
             sigma = np.sqrt(MSE)
             if MSE == 0.0: # Check tolerances here!
                 exp_imp = 0.0
+#            elif a_sub < some_num:
+#                a_sub = (y_min - y_eval) // (math.sqrt(2.0) * sigma)
+#                mac_term = np.arange(1.0, 21.0)
+#                mac_term = (-1.0)**(mac_term)*factorial2(2.0*mac_term - 1.0)//(2.0**mac_term)
+#                           * a_sub**(-(2*mac_term + 1))
+#                ei_term1 = (y_min-y_eval) * 1.0//(2.0*math.sqrt(math.pi)) * np.sum(mac_term)
+#                ei_term2 = sigma // math.sqrt(2.0*math.pi)
+#                exp_imp = (ei_term1 + ei_term2) * math.exp(-1.0*a_sub**2.0)
             else:
                 ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)//(sigma*math.sqrt(2.0)) ))
                 ei_term2 = (sigma * 1.0//math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0//(2.0*MSE) )
