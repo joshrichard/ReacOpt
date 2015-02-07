@@ -356,7 +356,7 @@ def search_infill(opt_result, optim_options, case_info, data_opts, fit_op):
                                             opt_results = opt_result, fit_opts = fit_op)
         except ValueError:
             print 'ValueError in Basinhopping, trying again....'
-            search_res = search_infill(opt_result, optim_options, case_info, data_opts)
+            search_res = search_infill(opt_result, optim_options, case_info, data_opts, fit_op)
             return search_res
         search_res = {'new_doe_scaled':search_point.x, 'search_val':search_point.fun,
                       'new_doe':core.dv_scaler(search_point.x, dv_bounds, 'real'),
@@ -384,22 +384,30 @@ def converge_check(prev_obs_vals, converge_opts):
     
     converge_tol = converge_opts['converge_tol']
     converge_points = converge_opts['converge_points']
+    converge_type = converge_opts['converge_type']
     
     obs_obj_vals = np.array(prev_obs_vals)
-    range_obs = np.abs(np.max(obs_obj_vals[:-1]) - np.min(obs_obj_vals[:-1]))
-    stop_criterion = converge_tol * range_obs
-    #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
     delta_set = np.diff(obs_obj_vals)
-    pos_delta_set = np.abs(delta_set)
+    
+    if converge_type == 'range':
+        range_obs = np.abs(np.max(obs_obj_vals[:-1]) - np.min(obs_obj_vals[:-1]))
+        stop_criterion = converge_tol * range_obs
+        pos_delta_set = np.abs(delta_set)
+        converged = np.all(np.less(pos_delta_set[-converge_points:], stop_criterion))
+    elif converge_type == 'rel':
+        rel_delta_set = delta_set / obs_obj_vals[:-1]
+        pos_rel_delta_set = np.abs(rel_delta_set)
+        converged = np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol))
+    #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
+
     # Code to do relative diff converge check | TAG: outtest
-#    rel_delta_set = delta_set / obs_obj_vals[:-1]
-#    pos_rel_delta_set = np.abs(rel_delta_set)
+
     # and np.all(np.less(rel_delta_set, 0.0)) not used
 #    if np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol)):
-    if np.all(np.less(pos_delta_set[-converge_points:], stop_criterion)): # can check a set here if desired | TAG: Improve
-        converged = True
-    else:
-        converged = False
+#    if np.all(np.less(pos_delta_set[-converge_points:], stop_criterion)): # can check a set here if desired | TAG: Improve
+#        converged = True
+#    else:
+#        converged = False
     return converged
     
 def prox_check(doe_sets, new_search_dv, euclid_tol):
