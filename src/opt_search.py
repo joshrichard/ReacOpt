@@ -289,8 +289,10 @@ def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=N
             else:
                 ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)//(sigma*math.sqrt(2.0)) ))
                 ei_term2 = (sigma * 1.0//math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0//(2.0*MSE) )
-                exp_imp = ei_term1 + ei_term2S
-            return exp_imp
+                exp_imp = ei_term1 + ei_term2
+                if np.isclose(exp_imp, 0.0):
+                    exp_imp = np.finfo(np.array(exp_imp).dtype).eps
+            return np.log(exp_imp)
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve
     
