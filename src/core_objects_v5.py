@@ -3,7 +3,6 @@ import logging
 from collections import OrderedDict
 import subprocess
 import operator
-import numpy
 import itertools
 import copy
 import numpy as np
@@ -1163,8 +1162,8 @@ class CaseMatrix(object):
 #        for element in itertools.product(*self.fit_dv_dict.values()):
 #            self.fit_dv_mtx[cnt] = list(element)
 #            cnt += 1
-        self.data = numpy.array([], dtype=float)
-        self.error = numpy.array([], dtype=float)
+        self.data = np.array([], dtype=float)
+        self.error = np.array([], dtype=float)
         self.ff_shape = FF_num
         self.shape_typ = shape_typ
 
@@ -1182,8 +1181,8 @@ class CaseMatrix(object):
                    # then loop through dict
         
     def add_vals(self, val, error):
-        self.data = numpy.append(self.data, float(val))
-        self.error = numpy.append(self.error, float(error))
+        self.data = np.append(self.data, float(val))
+        self.error = np.append(self.error, float(error))
         
     def calc_length(self):
         self.mysizetot = len(self.data.ravel())

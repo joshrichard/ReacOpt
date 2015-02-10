@@ -47,8 +47,9 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
+#data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_worktest1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -62,6 +63,7 @@ data_names = {}
 fit_dict = {}
 
 # Rename this at some point | TAG: Improve
+#TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
 ('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), \
@@ -107,9 +109,9 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':1,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
+outp_mode = 'interact' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'off'
+use_exist_data = 'on'
 
 if run_mode == 'normal':
     try:

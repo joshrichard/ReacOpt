@@ -92,13 +92,13 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
             boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
         return boxbound_constr_dict
         
-    def get_triso_fuel_constr(dv_vec_scaled, bounds=dv_bounds):
-        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real')
+    def fuel_temp_eval(dv_vec_scaled, bounds=dv_bounds):
+        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real').sum(0)
         pf = dv_vec[1]
         coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
         krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
         power = 20E6
-        t_surf = 1209 # triso surface temp [k]
+        t_surf = 1209.0 + 50.0 # triso surface temp [k]
         t_max_constr = 1623.0
         npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
         pinrad = 0.007 # fuel pin radius, [m]
@@ -118,10 +118,8 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
         for idx in xrange(1,len(layer_k)):
             t_max = t_max - pow_triso_peak*(1.0/(layer_k[idx]*layerrad[idx]) \
                                       - 1.0/(layer_k[idx]*layerrad[idx - 1]))
-        t_max_constr = 1623.0 - t_max
-        return t_max_constr
-    
-    
+        t_max_constr_eval = t_max_constr - t_max
+        return t_max_constr_eval
     
 #    def constr_x1_upper(x):
 #        return 1 - x[0]
@@ -151,13 +149,13 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
 #                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
 #                      {'type':'ineq', 'fun':max_cycle_eval}]
     cobyla_constr = [{'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
-                     {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':get_triso_fuel_constr}]
+                     {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':fuel_temp_eval}]
     cobyla_constr.extend(boxbound_constr_dict)
     cobyla_opts = {'catol':1E-6}
     basinhopping_opts = {'interval':15, 'disp':False}
     randomized_opts = {'niter':100, 'repeat_stop':15}
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
-    myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, get_triso_fuel_constr, num_feat)
+    myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, fuel_temp_eval, num_feat)
     global_type = 'random'
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval,
@@ -581,7 +579,7 @@ class MaxTrisoTemp(object):
         self.pf = dv_vec[1]
         self.krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
         self.pow = 20E6
-        self.t_surf = 1209 # triso surface temp [k]
+        self.t_surf = 1209+50 # triso surface temp [k]
         self.t_max_constr = 1623.0
         self.npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
         self.pinrad = 0.007 # fuel pin radius, [m]
