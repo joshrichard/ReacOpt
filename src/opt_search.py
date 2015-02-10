@@ -42,6 +42,7 @@ def constr_cycle_len(func, min_cyc_len=184.0):
     def inner(*args, **kwargs):
         return func(*args, **kwargs) - min_cyc_len
     return inner
+   
     
 # Function to combine all box bound constraints
 # TAG: Improve, TAG: Test
@@ -58,7 +59,7 @@ def all_bounds_constr(X):
             result = feature
     return result
 
-def get_optim_opts(fit_dict, data_opts, fit_opts):
+def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     num_feat = fit_dict['X_t'].shape[-1]
     x_guess = np.array([0.8]*num_feat) # Improve guess spot? | TAG: Improve
     obj_eval = make_neg(fit_dict['obj_val'].predict)
@@ -66,6 +67,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts):
     void_w_eval = make_neg(fit_dict['void_w'].predict)
     max_cycle_eval = constr_cycle_len(fit_dict['max_cycle'].predict)
     sur_type = fit_opts['sur_type']
+    dv_bounds = case_info['dv_bounds']
     if sur_type == 'regress':
         igpm_obj_eval = make_neg(fit_dict['igpm_obj_val'].predict)
 #    bounds_eval = all_bounds_constr
@@ -89,6 +91,37 @@ def get_optim_opts(fit_dict, data_opts, fit_opts):
             boxbound_constr_dict.append({'type':'ineq', 'fun':upper_constr})
             boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
         return boxbound_constr_dict
+        
+    def get_triso_fuel_constr(dv_vec_scaled, bounds=dv_bounds):
+        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real')
+        pf = dv_vec[1]
+        coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
+        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
+        power = 20E6
+        t_surf = 1209 # triso surface temp [k]
+        t_max_constr = 1623.0
+        npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
+        pinrad = 0.007 # fuel pin radius, [m]
+        layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
+        tot_lay_thick = layer_thick.cumsum()
+        layer_k = [3.5, 0.5, 4.0, 30.0, 4.0] # Thermal cond of layers [W/m-k], jianwei's thesis, pg. 18
+        layerrad = krad + tot_lay_thick*1e-2
+        vol_pin = np.pi * pinrad**2.0 * coreh
+        vol_triso = vol_pin * pf
+        vol_single_triso = 4.0/3.0 * np.pi * layerrad[-1]**3.0
+        num_triso_pin = vol_triso / vol_single_triso
+        pow_pin = power / npins
+        pow_triso = pow_pin / num_triso_pin
+        # axial, radial, and pin peaking
+        pow_triso_peak = pow_triso * 1.2856 * 1.5159 * 0.9067780
+        t_max = t_surf + pow_triso_peak/(6.0*layer_k[0]*layerrad[0])
+        for idx in xrange(1,len(layer_k)):
+            t_max = t_max - pow_triso_peak*(1.0/(layer_k[idx]*layerrad[idx]) \
+                                      - 1.0/(layer_k[idx]*layerrad[idx - 1]))
+        t_max_constr = 1623.0 - t_max
+        return t_max_constr
+    
+    
     
 #    def constr_x1_upper(x):
 #        return 1 - x[0]
@@ -118,13 +151,13 @@ def get_optim_opts(fit_dict, data_opts, fit_opts):
 #                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
 #                      {'type':'ineq', 'fun':max_cycle_eval}]
     cobyla_constr = [{'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
-                     {'type':'ineq', 'fun':max_cycle_eval}]
+                     {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':get_triso_fuel_constr}]
     cobyla_constr.extend(boxbound_constr_dict)
     cobyla_opts = {'catol':1E-6}
     basinhopping_opts = {'interval':15, 'disp':False}
     randomized_opts = {'niter':100, 'repeat_stop':15}
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
-    myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, num_feat)
+    myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, get_triso_fuel_constr, num_feat)
     global_type = 'random'
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval,
@@ -443,12 +476,14 @@ def prox_check(doe_sets, new_search_dv, euclid_tol):
 #        return tmax and tmin
         
 class MyConstr(object):
-    def __init__(self, reac_co_eval, void_w_eval, max_cycle_eval, x_len): # need to make work for n-length feature set | TAG: Improve
+    def __init__(self, reac_co_eval, void_w_eval, max_cycle_eval, 
+                 fuel_temp_eval, x_len): # need to make work for n-length feature set | TAG: Improve
         self.xmax = np.ones(x_len)
         self.xmin = np.zeros(x_len)
         self.reac_co_eval = reac_co_eval
         self.void_w_eval = void_w_eval
         self.max_cycle_eval = max_cycle_eval
+        self.fuel_temp_eval = fuel_temp_eval
     def __call__(self, **kwargs):
         x = kwargs["x_new"]
         # now evaluate the constraint function here using x_new
@@ -457,9 +492,10 @@ class MyConstr(object):
         reac_coeff = bool(self.reac_co_eval(x) >= 0.0) # Changed to match cobyla constr
         void_worth = bool(self.void_w_eval(x) >= 0.0)  # TAG: Note
         max_cycle = bool(self.max_cycle_eval(x) >= 0.0)
+        fuel_temp = bool(self.fuel_temp_eval(x) >= 0.0)
         # cycle_len next
         #return reac_coeff and void_worth
-        if False in [reac_coeff, void_worth, max_cycle, tmax, tmin]:
+        if False in [reac_coeff, void_worth, max_cycle, fuel_temp, tmax, tmin]:
             return False
         else:
             return True    
@@ -467,6 +503,7 @@ class MyConstr(object):
         print 'Reac coeff constr is {}'.format(self.reac_co_eval(x))
         print 'Void worth constr is {}'.format(self.void_w_eval(x))
         print 'Max cycle len constr is {}'.format(self.max_cycle_eval(x))
+        print 'Peak fuel temp is {}'.format(self.fuel_temp_eval(x))
         
         
 class RandGlobal(object):
@@ -538,7 +575,41 @@ Final opt location: {}
         
 #msg = """New optimum found: {} at loc {}"""        
 
+class MaxTrisoTemp(object):
+    def __init__(self, dv_vec):
+        self.coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
+        self.pf = dv_vec[1]
+        self.krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
+        self.pow = 20E6
+        self.t_surf = 1209 # triso surface temp [k]
+        self.t_max_constr = 1623.0
+        self.npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
+        self.pinrad = 0.007 # fuel pin radius, [m]
+        self.layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
+        self.tot_lay_thick = self.layer_thick.cumsum()
+        self.layer_k = [3.5, 0.5, 4.0, 30.0, 4.0] # Thermal cond of layers [W/m-k], jianwei's thesis, pg. 18
+        self.layerrad = self.krad + self.tot_lay_thick*1e-2
+        self.vol_pin = np.pi * self.pinrad**2.0 * self.coreh
+        self.vol_triso = self.vol_pin * self.pf
+        self.vol_single_triso = 4.0/3.0 * np.pi * self.layerrad[-1]**3.0
+        self.num_triso_pin = self.vol_triso / self.vol_single_triso
+        self.pow_pin = self.pow / self.npins
+        self.pow_triso = self.pow_pin / self.num_triso_pin
+        # axial, radial, and pin peaking
+        self.pow_triso_peak = self.pow_triso * 1.2856 * 1.5159 * 0.9067780
+        self.t_max = self.t_surf + self.pow_triso_peak/(6.0*self.layer_k[0]*self.layerrad[0])
+        for idx in xrange(1,len(self.layer_k)):
+            self.t_max = self.t_max - self.pow_triso_peak*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
+                                      - 1.0/(self.layer_k[idx]*self.layerrad[idx - 1]))
+                                      
+    def get_tmax(self):
+        return self.t_max
+        
+    def get_tmax_constr(self):
+        return self.t_max_constr - self.t_max
+            
 
+        
 
         
 def print_fun(x, f, accepted):

@@ -303,7 +303,7 @@ def iter_loop():
         print 'Optimizing on objective function of surrogate'
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
-        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts, fit_opts)
+        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts, fit_opts, case_info)
         opt_res = opt_module.optimize_wrapper(optimization_options, opt_purpose = 'dv_opt', 
                                               outp_name = data_opts['opt_fname'])
         print 'Results of optimization:'
