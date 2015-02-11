@@ -505,7 +505,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     data_dict['reac'].calc_length()
     bu_stride = len(case_info['bu_steps'])
     cl_stride = calc_extra_states(case_info['extra_states']) # Only if cdens is the only extra state? | TAG: Improve
-    delta =  (2960 - 2960 * 0.001)/ (0.889)
+    delta =  (2960 - 2960 * 0.001)/ (0.889) # Only for nafzrf | TAG: Hardcode
     estate_start_idx = 0
     estate_end_idx = 1
        

@@ -38,11 +38,35 @@ def make_neg(func):
         return res_tup
     return inner
     
-def constr_cycle_len(func, min_cyc_len=184.0):
+def constr_cycle_len(func, min_cyc_len=200.0): # cycle len in EPFD | TAG: Constraint
     def inner(*args, **kwargs):
         return func(*args, **kwargs) - min_cyc_len
     return inner
-   
+
+# Function to provide some margin to void worth constraint
+def void_worth_adj(func, void_w_margin=50.0): # Void worth in pcm | TAG: Constraint
+    def inner(*args, **kwargs):
+        res_tup = func(*args, **kwargs)
+        if 'eval_MSE' in kwargs:
+            res_neg = (res_tup[0] + void_w_margin) * -1.0
+            res_MSE = res_tup[-1]
+            res_tup = tuple([res_neg, res_MSE])
+        else:
+            res_tup = (res_tup + void_w_margin) * -1.0
+        return res_tup
+    return inner
+
+def reac_coeff_adj(func, reac_coeff_margin=0.01): # Coolant temperature coefficient of reactivity in pcm/K | TAG: Constraint
+    def inner(*args, **kwargs):
+        res_tup = func(*args, **kwargs)
+        if 'eval_MSE' in kwargs:
+            res_neg = (res_tup[0] + reac_coeff_margin) * -1.0
+            res_MSE = res_tup[-1]
+            res_tup = tuple([res_neg, res_MSE])
+        else:
+            res_tup = (res_tup + reac_coeff_margin) * -1.0
+        return res_tup
+    return inner
     
 # Function to combine all box bound constraints
 # TAG: Improve, TAG: Test
@@ -63,8 +87,8 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     num_feat = fit_dict['X_t'].shape[-1]
     x_guess = np.array([0.8]*num_feat) # Improve guess spot? | TAG: Improve
     obj_eval = make_neg(fit_dict['obj_val'].predict)
-    reac_co_eval = make_neg(fit_dict['reac_co'].predict)
-    void_w_eval = make_neg(fit_dict['void_w'].predict)
+    reac_co_eval = reac_coeff_adj(fit_dict['reac_co'].predict)
+    void_w_eval = void_worth_adj(fit_dict['void_w'].predict)
     max_cycle_eval = constr_cycle_len(fit_dict['max_cycle'].predict)
     sur_type = fit_opts['sur_type']
     dv_bounds = case_info['dv_bounds']
@@ -99,7 +123,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
         krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
         power = 20E6
         t_surf = 1209.0 + 50.0 # triso surface temp [k]
-        t_max_constr = 1623.0
+        t_max_constr = 1623.0 # TAG: Constraint
         npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
         pinrad = 0.007 # fuel pin radius, [m]
         layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
