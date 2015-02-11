@@ -123,7 +123,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
         krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
         power = 20E6
         t_surf = 1209.0 + 50.0 # triso surface temp [k]
-        t_max_constr = 1623.0 # TAG: Constraint
+        t_max_constr = 1610.0 # TAG: Constraint
         npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
         pinrad = 0.007 # fuel pin radius, [m]
         layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
