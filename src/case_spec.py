@@ -24,7 +24,7 @@ import time
 #from scipy.spatial.distance import euclidean
 
 
-
+np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
 # Global access variables
 
@@ -61,6 +61,8 @@ doe_sets = {}
 data_names = {}
 
 fit_dict = {}
+
+opt_res_dict = {}
 
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
@@ -105,13 +107,13 @@ fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_
             'theta_bounds':{'up':1e2, 'low':1e-3, 'guess':1e-1}}
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 # either 'range' or 'rel'
-converge_opts = {'converge_tol':1e-3, 'converge_points':1, 
+converge_opts = {'converge_tol':1e-3, 'converge_points':3, 
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'off'
+use_exist_data = 'on'
 
 if run_mode == 'normal':
     try:
@@ -305,8 +307,14 @@ def iter_loop():
         print 'Optimizing on objective function of surrogate'
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
+        if first_iter and use_exist_data=='off':
+            last_opt = None
+        else:
+            with open(data_opts['iter_fname'], 'rb') as it_f:
+                last_opt = cPickle.load(it_f)
+            last_opt = last_opt[-1]
         optimization_options = opt_module.get_optim_opts(fit_dict, data_opts, fit_opts, case_info)
-        opt_res = opt_module.optimize_wrapper(optimization_options, opt_purpose = 'dv_opt', 
+        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
                                               outp_name = data_opts['opt_fname'])
         print 'Results of optimization:'
         print opt_res # Make this work with new data struc from opt
@@ -318,7 +326,7 @@ def iter_loop():
         with open(data_opts['opt_fname'], 'rb') as optf:
             opt_res = cPickle.load(optf)
         optimization_options['search_type'] = search_type
-        search_res = opt_module.search_infill(opt_res, optimization_options, 
+        search_res = opt_module.search_infill(opt_res, optimization_options, last_opt,
                                                 case_info, data_opts, fit_opts)
         new_search_dv = search_res['new_doe_scaled']
         print 'Search result:'

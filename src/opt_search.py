@@ -189,7 +189,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
                      {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':fuel_temp_eval},
                      {'type':'ineq', 'fun':triso_pow_eval}]
     cobyla_constr.extend(boxbound_constr_dict)
-    cobyla_opts = {'catol':1E-6}
+    cobyla_opts = {'catol':1E-3}
     basinhopping_opts = {'interval':15, 'disp':False}
     randomized_opts = {'niter':100, 'repeat_stop':15}
     min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
@@ -320,9 +320,15 @@ please specify either 'basin' or 'random'""".format(global_type)
     return search_res
 
 
-def optimize_wrapper(optim_options, opt_purpose, outp_name = None, opt_results=None, fit_opts=None):
+def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None, opt_results=None, fit_opts=None):
     
-    x_guess = optim_options['x_guess']
+    if prev_opt_data is not None:
+        if opt_purpose == 'dv_opt':
+            x_guess = prev_opt_data['opt_res'].x
+        elif opt_purpose == 'search_opt':
+            x_guess = prev_opt_data['search_res']['new_doe_scaled']
+    else:
+        x_guess = optim_options['x_guess']
     obj_eval = optim_options['obj_eval']
     min_kwargs = optim_options['fmin_opts']
     myaccept = optim_options['accept_test']
@@ -412,7 +418,7 @@ please specify either 'basin' or 'random'""".format(global_type)
 
 
 # Optimization search and infill function
-def search_infill(opt_result, optim_options, case_info, data_opts, fit_op):
+def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fit_op):
     
     dv_bounds = case_info['dv_bounds']
     search_type = optim_options['search_type']
@@ -423,11 +429,11 @@ def search_infill(opt_result, optim_options, case_info, data_opts, fit_op):
                       }
     elif search_type == 'hybrid':
         try:
-            search_point = optimize_wrapper(optim_options, opt_purpose = 'search_opt',
+            search_point = optimize_wrapper(optim_options, exist_opt, opt_purpose = 'search_opt',
                                             opt_results = opt_result, fit_opts = fit_op)
         except ValueError:
             print 'ValueError in Basinhopping, trying again....'
-            search_res = search_infill(opt_result, optim_options, case_info, data_opts, fit_op)
+            search_res = search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fit_op)
             return search_res
         search_res = {'new_doe_scaled':search_point.x, 'search_val':search_point.fun,
                       'new_doe':core.dv_scaler(search_point.x, dv_bounds, 'real'),
@@ -563,12 +569,15 @@ class RandGlobal(object):
     def add_result(self, result): # Can add a check here to make sure result is a OptimizeResult object | TAG: Improve
         if result.success:
             self.num_success += 1
+            print 'Successful local iter completed ({} successful so far)'.format(self.num_success)
             if self.best == None:
                 self.best = result
             elif self.best.fun > result.fun:
                 # Found a new best location
                 self.best = result
                 self.best_count = 0
+                print 'Found new optimal location {} with value {}'.format(
+                       self.best.x, self.best.fun)
             else:
                 # not any better than current best
                 # increment counter that tracks number of iterations
@@ -579,6 +588,7 @@ class RandGlobal(object):
             self.res_success.append(result)
         else:
             self.num_failure += 1
+            print 'Failed local opt iteration, status={}, {} total failed'.format(result.status, self.num_failure)
             self.loc_failure.append(result.x)
             self.fun_failure.append(result.fun)
             self.res_failure.append(result)
@@ -602,10 +612,16 @@ Final opt location: {}
         
     def combine_internal_lists(self):
         self.x_guesses = np.vstack(self.x_guesses)
-        self.loc_success = np.vstack(self.loc_success)
-        self.loc_failure = np.vstack(self.loc_failure)
-        self.fun_success = np.array(self.fun_success)
-        self.fun_failure = np.array(self.fun_failure)
+        if self.num_success > 0:
+            self.loc_success = np.vstack(self.loc_success)
+            self.fun_success = np.array(self.fun_success)
+        else:
+            raise Exception('No local iterations were successful!')
+        if self.num_failure > 0 :
+            self.loc_failure = np.vstack(self.loc_failure)
+            self.fun_failure = np.array(self.fun_failure)
+
+
         
     def finish_step(self):
         self.make_scipy_like()
