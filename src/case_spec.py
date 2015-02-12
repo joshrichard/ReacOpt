@@ -62,8 +62,6 @@ data_names = {}
 
 fit_dict = {}
 
-opt_res_dict = {}
-
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
