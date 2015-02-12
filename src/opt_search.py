@@ -185,6 +185,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
 #    cobyla_constr = [{'type':'ineq', 'fun':bounds_eval}, 
 #                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
 #                      {'type':'ineq', 'fun':max_cycle_eval}]
+    gpm_constr = [reac_co_eval, void_w_eval, max_cycle_eval]
     cobyla_constr = [{'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
                      {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':fuel_temp_eval},
                      {'type':'ineq', 'fun':triso_pow_eval}]
@@ -196,7 +197,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, fuel_temp_eval, triso_pow_eval, num_feat)
     global_type = 'random'
     optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
-                     'x_guess':x_guess, 'obj_eval':obj_eval,
+                     'x_guess':x_guess, 'obj_eval':obj_eval, 'search_constr_gpm':gpm_constr,
                      'basin_opts':basinhopping_opts, 'global_type':global_type,
                      'random_opts':randomized_opts} # want the constr_dict here explicitly? | TAG: Question
     if sur_type == 'regress':
@@ -343,12 +344,13 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
     if opt_purpose == 'dv_opt':
         opt_fun = obj_eval
     elif opt_purpose == 'search_opt':
+        gpm_constr_list = optim_options['search_constr_gpm']
         sur_type = fit_opts['sur_type']
         if sur_type == 'regress':
             obj_eval = optim_options['igpm_obj_eval']
             # Use same ymin here, or use the igpm to estimate it? For now, use same | TAG: Check            
         ymin = opt_results.fun
-        def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
+        def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval, constr_info=gpm_constr_list):
             y_eval, MSE = obj_eval_func(x, eval_MSE=True)
             sigma = np.sqrt(MSE)
             if MSE == 0.0: # Check tolerances here!
@@ -367,7 +369,21 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 exp_imp = ei_term1 + ei_term2
                 if np.isclose(exp_imp, 0.0):
                     exp_imp = np.finfo(np.array(exp_imp).dtype).eps
-            return np.log(exp_imp)
+                exp_imp = np.log(exp_imp)
+            #now get probability of exceeding constraints
+            c_min = 0.0
+            prob_f_list = []
+            for constr_gpm in constr_info:
+                gpm_eval, gpm_MSE = constr_gpm(x, eval_MSE=True)
+                p_f_single = 0.5 + 0.5*math.erf((c_min-gpm_eval)//(np.sqrt(2.0*gpm_MSE)))
+                if np.isclose(p_f_single, 0.0):
+                    p_f_single = np.finfo(np.array(p_f_single).dtype).eps
+                p_f_single = np.log(p_f_single)
+                prob_f_list.append(p_f_single)
+            # Now sum all P(F(x))
+            prob_f_list = np.array(prob_f_list).sum()
+            exp_imp = exp_imp + prob_f_list
+            return exp_imp
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve
     
