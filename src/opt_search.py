@@ -38,9 +38,21 @@ def make_neg(func):
         return res_tup
     return inner
     
-def constr_cycle_len(func, min_cyc_len=200.0): # cycle len in EPFD | TAG: Constraint
+#def constr_cycle_len(func, min_cyc_len=200.0): # cycle len in EPFD | TAG: Constraint
+#    def inner(*args, **kwargs):
+#        return func(*args, **kwargs) - min_cyc_len
+#    return inner
+    
+def constr_cycle_len(func, min_cyc_len=200.0): # Void worth in pcm | TAG: Constraint
     def inner(*args, **kwargs):
-        return func(*args, **kwargs) - min_cyc_len
+        res_tup = func(*args, **kwargs)
+        if 'eval_MSE' in kwargs:
+            res_neg = res_tup[0] - min_cyc_len
+            res_MSE = res_tup[-1]
+            res_tup = tuple([res_neg, res_MSE])
+        else:
+            res_tup = res_tup - min_cyc_len
+        return res_tup
     return inner
 
 # Function to provide some margin to void worth constraint
@@ -185,18 +197,22 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
 #    cobyla_constr = [{'type':'ineq', 'fun':bounds_eval}, 
 #                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
 #                      {'type':'ineq', 'fun':max_cycle_eval}]
-    gpm_constr = [reac_co_eval, void_w_eval, max_cycle_eval]
-    cobyla_constr = [{'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
-                     {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':fuel_temp_eval},
-                     {'type':'ineq', 'fun':triso_pow_eval}]
-    cobyla_constr.extend(boxbound_constr_dict)
+
+    cobyla_constr_gpm = [{'type':'ineq', 'fun':reac_co_eval}, {'type':'ineq', 'fun':void_w_eval}, 
+                     {'type':'ineq', 'fun':max_cycle_eval}]
+    cobyla_constr_nongpm = [{'type':'ineq', 'fun':fuel_temp_eval}, {'type':'ineq', 'fun':triso_pow_eval}]
+    cobyla_constr_search = cobyla_constr_nongpm + boxbound_constr_dict    
+    cobyla_constr_obj_fun = cobyla_constr_gpm + cobyla_constr_search
+    gpm_constr = [constr['fun'] for constr in cobyla_constr_gpm]
     cobyla_opts = {'catol':1E-3}
     basinhopping_opts = {'interval':15, 'disp':False}
     randomized_opts = {'niter':100, 'repeat_stop':15}
-    min_kwargs = {"method":"COBYLA", "constraints":cobyla_constr, "options":cobyla_opts}
+    min_kwargs = {"method":"COBYLA", "options":cobyla_opts}
+    min_kwargs_obj_fun = merge_dict(min_kwargs, {'constraints':cobyla_constr_obj_fun})
+    min_kwargs_search =  merge_dict(min_kwargs, {'constraints':cobyla_constr_search})
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, fuel_temp_eval, triso_pow_eval, num_feat)
     global_type = 'random'
-    optim_options = {'fmin_opts':min_kwargs, 'accept_test':myaccept,
+    optim_options = {'fmin_opts_obj_fun':min_kwargs_obj_fun, 'fmin_opts_search':min_kwargs_search ,'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval, 'search_constr_gpm':gpm_constr,
                      'basin_opts':basinhopping_opts, 'global_type':global_type,
                      'random_opts':randomized_opts} # want the constr_dict here explicitly? | TAG: Question
@@ -331,7 +347,6 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
     else:
         x_guess = optim_options['x_guess']
     obj_eval = optim_options['obj_eval']
-    min_kwargs = optim_options['fmin_opts']
     myaccept = optim_options['accept_test']
     global_type = optim_options['global_type']
     outp_fname = outp_name
@@ -343,7 +358,9 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         #random_repeat_stop = optim_options['random_opts']['repeat_stop'] # |TAG: outtest
     if opt_purpose == 'dv_opt':
         opt_fun = obj_eval
+        min_kwargs = optim_options['fmin_opts_obj_fun']
     elif opt_purpose == 'search_opt':
+        min_kwargs = optim_options['fmin_opts_search']
         gpm_constr_list = optim_options['search_constr_gpm']
         sur_type = fit_opts['sur_type']
         if sur_type == 'regress':
@@ -686,6 +703,9 @@ class MaxTrisoTemp(object):
 def print_fun(x, f, accepted):
     print("at minima %.4f accepted %d" % (f, int(accepted)))
 
-
+def merge_dict(dict1, dict2):
+    new_dict = dict1.copy()
+    new_dict.update(dict2)
+    return new_dict
 
     
