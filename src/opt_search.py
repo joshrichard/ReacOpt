@@ -392,7 +392,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             prob_f_list = []
             for constr_gpm in constr_info:
                 gpm_eval, gpm_MSE = constr_gpm(x, eval_MSE=True)
-                p_f_single = 0.5 + 0.5*math.erf((c_min-gpm_eval)//(np.sqrt(2.0*gpm_MSE)))
+                p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)//(np.sqrt(2.0*gpm_MSE)))
                 if np.isclose(p_f_single, 0.0):
                     p_f_single = np.finfo(np.array(p_f_single).dtype).eps
                 p_f_single = np.log(p_f_single)
