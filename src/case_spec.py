@@ -49,7 +49,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_worktest1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
@@ -113,16 +113,21 @@ outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
 use_exist_data = 'off'
 
+
+
+timenow = time.localtime()
+timestring = '_{}_{}_{}_{}_{}_{}'.format(*timenow[0:6])
+
 if run_mode == 'normal':
     try:
-        timenow = time.localtime()
-        timestring = '_{}_{}_{}_{}_{}_{}'.format(*timenow[0:6])
         namestring = data_opts['data_fname'][:-4] + timestring + '.out'
         os.rename(data_opts['data_fname'], namestring)
     except OSError:
         pass
 elif run_mode == 'restart' and use_exist_data == 'off': # careful with this!
     try:
+        namestring = data_opts['log_fname'][:-4] + timestring + '.out'
+        os.rename(data_opts['log_fname'], namestring)
         os.remove(data_opts['data_fname'])
     except OSError:
         pass
