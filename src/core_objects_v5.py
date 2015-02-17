@@ -1079,7 +1079,8 @@ set pop {particles} {active} {inactive}
 plot 3 4000 4000 -7.0 -200.0 200.0 -200.0 200.0
 plot 3 4000 4000 50.0 -200.0 200.0 -200.0 200.0
 plot 1 500 337 0 
-""".format(inp_pow = self.power, particles = self.particles, active = self.active, inactive = self.inactive)
+"""
+        self.optstring = self.optstring.format(inp_pow = self.power, particles = self.particles, active = self.active, inactive = self.inactive)        
         if bumat != None:
             self.bumat = bumat
             self.optstring += \
