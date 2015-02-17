@@ -1043,7 +1043,8 @@ det 1002 de 803 dc {mat}"""
 
 
 class SerpOpts(object):
-    def __init__(self, particles='5000', active='500', inactive='50', bumat=None,  optstring=None):
+    def __init__(self, power, particles='5000', active='500', inactive='50', bumat=None,  optstring=None):
+        self.power = power
         self.particles = particles
         self.active = active
         self.inactive = inactive
@@ -1068,7 +1069,7 @@ set gcu 0
 set sym 0
 set nfg 2 1.0e-6
 % --- Total power for normalization:
-set power     20E6   
+set power     {inp_pow}   
 set ures      1      %unresolved resonance tracking
 %
 % --- Neutron population and criticality cycles:
@@ -1078,7 +1079,7 @@ set pop {particles} {active} {inactive}
 plot 3 4000 4000 -7.0 -200.0 200.0 -200.0 200.0
 plot 3 4000 4000 50.0 -200.0 200.0 -200.0 200.0
 plot 1 500 337 0 
-"""
+""".format(inp_pow = self.power, particles = self.particles, active = self.active, inactive = self.inactive)
         if bumat != None:
             self.bumat = bumat
             self.optstring += \
@@ -1126,7 +1127,7 @@ set inventory
 
     def write_serp(self):
         serp_str = ""
-        serp_str += self.optstring.format(particles = self.particles, active = self.active, inactive = self.inactive)                
+        serp_str += self.optstring           
         return serp_str
 
 class QSub(object):

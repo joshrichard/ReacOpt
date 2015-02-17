@@ -133,7 +133,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
         pf = dv_vec[1]
         coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
         krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
-        power = 20E6 # TAG: Hardcode
+        power = dv_vec[5]*1e6 # TAG: Hardcode
         pow_max_constr = 0.340 # peak triso power, in W/particle | TAG: Constraint
         npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
         pinrad = 0.007 # fuel pin radius, [m]

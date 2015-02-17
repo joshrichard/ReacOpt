@@ -379,6 +379,9 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     
 def make_inp(make_inp_tuple, inp_fname):
     
+    # Specify core power
+    core_pow = float(make_inp_tuple[5])*1e6
+    
     # Title cards
     file_str = ""
     file_str += core.SerpTitle(inp_fname).write_serp()
@@ -428,7 +431,7 @@ def make_inp(make_inp_tuple, inp_fname):
     # Settings section
     file_str += "\n"
     file_str += "\n"
-    file_str += core.SerpOpts(bumat = 'uco').write_serp()
+    file_str += core.SerpOpts(power = core_pow, bumat = 'uco').write_serp()
     
     # Write input file
     with open(inp_fname,'wb') as fh:

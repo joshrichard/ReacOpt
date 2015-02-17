@@ -35,7 +35,8 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 #extra_vars= ('bu',)
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
-    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0])])
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
+    ('power',[15.0, 25.0])])
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
@@ -48,13 +49,13 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
-data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
+data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_test1')
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':80, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':10, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
 doe_sets = {}
 
@@ -131,6 +132,14 @@ elif run_mode == 'restart' and use_exist_data == 'off': # careful with this!
         os.remove(data_opts['data_fname'])
     except OSError:
         pass
+
+# Make run dump file directories if they don't exist| TAG: Toggle
+dump_fulldir = os.path.expanduser(dump_dir)
+if not os.path.isdir(dump_fulldir):
+    dump_maindir = os.path.dirname(dump_fulldir)
+    if not os.path.isdir(dump_maindir):
+        os.mkdir(dump_maindir)
+    os.mkdir(dump_fulldir)
 
 def main():
     
