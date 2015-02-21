@@ -110,8 +110,8 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart' or 'normal'
+outp_mode = 'interact' # either 'interact' or 'iterate'
+run_mode = 'normal' # either 'restart' or 'normal'
 use_exist_data = 'off'
 
 

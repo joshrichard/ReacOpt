@@ -8,14 +8,14 @@ Created on Thu Mar 06 18:18:22 2014
 
 
 import math
-import argparse
+#import argparse
 import itertools
 import os
 import shutil
 import core_objects_v5 as core
 import subprocess
-from collections import OrderedDict
-from collections import Iterable
+#from collections import OrderedDict
+#from collections import Iterable
 import copy
 import numpy as np
 import pyDOE
@@ -208,8 +208,9 @@ def make_std_inp(inp_tuple, fmake_inp_fname, fmake_pdist_fname, run_opts):
 def make_mats(mats_inp_tuple, run_opts):
     
     u235_enrich = mats_inp_tuple[3]
-    salt_dens_frac = float(mats_inp_tuple[5])
-    
+    salt_dens_frac = float(mats_inp_tuple[-1])
+    #salt_dens = -2.96 * salt_dens_frac
+    #salt_mat_name = run_opts['cool_mat']
     
     
     # Sab scattering kernel in graphite
