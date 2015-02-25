@@ -253,6 +253,7 @@ class AssemblyPowerPeak(object):
         self.core_h = core_h*1e-2 # input in [cm], store in [m]
         self.calc_total_pin_vol()
         self.calc_pin_powers()
+        return self.peak_assm_peak_ax_vol_power
     
     def calc_total_pin_vol(self):
         self.all_pin_vol = np.pi*self.pin_rad**2.0*self.core_h*self.n_fuel_pins
@@ -277,15 +278,7 @@ class AssemblyPowerPeak(object):
         print self.peaked_pin_powers
 
         
-    # Correlation (linear fit) for peak temp [K] in homog. fuel 
-    # as a function of volumetric power dens
-    homog_peak_fuel_temps = np.array([1191.0, 1265.0, 1296.0, 1405.0])
-    vol_powdens = np.array([5.789E7, 7.815E7, 8.683E7, 1.172E7])
-    peak_fuel_temp_regress = LinearRegression()
-    peak_fuel_temp_regress.fit(vol_powdens, homog_peak_fuel_temps)
-    def calc_peak_bulk_fuel_temp(core_pow, core_height, 
-                                 regress_func=peak_fuel_temp_regress.predict()):
-        core_powdens = None
+
 
 #class Water(object):
 #    def __init__(self):

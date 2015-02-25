@@ -21,6 +21,7 @@ from scipy.optimize import minimize
 from scipy.optimize import basinhopping
 from scipy.spatial.distance import euclidean
 from scipy.misc import factorial2
+from sklearn.linear_model import LinearRegression
 #from scipy import optimize
 
 import core_objects_v5 as core
@@ -110,6 +111,20 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     
     #global meta_dict
     # Constraints for COBYLA
+    
+    # Correlation (linear fit) for peak temp [K] in homogenized fuel 
+    # as a function of volumetric power dens [W/m^3]
+    homog_peak_fuel_temps = np.array([1191.0, 1265.0, 1296.0, 1405.0])
+    vol_powdens = np.array([5.789E7, 7.815E7, 8.683E7, 1.172E7])
+    peak_fuel_temp_regress = LinearRegression()
+    peak_fuel_temp_regress.fit(vol_powdens, homog_peak_fuel_temps)
+    def calc_peak_bulk_fuel_temp(core_pow, core_height, powdens_calc = core.AssemblyPowerPeak(),
+                                 regress_func=peak_fuel_temp_regress.predict()):
+        
+        core_powdens = powdens_calc.set_core_conditions(core_pow, core_height)
+        return regress_func(core_powdens)
+    
+    
     # Want to find a way to make work for any length of features
     # Is there a way to make all the bound constraints all into one function,
     # such that if any constraint is violated, the function returns a violation?
@@ -154,7 +169,9 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     def fuel_temp_eval(dv_vec_scaled, dvbounds=dv_bounds):
         dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=dvbounds, scal_type='real').sum(0)
         krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
-        t_surf = 1209.0 + 50.0 # triso surface temp [k]
+        core_pow = dv_vec[5]
+        core_h = dv_vec[0]
+        t_surf = calc_peak_bulk_fuel_temp(core_pow, core_h) # 1209.0 + 50.0 # triso surface temp [k]
         t_max_constr = 1610.0 # TAG: Constraint
         layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
         tot_lay_thick = layer_thick.cumsum()
