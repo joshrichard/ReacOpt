@@ -165,7 +165,11 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
 def run_case_matrix(case_set_names, data_opts):
     root_dir = data_opts['input_dirname']
     job_set_names = []
+    all_job_set_names = []
+    completed_case_names = []
+    job_cnt = 0
     for full_file_path in case_set_names:
+        job_cnt += 1
         file_dir = os.path.dirname(full_file_path)
         file_name = os.path.basename(full_file_path)
         print file_name
@@ -175,11 +179,18 @@ def run_case_matrix(case_set_names, data_opts):
         jobid = subprocess.check_output(["qsub", main_qsub_fname])
         jobid = jobid.split('.')[0]
         job_set_names.append(jobid)
+        all_job_set_names.append(jobid)
+        completed_case_names.append(full_file_path)
+        if job_cnt % 10 == 0:
+            wait_case_matrix(job_set_names, completed_case_names)
+            completed_case_names = [] # Could just have it check all jobids every time
+            job_set_names = []
+            
         
     with open(data_opts['jobs_fname'], 'wb') as outpf: # Will this work if file already exists? Will it overwrite correctly?
         cPickle.dump(job_set_names, outpf, 2)
     
-    return job_set_names
+    return all_job_set_names
 
 
 def wait_case_matrix(jobid_set, case_set, wait_time=350):
