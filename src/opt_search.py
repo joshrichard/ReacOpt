@@ -115,11 +115,11 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     # Correlation (linear fit) for peak temp [K] in homogenized fuel 
     # as a function of volumetric power dens [W/m^3]
     homog_peak_fuel_temps = np.array([1191.0, 1265.0, 1296.0, 1405.0])
-    vol_powdens = np.array([5.789E7, 7.815E7, 8.683E7, 1.172E7])
+    vol_powdens = np.array([5.789E7, 7.815E7, 8.683E7, 1.172E8])[:,np.newaxis]
     peak_fuel_temp_regress = LinearRegression()
     peak_fuel_temp_regress.fit(vol_powdens, homog_peak_fuel_temps)
     def calc_peak_bulk_fuel_temp(core_pow, core_height, powdens_calc = core.AssemblyPowerPeak(),
-                                 regress_func=peak_fuel_temp_regress.predict()):
+                                 regress_func=peak_fuel_temp_regress.predict):
         
         core_powdens = powdens_calc.set_core_conditions(core_pow, core_height)
         return regress_func(core_powdens)
@@ -185,7 +185,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
                                       - 1.0/(layer_k[idx]*layerrad[idx - 1]))
         t_max_constr_eval = t_max_constr - t_max
         return t_max_constr_eval
-
+        
 
 #    def constr_x1_upper(x):
 #        return 1 - x[0]

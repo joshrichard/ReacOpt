@@ -111,7 +111,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'interact' # either 'interact' or 'iterate'
-run_mode = 'normal' # either 'restart' or 'normal'
+run_mode = 'restart' # either 'restart' or 'normal'
 use_exist_data = 'off'
 
 
@@ -127,9 +127,9 @@ if run_mode == 'normal':
         pass
 elif run_mode == 'restart' and use_exist_data == 'off': # careful with this!
     try:
+        os.remove(data_opts['data_fname'])
         namestring = data_opts['log_fname'][:-4] + timestring + '.out'
         os.rename(data_opts['log_fname'], namestring)
-        os.remove(data_opts['data_fname'])
     except OSError:
         pass
 
