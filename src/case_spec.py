@@ -36,7 +36,7 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
     ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
-    ('power',[15.0, 25.0])])
+    ('power',[20.0, 30.0])])
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
@@ -55,7 +55,7 @@ dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_test1')
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':10, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':5, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
                  
 doe_sets = {}
 
