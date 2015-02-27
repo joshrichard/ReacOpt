@@ -49,13 +49,15 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
-data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_test1')
+data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_50_test1')
+
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':5, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+
                  
 doe_sets = {}
 
@@ -110,8 +112,8 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart' or 'normal'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
+run_mode = 'normal' # either 'restart' or 'normal'
 use_exist_data = 'off'
 
 

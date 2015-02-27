@@ -254,6 +254,7 @@ class AssemblyPowerPeak(object):
         self.calc_total_pin_vol()
         self.calc_pin_powers()
         return self.peak_assm_peak_ax_vol_power
+
     
     def calc_total_pin_vol(self):
         self.all_pin_vol = np.pi*self.pin_rad**2.0*self.core_h*self.n_fuel_pins
@@ -276,8 +277,6 @@ class AssemblyPowerPeak(object):
                self.peak_assm_peak_ax_vol_power)
         print 'Peaked pin powers are:'
         print self.peaked_pin_powers
-
-        
 
 
 #class Water(object):
