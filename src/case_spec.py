@@ -49,14 +49,14 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
-data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_f2f')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_50_test1')
+data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
 
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':15, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':80, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
 
                  
 doe_sets = {}
@@ -115,6 +115,7 @@ euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'normal' # either 'restart' or 'normal'
 use_exist_data = 'off'
+submit_interval = 5
 
 
 
@@ -280,7 +281,7 @@ def iter_loop():
             print 'Running current case set'
             with open(data_opts['cases_fname'], 'rb') as outpf:
                 case_info['case_set'] = cPickle.load(outpf)
-            case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts)
+            case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)
             c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
             ####
             # Extract and post-process the doe output data

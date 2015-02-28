@@ -162,11 +162,12 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
 
 
 
-def run_case_matrix(case_set_names, data_opts):
+def run_case_matrix(case_set_names, data_opts, interval):
     root_dir = data_opts['input_dirname']
     job_set_names = []
     all_job_set_names = []
     completed_case_names = []
+    job_interval = interval
     job_cnt = 0
     for full_file_path in case_set_names:
         job_cnt += 1
@@ -181,7 +182,7 @@ def run_case_matrix(case_set_names, data_opts):
         job_set_names.append(jobid)
         all_job_set_names.append(jobid)
         completed_case_names.append(full_file_path)
-        if job_cnt % 10 == 0:
+        if job_cnt % job_interval == 0:
             wait_case_matrix(job_set_names, completed_case_names)
             completed_case_names = [] # Could just have it check all jobids every time
             job_set_names = []
