@@ -8,6 +8,8 @@ import copy
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing
+import pyDOE
+from scipy.spatial.distance import pdist
 
 #import weakref
 #from collections import *
@@ -1331,6 +1333,119 @@ class AssemblyPowerPeak(object):
                self.peak_assm_peak_ax_vol_power)
         print 'Peaked pin powers are:'
         print self.peaked_pin_powers
+
+
+class OptimizedLHS(object):
+    def __init__(self, num_features, num_samples):
+        self.features = num_features
+        self.samples = num_samples
+        self.q_val_list = np.array([1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0])
+        self.p_norm = 'cityblock' # 'cityblock' or 'euclidean'
+        self.lhs_init = pyDOE.lhs(self.features, self.samples) # Defaults to randomly constructed hypercube
+        self.lhs_from_q_list = []
+        self.genetic_iter = 50
+        self.genetic_population = 10
+        
+    def make_olhs(self):
+        for q_val in self.q_val_list:
+            new_lhs_from_q = self.optimize_q_lhs(q_val)
+            self.lhs_from_q_list.append(new_lhs_from_q)
+        # Sort according to Morris-Mitchell
+        self.morris_mitchell_sort()
+        self.olhs = tst
+        return self.olhs
+        
+            
+    def optimize_q_lhs(self, qval):
+        x_best = self.lhs_init
+        phi_best = self.calc_phi(x_best)
+        leveloff = np.floor(0.85*self.genetic_iter)
+        for opt_gen_iter in xrange(1,self.genetic_iter):
+            if opt_gen_iter < leveloff:
+                mutations = int(round(1.0+(0.5*self.samples - 1.0)*(
+                                           leveloff-opt_gen_iter)/(
+                                           leveloff - 1.0)))
+            else:
+                mutations = 1
+            x_improved = x_best
+            phi_improved = phi_best
+            for offspring in xrange(1, self.genetic_population):
+                x_test = self.change_lhs(x_best, mutations)
+                phi_test = self.calc_phi(x_test, qval)
+                if phi_test < phi_improved:
+                    x_improved = x_test
+                    phi_improved = phi_test
+            if phi_improved < phi_best:
+                x_best = x_improved
+                phi_best = phi_improved
+        
+        return x_best
+        
+    def change_lhs(lhs, mutations):
+        for perturb in xrange(mutations):
+            mod_col = np.random.randint(self.features)
+            while mod_point1 == mod_point2:
+                mod_point1 = np.random.randint(self.samples)
+                mod_point2 = np.random.randint(self.samples)
+            lhs_buf = lhs[mod_point1, col] # Make sure the memory references here are correct, may need to make a deep copy here instead of a shallow copy?
+            lhs[mod_point1, col] = lhs[mod_point2, col]
+            lhs[mod_point2, col] = lhs_buf
+            
+        
+    def calc_phi(self, lhs, qval):
+        dist, J = self.calc_dist_j(lhs)
+        phi = ((J*dist**(-qval)).sum())**(1.0/qval)
+        return phi
+        
+    def calc_dist_j(lhs):
+        lhs_dist = pdist(lhs, self.p_norm).sort()
+        unique_dist, inv = np.unique(lhs_dist, return_inverse=True)
+        J_set = np.bincount(inv)
+        return unique_dist, J_set
+        
+    
+    def morris_mitchell_sort(self): # Can we use a sort besides bubble? | TAG: Improve
+        num_qval = len(self.q_val_list)
+        self.mm_sort_indices = range(num_qval)
+        swap_flag = True
+        while swap_flag:
+            swap_flag = False
+            idx = 1;
+            while idx <= num_qval - 1:
+                if self.mm_compare(self.optimize_q_lhs[idx], 
+                                   self.optimize_q_lhs[idx + 1]) == 2:
+                    indices_buf = self.mm_sort_indices[idx] # Make sure shallow copy here ok | TAG: test
+                    self.mm_sort_indices[idx] = self.mm_sort_indices[idx + 1]
+                    self.mm_sort_indices[idx + 1] = indices_buf
+                    swap_flag = True
+                idx += 1
+        return
+
+    def mm_compare(self, lhs1, lhs2): # Can definitely improve this |TAG: Improve
+        if np.array_equal(lhs1, lhs2):
+            result = 0
+        else:
+            d1, J1 = self.calc_dist_j(lhs1)
+            d2, J2 = self.calc_dist_j(lhs2)
+            tot_arr1 = np.zeros(2*len(d1)-1)
+            tot_arr2 = np.zeros(2*len(d2)-1)
+            tot_arr1[0:2:-2] = d1
+            tot_arr1[1:2:] = -J1
+            tot_arr2[0:2:-2] = d2
+            tot_arr2[1:2:] = -J2
+            new_len = min([len(d1),len(d2)])
+            tot_arr1 = tot_arr1[:new_len]
+            tot_arr2 = tot_arr2[:new_len]
+            cval = (tot_arr1 > tot_arr2) + 2*(tot_arr1 < tot_arr2)
+            if np.sum(cval) == 0:
+                result = 0
+            else:
+                idx = 1
+                while cval[idx] == 0:
+                    idx += 1
+                result = cval[idx]
+        return result
+            
 
 
 

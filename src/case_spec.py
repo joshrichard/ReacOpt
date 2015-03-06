@@ -56,7 +56,7 @@ dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':80, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':10, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
 
                  
 doe_sets = {}
@@ -112,7 +112,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
+outp_mode = 'interact' # either 'interact' or 'iterate'
 run_mode = 'normal' # either 'restart' or 'normal'
 use_exist_data = 'off'
 submit_interval = 5
@@ -137,12 +137,12 @@ elif run_mode == 'restart' and use_exist_data == 'off': # careful with this!
         pass
 
 # Make run dump file directories if they don't exist| TAG: Toggle
-dump_fulldir = os.path.expanduser(dump_dir)
-if not os.path.isdir(dump_fulldir):
-    dump_maindir = os.path.dirname(dump_fulldir)
-    if not os.path.isdir(dump_maindir):
-        os.mkdir(dump_maindir)
-    os.mkdir(dump_fulldir)
+#dump_fulldir = os.path.expanduser(dump_dir) # TAG: remove
+#if not os.path.isdir(dump_fulldir):
+#    dump_maindir = os.path.dirname(dump_fulldir)
+#    if not os.path.isdir(dump_maindir):
+#        os.mkdir(dump_maindir)
+#    os.mkdir(dump_fulldir)
 
 def main():
     
