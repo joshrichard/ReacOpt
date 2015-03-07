@@ -1284,6 +1284,7 @@ class MultCaseMat(object):
         return getattr(self, spec).get_surro_err()
 
 
+
 # Class for calculating power paramters given total core power and core height
 class AssemblyPowerPeak(object):
     def __init__(self, radial_peak=1.5159, axial_peak=1.2856, pin_peaking=None,
@@ -1335,6 +1336,16 @@ class AssemblyPowerPeak(object):
         print self.peaked_pin_powers
 
 
+class SeeDOE(object):
+    def __init__(self, doe):
+        self.doe = copy.deepcopy(doe)
+        
+    def __repr__(self):
+        temp_dist = pdist(self.doe, 'cityblock')
+        temp_dist.sort()
+        return '{:.4f}'.format(temp_dist[0])
+
+
 class OptimizedLHS(object):
     def __init__(self, num_features, num_samples):
         self.features = num_features
@@ -1343,7 +1354,7 @@ class OptimizedLHS(object):
         self.p_norm = 'cityblock' # 'cityblock' or 'euclidean'
         self.lhs_init = pyDOE.lhs(self.features, self.samples) # Defaults to randomly constructed hypercube
         self.lhs_from_q_list = []
-        self.genetic_iter = 50
+        self.genetic_iter = 500
         self.genetic_population = 10
         
     def make_olhs(self):
@@ -1351,45 +1362,62 @@ class OptimizedLHS(object):
             new_lhs_from_q = self.optimize_q_lhs(q_val)
             self.lhs_from_q_list.append(new_lhs_from_q)
         # Sort according to Morris-Mitchell
-        self.morris_mitchell_sort()
-        self.olhs = tst
+        self.sorted_lhs_list = copy.deepcopy(self.lhs_from_q_list)
+        self.mm_mergesort(self.sorted_lhs_list)
+#        self.dist_list = []
+#        self.old_dist_list = []
+#        self.dist_list_firsts = []
+#        self.old_dist_list_firsts = []
+#        for best_new_lhs, best_old_lhs in zip(self.sorted_lhs_list, self.lhs_from_q_list):
+#            self.dist_list.append(pdist(best_new_lhs, 'cityblock'))
+#            self.dist_list[-1].sort()
+#            self.old_dist_list.append(pdist(best_old_lhs, 'cityblock'))
+#            self.old_dist_list[-1].sort()
+#        for new_dist_list, old_dist_list in zip(self.dist_list, self.old_dist_list):
+#            self.dist_list_firsts.append(new_dist_list[0])
+#            self.old_dist_list_firsts.append(old_dist_list[0])
+        self.olhs = self.sorted_lhs_list[0]
         return self.olhs
         
             
     def optimize_q_lhs(self, qval):
-        x_best = self.lhs_init
-        phi_best = self.calc_phi(x_best)
+        x_best = copy.deepcopy(self.lhs_init)
+        phi_best = self.calc_phi(x_best, qval)
         leveloff = np.floor(0.85*self.genetic_iter)
-        for opt_gen_iter in xrange(1,self.genetic_iter):
+        for opt_gen_iter in xrange(1, self.genetic_iter + 1):
             if opt_gen_iter < leveloff:
-                mutations = int(round(1.0+(0.5*self.samples - 1.0)*(
-                                           leveloff-opt_gen_iter)/(
+                mutations = int(round(1.0+(0.5*float(self.samples) - 1.0)*(
+                                           leveloff-float(opt_gen_iter))/(
                                            leveloff - 1.0)))
             else:
                 mutations = 1
-            x_improved = x_best
+            x_improved = copy.deepcopy(x_best)
             phi_improved = phi_best
             for offspring in xrange(1, self.genetic_population):
                 x_test = self.change_lhs(x_best, mutations)
                 phi_test = self.calc_phi(x_test, qval)
                 if phi_test < phi_improved:
-                    x_improved = x_test
+                    x_improved = copy.deepcopy(x_test)
                     phi_improved = phi_test
             if phi_improved < phi_best:
-                x_best = x_improved
+                x_best = copy.deepcopy(x_improved)
                 phi_best = phi_improved
         
         return x_best
         
-    def change_lhs(lhs, mutations):
+    def change_lhs(self, lhs, mutations):
+        new_lhs = copy.deepcopy(lhs)
         for perturb in xrange(mutations):
             mod_col = np.random.randint(self.features)
+            mod_point1 = np.random.randint(self.samples)
+            mod_point2 = np.random.randint(self.samples)
             while mod_point1 == mod_point2:
                 mod_point1 = np.random.randint(self.samples)
                 mod_point2 = np.random.randint(self.samples)
-            lhs_buf = lhs[mod_point1, col] # Make sure the memory references here are correct, may need to make a deep copy here instead of a shallow copy?
-            lhs[mod_point1, col] = lhs[mod_point2, col]
-            lhs[mod_point2, col] = lhs_buf
+            lhs_buf = new_lhs[mod_point1, mod_col] # Make sure the memory references here are correct, may need to make a deep copy here instead of a shallow copy?
+            new_lhs[mod_point1, mod_col] = lhs[mod_point2, mod_col]
+            new_lhs[mod_point2, mod_col] = lhs_buf
+        return new_lhs
             
         
     def calc_phi(self, lhs, qval):
@@ -1397,8 +1425,9 @@ class OptimizedLHS(object):
         phi = ((J*dist**(-qval)).sum())**(1.0/qval)
         return phi
         
-    def calc_dist_j(lhs):
-        lhs_dist = pdist(lhs, self.p_norm).sort()
+    def calc_dist_j(self, lhs):
+        lhs_dist = pdist(lhs, self.p_norm)
+        lhs_dist.sort()
         unique_dist, inv = np.unique(lhs_dist, return_inverse=True)
         J_set = np.bincount(inv)
         return unique_dist, J_set
@@ -1420,6 +1449,43 @@ class OptimizedLHS(object):
                     swap_flag = True
                 idx += 1
         return
+        
+    def mm_mergesort(self, lhs_list):
+        #print 'splitting {}'.format([SeeDOE(doe) for doe in lhs_list])
+        if len(lhs_list)>1:
+            mid = len(lhs_list)/2 # DIFF
+            lefthalf = lhs_list[:mid]
+            righthalf = lhs_list[mid:]
+            
+            self.mm_mergesort(lefthalf)
+            self.mm_mergesort(righthalf)
+            
+            left_idx = 0
+            right_idx = 0
+            tot_idx = 0
+            
+            while left_idx < len(lefthalf) and right_idx < len(righthalf):
+                if self.mm_compare_1betterthan2(lefthalf[left_idx], righthalf[right_idx]):
+                    lhs_list[tot_idx] = lefthalf[left_idx]
+                    left_idx += 1
+                else:
+                    lhs_list[tot_idx] = righthalf[right_idx]
+                    right_idx += 1
+                tot_idx += 1
+                
+            while left_idx < len(lefthalf):
+                lhs_list[tot_idx] = lefthalf[left_idx]
+                left_idx += 1
+                tot_idx += 1
+                
+            while right_idx < len(righthalf):
+                lhs_list[tot_idx] = righthalf[right_idx]
+                right_idx += 1
+                tot_idx += 1
+        #print 'Merging {}'.format([SeeDOE(doe) for doe in lhs_list])
+
+                
+        
 
     def mm_compare(self, lhs1, lhs2): # Can definitely improve this |TAG: Improve
         if np.array_equal(lhs1, lhs2):
@@ -1444,6 +1510,36 @@ class OptimizedLHS(object):
                 while cval[idx] == 0:
                     idx += 1
                 result = cval[idx]
+        return result
+        
+    def mm_compare_1betterthan2(self, lhs1, lhs2): # Can definitely improve this |TAG: Improve
+        if np.array_equal(lhs1, lhs2):
+            result = False
+        else:
+            d1, J1 = self.calc_dist_j(lhs1)
+            d2, J2 = self.calc_dist_j(lhs2)
+#            print 'lhs1 dist = {}'.format(d1[0])
+#            print 'lhs2 dist = {}'.format(d2[0])
+            tot_arr1 = np.zeros(2*len(d1))
+            tot_arr2 = np.zeros(2*len(d2))
+            tot_arr1[0::2] = d1
+            tot_arr1[1::2] = -J1
+            tot_arr2[0::2] = d2
+            tot_arr2[1::2] = -J2
+            new_len = min([len(d1),len(d2)])
+            tot_arr1 = tot_arr1[:new_len]
+            tot_arr2 = tot_arr2[:new_len]
+            cval = (tot_arr1 > tot_arr2) + 2*(tot_arr1 < tot_arr2)
+            if np.sum(cval) == 0:
+                result = False
+            else:
+                idx = 0
+                while cval[idx] == 0:
+                    idx += 1
+                if cval[idx] == 1:
+                    result = True
+                else:
+                    result = False
         return result
             
 
