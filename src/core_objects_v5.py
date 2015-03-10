@@ -1336,22 +1336,28 @@ class AssemblyPowerPeak(object):
         print self.peaked_pin_powers
 
 
-class SeeDOE(object):
-    def __init__(self, doe):
+class DOEobj(object):
+    def __init__(self, doe, distance_type):
         self.doe = copy.deepcopy(doe)
+        self.p_norm = distance_type
+        self.calc_dist()
+        self.min_dist = self.dist[0]
+
         
     def __repr__(self):
-        temp_dist = pdist(self.doe, 'cityblock')
-        temp_dist.sort()
-        return '{:.4f}'.format(temp_dist[0])
+        return '{:.4f}'.format(self.min_dist)
+        
+    def calc_dist(self):
+        self.dist = pdist(self.doe, self.p_norm)
+        self.dist.sort()
 
 
 class OptimizedLHS(object):
-    def __init__(self, num_features, num_samples):
+    def __init__(self, num_features, num_samples, distance_type='cityblock'):
         self.features = num_features
         self.samples = num_samples
         self.q_val_list = np.array([1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0])
-        self.p_norm = 'cityblock' # 'cityblock' or 'euclidean'
+        self.p_norm = distance_type # 'cityblock' or 'euclidean'
         self.lhs_init = pyDOE.lhs(self.features, self.samples) # Defaults to randomly constructed hypercube
         self.lhs_from_q_list = []
         self.genetic_iter = 500
@@ -1377,6 +1383,7 @@ class OptimizedLHS(object):
 #            self.dist_list_firsts.append(new_dist_list[0])
 #            self.old_dist_list_firsts.append(old_dist_list[0])
         self.olhs = self.sorted_lhs_list[0]
+        self.olhs_val = DOEobj(self.olhs, self.p_norm).min_dist
         return self.olhs
         
             
@@ -1428,8 +1435,9 @@ class OptimizedLHS(object):
     def calc_dist_j(self, lhs):
         lhs_dist = pdist(lhs, self.p_norm)
         lhs_dist.sort()
-        unique_dist, inv = np.unique(lhs_dist, return_inverse=True)
-        J_set = np.bincount(inv)
+#        unique_dist, inv = np.unique(lhs_dist, return_inverse=True)
+#        J_set = np.bincount(inv)
+        unique_dist, J_set = np.unique(lhs_dist, return_counts=True) # TAG: Test
         return unique_dist, J_set
         
     
