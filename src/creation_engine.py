@@ -33,7 +33,9 @@ def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
         doe_scaled = scal.fit_transform(doe)
         doe = core.dv_scaler(doe_scaled, case_bounds, 'real')
     elif kwargs['doe_type'] == 'LHS':
-        doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
+        #doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
+        optimal_lhs = core.OptimizedLHS(len(case_bounds), kwargs['num_LHS_samples'], 'euclidean')
+        doe_scaled = optimal_lhs.make_olhs()
         doe = copy.deepcopy(doe_scaled)
         doe = core.dv_scaler(doe, case_bounds, 'real')
     else:
