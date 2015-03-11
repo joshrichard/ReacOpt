@@ -116,7 +116,9 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
         main_qsub_fname = 'fhtr_opt_' + '_'.join(str_element) +'.qsub'
         main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this? | TAG: Improve
-        make_std_inp(element, main_inp_fname, main_pdist_fname, run_opts)
+        lowE_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '_lowE.inp'
+        pdist_fnames = {'nominal':main_pdist_fname, 'lowE':lowE_pdist_fname}
+        make_std_inp(element, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
         file_path = os.path.join(root_path, 'input_files')
         pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
@@ -147,6 +149,9 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
         if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
             core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
             shutil.move(main_pdist_fname, pdist_path)
+        if not os.path.isfile(os.path.join(pdist_path, lowE_pdist_fname)): # Must test on cluster | TAG: Test
+            core.mod_partdist(core.univ_dict.intdict['triso_lowE_u'].id, main_pdist_fname, lowE_pdist_fname)
+            shutil.move(lowE_pdist_fname, pdist_path)
         save_filepath = os.path.join(save_filepath, main_inp_fname)
         created_filepaths.append(save_filepath)
         reload(core)
@@ -220,6 +225,7 @@ def make_std_inp(inp_tuple, fmake_inp_fname, fmake_pdist_fname, run_opts):
 def make_mats(mats_inp_tuple, run_opts):
     
     u235_enrich = mats_inp_tuple[3]
+    u235_low_enrich = u235_enrich * 0.5
     salt_dens_frac = float(mats_inp_tuple[-1])
     #salt_dens = -2.96 * salt_dens_frac
     #salt_mat_name = run_opts['cool_mat']
@@ -241,6 +247,7 @@ def make_mats(mats_inp_tuple, run_opts):
 
     
     # Fuel material (using FuelMat subclass)
+    # nominal enrichment
     fmat = core.FuelMat('uco', density = '-11.0', enrichment = u235_enrich, sab = sab_graph, color = '40 40 40')
     fmat.add_nuclide(core.Nuclide('92235', run_opts['fuel_xs'], fmat.n_u235))
     fmat.add_nuclide(core.Nuclide('92238', run_opts['fuel_xs'], fmat.n_u238))
@@ -248,6 +255,14 @@ def make_mats(mats_inp_tuple, run_opts):
     fmat.add_nuclide(core.Nuclide('8016',run_opts['fuel_xs'], '5.06064E-01'))
     fmat.add_nuclide(core.Nuclide('5010',run_opts['fuel_xs'], '5.19023E-06'))
     fmat.add_nuclide(core.Nuclide('5011',run_opts['fuel_xs'], '2.08913E-05'))
+    # low enrichment (first fuel ring)
+    fmat_lowE = core.FuelMat('uco_lowE', density = '-11.0', enrichment = u235_low_enrich, sab = sab_graph, color = '237 45 2')
+    fmat_lowE.add_nuclide(core.Nuclide('92235', run_opts['fuel_xs'], fmat_lowE.n_u235))
+    fmat_lowE.add_nuclide(core.Nuclide('92238', run_opts['fuel_xs'], fmat_lowE.n_u238))
+    fmat_lowE.add_nuclide(core.Nuclide('6000',run_opts['fuel_xs'], '1.39196E-01'))
+    fmat_lowE.add_nuclide(core.Nuclide('8016',run_opts['fuel_xs'], '5.06064E-01'))
+    fmat_lowE.add_nuclide(core.Nuclide('5010',run_opts['fuel_xs'], '5.19023E-06'))
+    fmat_lowE.add_nuclide(core.Nuclide('5011',run_opts['fuel_xs'], '2.08913E-05'))
 
     
     # TRISO buffer layer
@@ -302,29 +317,49 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     core_width = assm_side_w * 9.0 # 9.0 based on number of rings in core | TAG: hardcode
     void_mat = core.Material('void', density='')
     outside_mat = core.Material('outside', density='')
+    nominalE_partdist_fname = partdist_fname['nominal']
+    lowE_partdist_fname = partdist_fname['lowE']
     
     # Geometry specification section
     
     # TRISO particle geometry spec
+    # Nominal enrichment particle
     triso_matlist = [core.mat_dict.intdict['uco'], core.mat_dict.intdict['buffer'], core.mat_dict.intdict['pyc'], \
                      core.mat_dict.intdict['sic'], core.mat_dict.intdict['pyc'], core.mat_dict.intdict['matrix']]
     core.Particle('triso_serp', k_rad, mats = triso_matlist, universe = 'triso_u')
+    # Low enrichment particle
+    triso_lowE_matlist = [core.mat_dict.intdict['uco_lowE'], core.mat_dict.intdict['buffer'], core.mat_dict.intdict['pyc'], \
+                     core.mat_dict.intdict['sic'], core.mat_dict.intdict['pyc'], core.mat_dict.intdict['matrix']]
+    core.Particle('triso_lowE_serp', k_rad, mats = triso_lowE_matlist, universe = 'triso_lowE_u')
     
     # Fuel Compact Matrix
+    # nominal enrichment
     core.Surface('matrix_inf_s', 'inf')
     core.Cell('matrix_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../partdist_files/" + partdist_fname) # Can make the folder structure here a variable | TAG: Improve
+    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../partdist_files/" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
+    # low enrichment
+    core.Cell('matrix_lowE_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_lowE_fill_u', material = core.mat_dict.intdict['matrix'])
+    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../partdist_files/" + lowE_partdist_fname)
     
     # Assembly pin definitions
     
+    #nominal enrichment fuel pin
     core.SerpPin('fuelpin_serp', 'pi', outmat = core.mat_dict.intdict['block'], rad = run_opts['pin_rad'], universe = 'fuelpin_u', fill = 'pbed_u')
     core.serp_dict.intdict['fuelpin_serp'].update_pin_dict(core.active_pin_dict)
+    # low enrichment fuel pin
+    core.SerpPin('fuelpin_lowE_serp', 'pi', outmat = core.mat_dict.intdict['block'], rad = run_opts['pin_rad'], universe = 'fuelpin_lowE_u', fill = 'pbed_lowE_u')
+    core.serp_dict.intdict['fuelpin_lowE_serp'].update_pin_dict(core.active_lowE_pin_dict)
+    # Coolant channel 'pin'
     core.SerpPin('coolpin_serp', 'co', outmat = core.mat_dict.intdict['block'], rad = run_opts['pin_rad'], universe = 'coolpin_u', pinmat = core.mat_dict.intdict[run_opts['cool_mat']])
     core.serp_dict.intdict['coolpin_serp'].update_pin_dict(core.active_pin_dict)
+    core.serp_dict.intdict['coolpin_serp'].update_pin_dict(core.active_lowE_pin_dict)
     core.serp_dict.intdict['coolpin_serp'].update_pin_dict(core.ref_pin_dict)
+    # 'block' pin (empty lattice position)
     core.SerpPin('blockpin_serp', 'gr', outmat = core.mat_dict.intdict['block'], rad = run_opts['pin_rad'], universe = 'blockpin_u', pinmat = core.mat_dict.intdict['block'])
     core.serp_dict.intdict['blockpin_serp'].update_pin_dict(core.active_pin_dict)
+    core.serp_dict.intdict['blockpin_serp'].update_pin_dict(core.active_lowE_pin_dict)
     core.serp_dict.intdict['blockpin_serp'].update_pin_dict(core.ref_pin_dict)
+    # matrix 'pin' (fill matrix in upper and lower reflector regions of the fuel pin channel in the block)
     core.SerpPin('mtxpin_serp', 'pi', outmat = core.mat_dict.intdict['block'], rad = run_opts['pin_rad'], universe = 'mtxpin_u', pinmat = core.mat_dict.intdict['matrix'])
     core.serp_dict.intdict['mtxpin_serp'].update_pin_dict(core.ref_pin_dict)
     
@@ -337,7 +372,11 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     core.Surface('fuel_assm_ring_s', 'hexyc', coeffs = '0.0 0.0 9.0')
     
     # Create fuel assembly lattice (active region) and surrounding cell
+    # Nominal enrichment fuel assembly
     core.LatFill(root_name='fuel_assm_act', core_key='fa', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    
+    # Low enrichment fuel assembly
+    core.LatFill(root_name='fuel_lowE_assm_act', core_key='le', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_lowE_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')    
     
     # Create irradiation position lattice (active region) and surrounding cell
     core.LatFill(root_name='ip_assm_act', core_key='ip', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')

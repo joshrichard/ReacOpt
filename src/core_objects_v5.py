@@ -10,6 +10,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing
 import pyDOE
 from scipy.spatial.distance import pdist
+import codecs
 
 #import weakref
 #from collections import *
@@ -57,6 +58,7 @@ plot_dict = UniODict()
 axial_dict = UniODict()
 serp_dict = UniODict()
 active_pin_dict = OrderedDict()
+active_lowE_pin_dict = OrderedDict()
 ref_pin_dict = OrderedDict()
 case_dict = {}
 
@@ -646,11 +648,11 @@ class FhtrCoreLat(Lattice):
  {st:>3} {st:>3} {st:>3} {st:>3} {st:>3} {st:>3} {rf:>3} {rf:>3} {rf:>3} {rf:>3} {rf:>3} {rf:>3} {st:>3}
   {st:>3} {st:>3} {st:>3} {st:>3} {st:>3} {rf:>3} {fa:>3} {fa:>3} {cr:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3}
    {st:>3} {st:>3} {st:>3} {st:>3} {rf:>3} {fa:>3} {ip:>3} {fa:>3} {fa:>3} {ip:>3} {fa:>3} {rf:>3} {st:>3}
-    {st:>3} {st:>3} {st:>3} {rf:>3} {cr:>3} {fa:>3} {fa:>3} {fa:>3} {fa:>3} {fa:>3} {cr:>3} {rf:>3} {st:>3}
-     {st:>3} {st:>3} {rf:>3} {fa:>3} {fa:>3} {cr:>3} {rf:>3} {rf:>3} {cr:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3}
-      {st:>3} {rf:>3} {fa:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3} {rf:>3} {fa:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3}
-       {st:>3} {rf:>3} {fa:>3} {fa:>3} {cr:>3} {rf:>3} {rf:>3} {cr:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3} {st:>3}
-        {st:>3} {rf:>3} {cr:>3} {fa:>3} {fa:>3} {fa:>3} {fa:>3} {fa:>3} {cr:>3} {rf:>3} {st:>3} {st:>3} {st:>3}
+    {st:>3} {st:>3} {st:>3} {rf:>3} {cr:>3} {fa:>3} {le:>3} {le:>3} {le:>3} {fa:>3} {cr:>3} {rf:>3} {st:>3}
+     {st:>3} {st:>3} {rf:>3} {fa:>3} {fa:>3} {le:>3} {rf:>3} {rf:>3} {le:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3}
+      {st:>3} {rf:>3} {fa:>3} {fa:>3} {le:>3} {rf:>3} {st:>3} {rf:>3} {le:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3}
+       {st:>3} {rf:>3} {fa:>3} {fa:>3} {le:>3} {rf:>3} {rf:>3} {le:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3} {st:>3}
+        {st:>3} {rf:>3} {cr:>3} {fa:>3} {le:>3} {le:>3} {le:>3} {fa:>3} {cr:>3} {rf:>3} {st:>3} {st:>3} {st:>3}
          {st:>3} {rf:>3} {fa:>3} {ip:>3} {fa:>3} {fa:>3} {ip:>3} {fa:>3} {rf:>3} {st:>3} {st:>3} {st:>3} {st:>3}
           {st:>3} {rf:>3} {fa:>3} {fa:>3} {cr:>3} {fa:>3} {fa:>3} {rf:>3} {st:>3} {st:>3} {st:>3} {st:>3} {st:>3}
            {st:>3} {rf:>3} {rf:>3} {rf:>3} {rf:>3} {rf:>3} {rf:>3} {st:>3} {st:>3} {st:>3} {st:>3} {st:>3} {st:>3}
@@ -1583,6 +1585,19 @@ def make_partdist(inp_tuple, cyl_rad, part_univ, fname):
     p.stdin.write('{0}\n'.format(fname))
     p.communicate()
     
+
+def mod_partdist(new_universenum, orig_partdist_fname, new_partdist_fname):
+    file_str = ''
+    with open(orig_partdist_fname, 'rb') as f:
+        for line in f:
+            line_mod = line.splitlines()[0].split()
+            line_mod[-1] = new_universenum + "\n"
+            newline = '{:>12} {:>12} {:>12} {:>11} {:<}'.format(*line_mod)
+            file_str += newline
+            
+    with codecs.open(new_partdist_fname, 'wb', 'utf-8') as f:
+        f.write(file_str)
+
 
 # Both this function and the next use generators to efficiently and cleanly evaluate the lists/tuples given to them as input
 # cleans the data values by converting from floats (or any other numerical type) to string, and removing the decimals
