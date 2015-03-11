@@ -50,7 +50,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_80_test1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_test1')
 
 
 run_opts = dict([('fuel_xs', '.12c'), ('cool_xs','.09c'), ('pin_rad','0.7'), \

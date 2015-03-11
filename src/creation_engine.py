@@ -150,7 +150,7 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
             core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
             shutil.move(main_pdist_fname, pdist_path)
         if not os.path.isfile(os.path.join(pdist_path, lowE_pdist_fname)): # Must test on cluster | TAG: Test
-            core.mod_partdist(core.univ_dict.intdict['triso_lowE_u'].id, main_pdist_fname, lowE_pdist_fname)
+            core.mod_partdist(core.univ_dict.intdict['triso_lowE_u'].id, os.path.join(pdist_path, main_pdist_fname), lowE_pdist_fname)
             shutil.move(lowE_pdist_fname, pdist_path)
         save_filepath = os.path.join(save_filepath, main_inp_fname)
         created_filepaths.append(save_filepath)
@@ -387,7 +387,7 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     # Create solid salt 'assembly'
     core.SolidFill(root_name='salt_assm', core_key='st', solid_typ='solid', surf_key='fuel_assm_edge_s', solid_mat=run_opts['cool_mat'], outside_mat=run_opts['cool_mat'])
     
-    # Create solid 
+    # Create solid reflector 'assembly'
     core.SolidFill(root_name='ref_assm', core_key='rf', solid_typ='solid', surf_key='fuel_assm_edge_s', solid_mat='block', outside_mat=run_opts['cool_mat'])
     
     # Active core lattice
@@ -398,6 +398,8 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     
     # Standard fuel assembly lattice (reflector region) and surrounding cell
     core.LatFill(root_name='fuel_assm_ref', core_key='fa', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    # low enrich positions (so don't need second core map)
+    core.LatFill(root_name='fuel_lowE_assm_ref', core_key='le', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create irradiation position lattice (active region) and surrounding cell
     core.LatFill(root_name='ip_assm_ref', core_key='ip', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
@@ -483,7 +485,7 @@ def make_inp(make_inp_tuple, inp_fname):
     # Settings section
     file_str += "\n"
     file_str += "\n"
-    file_str += core.SerpOpts(power = core_pow, bumat = 'uco').write_serp()
+    file_str += core.SerpOpts(power = core_pow, bumat = ('uco', 'uco_lowE')).write_serp()
     
     # Write input file
     with open(inp_fname,'wb') as fh:

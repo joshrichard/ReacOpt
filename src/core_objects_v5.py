@@ -1086,7 +1086,7 @@ plot 1 500 337 0
 """
         self.optstring = self.optstring.format(inp_pow = self.power, particles = self.particles, active = self.active, inactive = self.inactive)        
         if bumat != None:
-            self.bumat = bumat
+            self.bumat = bumat # needs to be a list now (with enr frac in model)
             self.optstring += \
 """%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % --- Burnup Section  -------------------------------------------------------
@@ -1107,7 +1107,8 @@ set bumode   2      % CRAM method
 set pcc      1      % Predictor-corrector calc
 set xscalc   1      % Cross section from transport
 set printm   1      % Material compositions
-div {fuelm} sep 6
+div {} sep 6
+div {} sep 6
 %
 dep daytot  % BURNUP CONTROL CARD: COMMENT OUT FOR SINGLE STATE POINT
 5
@@ -1128,7 +1129,7 @@ set inventory
 942420
 952410
 952440
-952450""".format(fuelm = self.bumat)
+952450""".format(*self.bumat)
 
     def write_serp(self):
         serp_str = ""
@@ -1587,11 +1588,12 @@ def make_partdist(inp_tuple, cyl_rad, part_univ, fname):
     
 
 def mod_partdist(new_universenum, orig_partdist_fname, new_partdist_fname):
+    new_uninum_str = str(new_universenum)    
     file_str = ''
     with open(orig_partdist_fname, 'rb') as f:
         for line in f:
             line_mod = line.splitlines()[0].split()
-            line_mod[-1] = new_universenum + "\n"
+            line_mod[-1] = new_uninum_str + "\n"
             newline = '{:>12} {:>12} {:>12} {:>11} {:<}'.format(*line_mod)
             file_str += newline
             
