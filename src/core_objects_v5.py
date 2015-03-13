@@ -1021,9 +1021,16 @@ set seed 1363906827"""
 
 # Class to make a serpent detector
 class SerpDet(object):
-    def __init__(self, fuel_ip_s, mat_ip_c):
+    def __init__(self, fuel_ip_s, fuel_ip_vol, mat_ip_c, act_core_lat, fuel_univ, core_lower_ref_bound, core_upper_ref_bound):
         self.fuel_ip_s = fuel_ip_s
+        self.fuel_ip_vol = fuel_ip_vol
         self.mat_ip_c = mat_ip_c
+        self.act_core_lat = act_core_lat
+        self.fuel_assm_univ = fuel_univ
+        self.lower_ref_bound = core_lower_ref_bound
+        self.upper_ref_bound = core_upper_ref_bound
+        self.total_coreh = self.upper_ref_bound - self.lower_ref_bound
+        self.axial_res = int(round(self.total_coreh/5.0)) # 5 cm resolution
         self.detstring = \
 """%%%%%%%%%%%%%% Detector Specification %%%%%%%%%%%%%%%
 % Detector 'ghost' superimposed cells
@@ -1034,20 +1041,27 @@ cell 8001 -4000 void {surf}
 ene 803 1 1e-9 6.25e-7 0.1 20.0
 
 % Fuel irradiation position detector
-det 1001 de 803 dc 8000
+det 1001 de 803 dc 8000 dv {vol}
 % Materials irradiation position detector
-det 1002 de 803 dc {mat}"""
+det 1002 de 803 dc {mat}
+% Assembly lattice radial power distribution detector
+det 1003 dl {active_core_lat} dr -8 void
+% Axial power distribution
+det 1004 du {fuel_u} dz {core_low_ref} {core_up_ref} {resolution} dr -8 void"""
     
     def write_serp(self):
         serp_str = ""
-        serp_str += self.detstring.format(surf = self.fuel_ip_s, mat = self.mat_ip_c)
+        serp_str += self.detstring.format(surf = self.fuel_ip_s, vol = self.fuel_ip_vol, mat = self.mat_ip_c, 
+                                          active_core_lat=self.act_core_lat, fuel_u=self.fuel_assm_univ,
+                                          core_low_ref=self.lower_ref_bound, core_up_ref=self.upper_ref_bound,
+                                          resolution=self.axial_res)
         return serp_str
 
 
 
 
 class SerpOpts(object):
-    def __init__(self, power, particles='5000', active='500', inactive='50', bumat=None,  optstring=None):
+    def __init__(self, power, particles='5000', active='500', inactive='100', bumat=None,  optstring=None):
         self.power = power
         self.particles = particles
         self.active = active

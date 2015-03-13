@@ -33,9 +33,9 @@ def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
         doe_scaled = scal.fit_transform(doe)
         doe = core.dv_scaler(doe_scaled, case_bounds, 'real')
     elif kwargs['doe_type'] == 'LHS':
-        #doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
-        optimal_lhs = core.OptimizedLHS(len(case_bounds), kwargs['num_LHS_samples'], 'euclidean')
-        doe_scaled = optimal_lhs.make_olhs()
+        doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
+#        optimal_lhs = core.OptimizedLHS(len(case_bounds), kwargs['num_LHS_samples'], 'euclidean')
+#        doe_scaled = optimal_lhs.make_olhs()
         doe = copy.deepcopy(doe_scaled)
         doe = core.dv_scaler(doe, case_bounds, 'real')
     else:
@@ -221,7 +221,7 @@ def make_std_inp(inp_tuple, fmake_inp_fname, fmake_pdist_fname, run_opts):
     # Define geometry
     make_geom(inp_tuple, fmake_pdist_fname, run_opts)
     # Write out input file
-    make_inp(inp_tuple, fmake_inp_fname)
+    make_inp(inp_tuple, fmake_inp_fname, run_opts)
 
 
 def make_mats(mats_inp_tuple, run_opts):
@@ -428,15 +428,21 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     core.Cell('total_core_outside_c', '{0}'.format(core.surf_dict.intdict['total_core_s'].id), material=outside_mat)
     
     # Fuel irradiation position ghost surface
-    core.Surface('fuel_ip_det_s', 'hexyprism', '0.0 0.0 {halff2f:.5f} 0.0 {height}'.format(halff2f = half_f2f, height = core_h))
+    core.Surface('fuel_ip_det_s', 'hexyprism', '0.0 0.0 {halff2f:.5f} 0.0 {height}'.format(halff2f = half_f2f, height = act_core_h))
     
     
     
     
-def make_inp(make_inp_tuple, inp_fname):
+def make_inp(make_inp_tuple, inp_fname, run_opts):
     
     # Specify core power
     core_pow = float(make_inp_tuple[5])*1e6
+    # core height
+    act_core_h = float(make_inp_tuple[0])
+    # assembly position flat-to-float
+    assm_f2f = float(make_inp_tuple[4])
+    # Fuel irr pos volume [cm^3]
+    irr_pos_vol = act_core_h*(np.sqrt(3.0)/2.0)*assm_f2f**2.0
     
     # Title cards
     file_str = ""
@@ -482,7 +488,11 @@ def make_inp(make_inp_tuple, inp_fname):
     
     # Detectors section
     file_str += "\n"
-    file_str += core.SerpDet(core.surf_dict.intdict['fuel_ip_det_s'].id, core.cell_dict.intdict['ip_assm_act_ipcell_c'].id).write_serp()
+    file_str += core.SerpDet(core.surf_dict.intdict['fuel_ip_det_s'].id, irr_pos_vol,
+                             core.cell_dict.intdict['ip_assm_act_ipcell_c'].id,
+                             core.lat_dict.intdict['act_core_L'].id, core.univ_dict.intdict['fuel_assm_act_u'].id,
+                             core.lat_dict.intdict['core_stack_L'].lower_ref_bound,
+                             core.lat_dict.intdict['core_stack_L'].upper_ref_bound).write_serp()
     
     # Settings section
     file_str += "\n"
