@@ -7,6 +7,7 @@ Created on Fri Feb 20 15:23:03 2015
 import scipy.io
 import numpy as np
 import cPickle
+import core_objects_v5 as core
 
 
 
@@ -19,10 +20,10 @@ def main():
     
     # inlet conditions
     pump_eff = 0.85
-    power = 20E6
+    power = 30E6
     global core_del_t 
     core_del_t = 10.0 # add 5 K for each 10 MW added to core power to preserve ~same htc
-    active_core_h = 1.35 # [m]
+    active_core_h = 1.00 # [m]
     fric_form_loss = (0.5, 1.0)
     n_assm = 54.0 # 30 for 2 ring, 54 for 3 ring
     n_pins = 24.0 # number of coolant channels (24)
@@ -146,7 +147,7 @@ def main():
     print 'done!'
     
     # Calc assembly powers
-    assem_powers = AssemblyPowerPeak()
+    assem_powers = core.AssemblyPowerPeak()
     assem_powers.set_core_conditions(power/1e6,active_core_h*1e2)
     assem_powers.print_all_powers()
         
@@ -228,55 +229,55 @@ class NaFZrF4(Salt):
         super(NaFZrF4, self).__init__(visc, thc, rho, hcap)
         
         
-class AssemblyPowerPeak(object):
-    def __init__(self, radial_peak=1.5159, axial_peak=1.2856, pin_peaking=None,
-                 n_assm=54.0, n_fuel_pins=60.0, pin_rad=0.7):
-        self.radial_peak = radial_peak
-        self.axial_peak = axial_peak
-        self.n_assm = n_assm
-        self.n_fuel_pins = n_fuel_pins
-        self.pin_rad = pin_rad*1e-2 # input in [cm], store in [m]
-        if pin_peaking is not None:
-            self.pin_peaking = pin_peaking
-        else: # peaking vals, starting from upper-left
-            self.pin_peaking = np.array([1.3498, 
-                                1.0944,
-                                1.1466,
-                                1.0388,
-                                0.90678,
-                                0.88237,
-                                0.83307])
-            
-        
-    def set_core_conditions(self, core_power, core_h):
-        self.core_power = core_power*1e6 # Input in [MW], store in [W]
-        self.core_h = core_h*1e-2 # input in [cm], store in [m]
-        self.calc_total_pin_vol()
-        self.calc_pin_powers()
-        return self.peak_assm_peak_ax_vol_power
-
-    
-    def calc_total_pin_vol(self):
-        self.all_pin_vol = np.pi*self.pin_rad**2.0*self.core_h*self.n_fuel_pins
-    
-    def calc_pin_powers(self):
-        self.avg_assm_power = self.core_power/self.n_assm
-        self.peak_assm_power = self.avg_assm_power*self.radial_peak
-        self.peak_assm_vol_power = self.peak_assm_power/self.all_pin_vol
-        self.peak_assm_peak_ax_vol_power = self.peak_assm_vol_power * (
-                                           self.axial_peak)
-        self.peaked_pin_powers = self.peak_assm_peak_ax_vol_power * self.pin_peaking
-
-    def print_all_powers(self):
-        print 'Input params: power = {:.3e}, height = {:.3e}'.format(self.core_power, self.core_h)
-        print 'Avg assm power is {:.3e}'.format(self.avg_assm_power)
-        print 'Peak assm power is {:.3e}, using a peaking factor of {:.3e}'.format(
-               self.peak_assm_power, self.radial_peak)
-        print 'Peak assm volumetric power is {:.3e}'.format(self.peak_assm_vol_power)
-        print 'Peak assm and axial volumetric power is {:.3e}'.format(
-               self.peak_assm_peak_ax_vol_power)
-        print 'Peaked pin powers are:'
-        print self.peaked_pin_powers
+#class AssemblyPowerPeak(object):
+#    def __init__(self, radial_peak=1.5159, axial_peak=1.2856, pin_peaking=None,
+#                 n_assm=54.0, n_fuel_pins=60.0, pin_rad=0.7):
+#        self.radial_peak = radial_peak
+#        self.axial_peak = axial_peak
+#        self.n_assm = n_assm
+#        self.n_fuel_pins = n_fuel_pins
+#        self.pin_rad = pin_rad*1e-2 # input in [cm], store in [m]
+#        if pin_peaking is not None:
+#            self.pin_peaking = pin_peaking
+#        else: # peaking vals, starting from upper-left
+#            self.pin_peaking = np.array([1.3498, 
+#                                1.0944,
+#                                1.1466,
+#                                1.0388,
+#                                0.90678,
+#                                0.88237,
+#                                0.83307])
+#            
+#        
+#    def set_core_conditions(self, core_power, core_h):
+#        self.core_power = core_power*1e6 # Input in [MW], store in [W]
+#        self.core_h = core_h*1e-2 # input in [cm], store in [m]
+#        self.calc_total_pin_vol()
+#        self.calc_pin_powers()
+#        return self.peak_assm_peak_ax_vol_power
+#
+#    
+#    def calc_total_pin_vol(self):
+#        self.all_pin_vol = np.pi*self.pin_rad**2.0*self.core_h*self.n_fuel_pins
+#    
+#    def calc_pin_powers(self):
+#        self.avg_assm_power = self.core_power/self.n_assm
+#        self.peak_assm_power = self.avg_assm_power*self.radial_peak
+#        self.peak_assm_vol_power = self.peak_assm_power/self.all_pin_vol
+#        self.peak_assm_peak_ax_vol_power = self.peak_assm_vol_power * (
+#                                           self.axial_peak)
+#        self.peaked_pin_powers = self.peak_assm_peak_ax_vol_power * self.pin_peaking
+#
+#    def print_all_powers(self):
+#        print 'Input params: power = {:.3e}, height = {:.3e}'.format(self.core_power, self.core_h)
+#        print 'Avg assm power is {:.3e}'.format(self.avg_assm_power)
+#        print 'Peak assm power is {:.3e}, using a peaking factor of {:.3e}'.format(
+#               self.peak_assm_power, self.radial_peak)
+#        print 'Peak assm volumetric power is {:.3e}'.format(self.peak_assm_vol_power)
+#        print 'Peak assm and axial volumetric power is {:.3e}'.format(
+#               self.peak_assm_peak_ax_vol_power)
+#        print 'Peaked pin powers are:'
+#        print self.peaked_pin_powers
 
 
 #class Water(object):

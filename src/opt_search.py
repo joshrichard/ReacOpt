@@ -114,8 +114,8 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     
     # Correlation (linear fit) for peak temp [K] in homogenized fuel 
     # as a function of volumetric power dens [W/m^3]
-    homog_peak_fuel_temps = np.array([1191.0, 1265.0, 1296.0, 1405.0])
-    vol_powdens = np.array([5.789E7, 7.815E7, 8.683E7, 1.172E8])[:,np.newaxis]
+    homog_peak_fuel_temps = np.array([1164.0, 1228.0, 1256.0, 1352.0])
+    vol_powdens = np.array([4.230E7, 5.711E7, 6.345E7, 8.566E7])[:,np.newaxis]
     peak_fuel_temp_regress = LinearRegression()
     peak_fuel_temp_regress.fit(vol_powdens, homog_peak_fuel_temps)
     def calc_peak_bulk_fuel_temp(core_pow, core_height, 
@@ -163,7 +163,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
         pow_pin = power / npins
         pow_triso = pow_pin / num_triso_pin
         # axial, radial, and pin peaking
-        pow_triso_peak = pow_triso * 1.2856 * 1.5159 * 0.9067780
+        pow_triso_peak = pow_triso * 1.309 * 1.088 * 1.094
         pow_max_constr_eval = pow_max_constr - pow_triso_peak
         return pow_max_constr_eval
 

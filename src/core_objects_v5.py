@@ -1304,7 +1304,7 @@ class MultCaseMat(object):
 
 # Class for calculating power paramters given total core power and core height
 class AssemblyPowerPeak(object):
-    def __init__(self, radial_peak=1.5159, axial_peak=1.2856, pin_peaking=None,
+    def __init__(self, radial_peak=1.088, axial_peak=1.309, pin_peaking=None,
                  n_assm=54.0, n_fuel_pins=60.0, pin_rad=0.7):
         self.radial_peak = radial_peak
         self.axial_peak = axial_peak
@@ -1314,13 +1314,13 @@ class AssemblyPowerPeak(object):
         if pin_peaking is not None:
             self.pin_peaking = pin_peaking
         else: # peaking vals, starting from upper-left
-            self.pin_peaking = np.array([1.3498, 
-                                1.0944,
-                                1.1466,
-                                1.0388,
-                                0.90678,
-                                0.88237,
-                                0.83307])
+            self.pin_peaking = np.array([1.509, 
+                                1.356,
+                                1.303,
+                                1.227,
+                                1.094,
+                                1.060,
+                                0.983])
             
         
     def set_core_conditions(self, core_power, core_h):

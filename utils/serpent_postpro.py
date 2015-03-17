@@ -9,8 +9,13 @@ import os
 import scipy.io as sio
 import cPickle
 import numpy as np
+from uncertainties import unumpy
 
-np.set_printoptions(linewidth=65, formatter={'float': lambda x: format(x, '3.2f')}) # linewidth=104, formatter={'float': lambda x: format(x, '6.1E')})
+
+# To get assembly maps to be 13 across:
+# with 3 decimals: 3.3f, linewidth=80
+# with 2 decimals: 3.2f, linewidth=65
+np.set_printoptions(linewidth=80, formatter={'float': lambda x: format(x, '3.3f')}) # linewidth=104, formatter={'float': lambda x: format(x, '6.1E')})
 
 #############
 # Input specs
@@ -26,7 +31,7 @@ data_dirname = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Re
 # same_nodep_assm_axial_2ring
 # same_nodep_3ring_powtallytest
     
-matlab_tally_filename = os.path.join(data_dirname, 'detector_data.mat')
+matlab_tally_filename = os.path.join(data_dirname, 'detector_data_3.mat')
 python_tallydata_filename = os.path.join(data_dirname, 'python_det_data_3.out')
 
 matlab_res_filename = os.path.join(data_dirname, 'res_data.mat')
@@ -100,6 +105,21 @@ def analyze_pin_peaking():
     print 'Pin power tally relative errors'
     print pin_peak_err_nonzero
     
+    # Actual error-propagated RE vals for normalized pin powers
+#    re_pin_nz_mean = (((pin_peak_err_nonzero*pin_peak_map_nonzero)**2.0).sum())**(1.0/2.0)/(
+#                     float(len(pin_peak_err_nonzero)))
+#    re_pin_norm = (pin_peak_err_nonzero**2.0 + re_pin_nz_mean**2.0)**(1.0/2.0)
+    
+    pin_peak_unc = unumpy.uarray(pin_peak_map_nonzero, pin_peak_map_nonzero*pin_peak_err_nonzero)
+    pin_peak_rel_unc = pin_peak_unc/pin_peak_unc.mean()
+    pin_peak_ubound = np.array([item.nominal_value + 2.0*item.std_dev for item in pin_peak_rel_unc])
+    
+    print 'Upper error bound on pin peaking:'
+    print pin_peak_ubound
+    
+    # Average pin power density in peak assembly
+    mean_powdens_peak_assm = pin_peak_map_nonzero.mean()/1.35/(np.pi*0.007**2.0)
+    print 'Average pin power density in peak assembly: {:.6e}'.format(mean_powdens_peak_assm)
 
 def analyze_axial_peaking():
     with open(python_tallydata_filename, 'rb') as f:
@@ -109,15 +129,15 @@ def analyze_axial_peaking():
     axial_pow_dist_nonzero = axial_pow_dist[axial_pow_dist.nonzero()]
     axial_pow_peak = axial_pow_dist_nonzero.max()/axial_pow_dist_nonzero.mean()
     
-    print 'Axial power distribution'
-    print axial_pow_dist_nonzero
+    #print 'Axial power distribution'
+    #print axial_pow_dist_nonzero
     print 'Axial power peak: {}'.format(axial_pow_peak)
     
     axial_pow_dist_err = detect_data['DET7815'][:,11]
     axial_pow_dist_err_nonzero = axial_pow_dist_err[axial_pow_dist_err.nonzero()]
     
-    print '1sig statistical uncertainites in axial pow dist tally'
-    print axial_pow_dist_err_nonzero
+    #print '1sig statistical uncertainites in axial pow dist tally'
+    #print axial_pow_dist_err_nonzero
 
 
 def get_therm_flux():    
@@ -143,9 +163,9 @@ def analyze_bu_data():
     
 def main():
     
-    #get_matlab_data(matlab_tally_filename, python_tallydata_filename)
-    #analyze_assm_map_data()
-    #analyze_pin_peaking()
+    get_matlab_data(matlab_tally_filename, python_tallydata_filename)
+    analyze_assm_map_data()
+    analyze_pin_peaking()
     analyze_axial_peaking()
     #get_matlab_data(matlab_res_filename, python_resdata_filename)
     #analyze_bu_data()
