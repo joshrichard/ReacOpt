@@ -234,7 +234,8 @@ def make_mats(mats_inp_tuple, run_opts):
     
     
     # Sab scattering kernel in graphite
-    sab_graph = core.Sab('grph', run_opts['sab_xs'], nuclide = '6000', lib = 'gre7')    
+    sab_graph = core.Sab('grph', run_opts['sab_xs'], nuclide = '6000', lib = 'gre7')
+    sab_graph_mod = core.Sab('grph_mod', run_opts['mod_sab_xs'], nuclide = '6000', lib = 'gre7')
 
     
     # Coolant material
@@ -290,19 +291,19 @@ def make_mats(mats_inp_tuple, run_opts):
 
     
     # Graphite compact Matrix material
-    mtxmat = core.Material('matrix', density = '-1.59', sab = sab_graph, color = '0 0 0')
-    mtxmat.add_nuclide(core.Nuclide('6000', run_opts['fuel_xs'], '1.0'))
-    mtxmat.add_nuclide(core.Nuclide('5010', run_opts['fuel_xs'], '6.63249E-07'))
-    mtxmat.add_nuclide(core.Nuclide('5011', run_opts['fuel_xs'], '2.66966E-06'))
+    mtxmat = core.Material('matrix', density = '-1.59', sab = sab_graph_mod, color = '0 0 0')
+    mtxmat.add_nuclide(core.Nuclide('6000', run_opts['mod_xs'], '1.0'))
+    mtxmat.add_nuclide(core.Nuclide('5010', run_opts['mod_xs'], '6.63249E-07'))
+    mtxmat.add_nuclide(core.Nuclide('5011', run_opts['mod_xs'], '2.66966E-06'))
 
 
 
     
     # Graphite block material
-    blockmat  = core.Material('block', density = '-1.75', sab = sab_graph, color='139 139 131')
-    blockmat.add_nuclide(core.Nuclide('6000', run_opts['fuel_xs'], '1'))
-    blockmat.add_nuclide(core.Nuclide('5010', run_opts['fuel_xs'], '6.63249E-07'))
-    blockmat.add_nuclide(core.Nuclide('5011', run_opts['fuel_xs'], '2.66966E-06'))
+    blockmat  = core.Material('block', density = '-1.75', sab = sab_graph_mod, color='139 139 131')
+    blockmat.add_nuclide(core.Nuclide('6000', run_opts['mod_xs'], '1'))
+    blockmat.add_nuclide(core.Nuclide('5010', run_opts['mod_xs'], '6.63249E-07'))
+    blockmat.add_nuclide(core.Nuclide('5011', run_opts['mod_xs'], '2.66966E-06'))
 
     
     

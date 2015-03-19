@@ -22,10 +22,18 @@ np.set_printoptions(linewidth=80, formatter={'float': lambda x: format(x, '3.3f'
 #############
 
 # 'same_nodep_assm_axial_2ring'
-data_dirname = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research',
-    'Salt_reactor','SERPENT_files','standard_core', 'm_f_analysis', 'case_matrix',
-    'nafzrf4_r350_bpins_out_cool_fuel3', 'depletion', 
-    'same_dep_axial_pow_3ring_enrfrac05'))
+# C:\input_files\coreh10507327408_pf0261441923649_krad00239351877217_enr163375033822_f2f281927426602_power215408039911\cdens10
+data_dirname = os.path.join('C:', os.sep, 'input_files',
+    'coreh10507327408_pf0261441923649_krad00239351877217_enr163375033822_f2f281927426602_power215408039911',
+    'cdens10')
+#'C:', os.sep, 'input_files',
+#    'coreh102475731517_pf0254243520253_krad00242621915721_enr192951234339_f2f206490206182_power249223682443',
+#    'cdens10')
+# 'coreh10507327408_pf0261441923649_krad00239351877217_enr163375033822_f2f281927426602_power215408039911',
+#'~jgr42_000','Documents','Grad_Research',
+#    'Salt_reactor','SERPENT_files','standard_core', 'm_f_analysis', 'case_matrix',
+#    'nafzrf4_r350_bpins_out_cool_fuel3', 'depletion', 
+#    'same_dep_axial_pow_3ring_enrfrac05'))
 # same_nodep_axial_pow_3ring_enrfrac07
 # fc_k350_89_183_50k_22t_assm_lat_07rad_nodep_axial_pow
 # same_nodep_assm_axial_2ring
@@ -37,6 +45,16 @@ python_tallydata_filename = os.path.join(data_dirname, 'python_det_data_3.out')
 matlab_res_filename = os.path.join(data_dirname, 'res_data.mat')
 python_resdata_filename = os.path.join(data_dirname, 'python_res_data.out')
 
+tallyname_type = 'auto' # orig or auto
+if tallyname_type == 'orig':
+    tallynames = {'assembly_map':'DET8815', 'pin_map':'DET8825', 
+                  'axial':'DET7815', 'therm_flux':'DET84200'}
+elif tallyname_type == 'auto':
+    tallynames = {'assembly_map':'DET1003', 'axial':'DET1004', 
+                  'therm_flux':'DET1001'}
+else:
+    raise Exception("tallyname_type must be either 'orig' or 'auto', not {}".format(
+                    tallyname_type))
 
 ####################
 # Analysis Functions
@@ -54,7 +72,7 @@ def analyze_assm_map_data():
         detect_data = cPickle.load(f)
         
     # Analyze assembly peaking
-    assm_peak_map = detect_data['DET8815'][:,10]/1e6
+    assm_peak_map = detect_data[tallynames['assembly_map']][:,10]/1e6
     assm_peak_map_nonzero = assm_peak_map[assm_peak_map.nonzero()]
     assm_peak_map_normalized = assm_peak_map/(assm_peak_map_nonzero.mean())
     max_assm_pow_peak = assm_peak_map_nonzero.max()/assm_peak_map_nonzero.mean()
@@ -90,7 +108,7 @@ def analyze_pin_peaking():
     with open(python_tallydata_filename, 'rb') as f:
         detect_data = cPickle.load(f)
         
-    pin_peak_map = detect_data['DET8825'][:,10]
+    pin_peak_map = detect_data[tallynames['pin_map']][:,10]
     pin_peak_map_nonzero = pin_peak_map[pin_peak_map.nonzero()]
     pin_peak_map_normalized = pin_peak_map_nonzero/pin_peak_map_nonzero.mean()
     
@@ -99,7 +117,7 @@ def analyze_pin_peaking():
     print 'Pin power distribution (normalized)'
     print pin_peak_map_normalized
     
-    pin_peak_err = detect_data['DET8825'][:,11]
+    pin_peak_err = detect_data[tallynames['pin_map']][:,11]
     pin_peak_err_nonzero = pin_peak_err[pin_peak_err.nonzero()]
     
     print 'Pin power tally relative errors'
@@ -125,7 +143,7 @@ def analyze_axial_peaking():
     with open(python_tallydata_filename, 'rb') as f:
         detect_data = cPickle.load(f)
         
-    axial_pow_dist = detect_data['DET7815'][:,10]
+    axial_pow_dist = detect_data[tallynames['axial']][:,10]
     axial_pow_dist_nonzero = axial_pow_dist[axial_pow_dist.nonzero()]
     axial_pow_peak = axial_pow_dist_nonzero.max()/axial_pow_dist_nonzero.mean()
     
@@ -133,7 +151,7 @@ def analyze_axial_peaking():
     #print axial_pow_dist_nonzero
     print 'Axial power peak: {}'.format(axial_pow_peak)
     
-    axial_pow_dist_err = detect_data['DET7815'][:,11]
+    axial_pow_dist_err = detect_data[tallynames['axial']][:,11]
     axial_pow_dist_err_nonzero = axial_pow_dist_err[axial_pow_dist_err.nonzero()]
     
     #print '1sig statistical uncertainites in axial pow dist tally'
@@ -146,7 +164,7 @@ def get_therm_flux():
         detect_data = cPickle.load(f)
         
     # Analyze irradiation position thermal flux
-    irr_therm_flux = detect_data['DET84200'][0,10]
+    irr_therm_flux = detect_data[tallynames['therm_flux']][0,10]
     print 'Irradiation position thermal flux: {}'.format(irr_therm_flux)
     
 
@@ -165,8 +183,8 @@ def main():
     
     get_matlab_data(matlab_tally_filename, python_tallydata_filename)
     analyze_assm_map_data()
-    analyze_pin_peaking()
-    analyze_axial_peaking()
+    #analyze_pin_peaking()
+    #analyze_axial_peaking()
     #get_matlab_data(matlab_res_filename, python_resdata_filename)
     #analyze_bu_data()
     

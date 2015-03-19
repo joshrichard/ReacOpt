@@ -1305,50 +1305,96 @@ class MultCaseMat(object):
 # Class for calculating power paramters given total core power and core height
 class AssemblyPowerPeak(object):
     def __init__(self, radial_peak=1.088, axial_peak=1.309, pin_peaking=None,
-                 n_assm=54.0, n_fuel_pins=60.0, pin_rad=0.7):
+                 n_assm=54.0, n_pins_per_assm=60.0, pin_rad=0.7, 
+                 layer_thick = None, layer_k = None,
+                 peak_fuel_temps = None, vol_powdens = None):
         self.radial_peak = radial_peak
         self.axial_peak = axial_peak
         self.n_assm = n_assm
-        self.n_fuel_pins = n_fuel_pins
+        self.n_pins_per_assm = n_pins_per_assm
         self.pin_rad = pin_rad*1e-2 # input in [cm], store in [m]
-        if pin_peaking is not None:
+        if layer_thick is None:
+            self.layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004])*1e-2 # [cm], convert to [m]
+        else:
+            self.layer_thick = layer_thick
+        self.tot_lay_thick = self.layer_thick.cumsum()
+        if layer_k is None:
+            self.layer_k = [3.5, 0.5, 4.0, 30.0, 4.0] # Thermal cond of layers [W/m-k], jianwei's thesis, pg. 18
+        else:
+            self.layer_k = layer_k
+        if pin_peaking is None: # peaking vals, starting from upper-left
+            self.pin_peaking = np.array([1.509, 1.356, 1.303, 1.227, 1.094, 1.060, 0.983])
+        else: 
             self.pin_peaking = pin_peaking
-        else: # peaking vals, starting from upper-left
-            self.pin_peaking = np.array([1.509, 
-                                1.356,
-                                1.303,
-                                1.227,
-                                1.094,
-                                1.060,
-                                0.983])
+        if peak_fuel_temps is None and vol_powdens is None:
+            self.homog_peak_fuel_temps = np.array([1164.0, 1228.0, 1256.0, 1352.0])
+            self.vol_powdens = np.array([4.230E7, 5.711E7, 6.345E7, 8.566E7])[:,np.newaxis]
+        elif peak_fuel_temps is not None and vol_powdens is not None:
+            self.homog_peak_fuel_temps = peak_fuel_temps
+            self.vol_powdens = vol_powdens
+        else:
+            raise Exception('Must supply both peak_fuel_temps and vol_powdens, or leave both empty!')
+        self.peak_fuel_temp_regress = LinearRegression()
+        self.peak_fuel_temp_regress.fit(self.vol_powdens, self.homog_peak_fuel_temps)
+
             
         
-    def set_core_conditions(self, core_power, core_h):
-        self.core_power = core_power*1e6 # Input in [MW], store in [W]
-        self.core_h = core_h*1e-2 # input in [cm], store in [m]
-        self.calc_total_pin_vol()
-        self.calc_pin_powers()
-        return self.peak_assm_peak_ax_vol_power
+    def set_core_conditions(self, dv_type, **kwargs):
+        if dv_type == 'real':
+            self.dv_vec = kwargs['dv_real']
+        elif dv_type == 'scaled':
+            self.dv_vec = dv_scaler(kwargs['dv_scaled'], dv_bounds=kwargs['bounds'], scal_type='real').sum(0)
+        else:
+            raise Exception("first positional argument must be either 'real' or 'scaled', not {}".format(dv_type))
+        self.core_h = self.dv_vec[0]*1e-2 # core height [input: cm, output: m]
+        self.pf = self.dv_vec[1]
+        self.krad = self.dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
+        self.core_power = self.dv_vec[5]*1e6 # Input in [MW], store in [W]
+        self.calc_volumes()
+        self.calc_core_powers()
+        self.calc_fuel_temps()
+        
+        
+    def calc_volumes(self):
+        self.layerrad = self.krad + self.tot_lay_thick
+        self.single_pin_vol = np.pi*self.pin_rad**2.0*self.core_h
+        self.all_triso_pin_vol = self.single_pin_vol * self.pf
+        self.single_triso_vol = 4.0/3.0 * np.pi * self.layerrad[-1]**3.0
+        self.num_triso_pin = self.all_triso_pin_vol / self.single_triso_vol
+        
+        
     
-    def calc_total_pin_vol(self):
-        self.all_pin_vol = np.pi*self.pin_rad**2.0*self.core_h*self.n_fuel_pins
-    
-    def calc_pin_powers(self):
+    def calc_core_powers(self):
         self.avg_assm_power = self.core_power/self.n_assm
-        self.peak_assm_power = self.avg_assm_power*self.radial_peak
-        self.peak_assm_vol_power = self.peak_assm_power/self.all_pin_vol
-        self.peak_assm_peak_ax_vol_power = self.peak_assm_vol_power * (
-                                           self.axial_peak)
-        self.peaked_pin_powers = self.peak_assm_peak_ax_vol_power * self.pin_peaking
+        self.avg_pin_power = self.avg_assm_power/self.n_pins_per_assm
+        self.avg_vol_power = self.avg_pin_power/self.single_pin_vol
+        self.avg_triso_power = self.avg_pin_power/self.num_triso_pin
+        self.peak_assm_power = self.avg_assm_power * self.radial_peak
+        self.peak_vol_power = self.avg_vol_power*self.radial_peak
+        self.peak_triso_power = self.avg_triso_power * self.radial_peak
+        self.peak_ax_vol_power = self.peak_vol_power * self.axial_peak
+        self.peak_ax_triso_power = self.peak_triso_power * self.axial_peak
+        self.peak_ax_triso_power_peak_pin = self.peak_ax_triso_power * self.pin_peaking.max()
+        self.peak_ax_triso_power_hot_pin = self.peak_ax_triso_power * self.pin_peaking[4]
+        self.peaked_pin_powers = self.peak_ax_vol_power * self.pin_peaking
+        
+
+    def calc_fuel_temps(self):
+        self.peak_bulk_fuel_temp = self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power)
+        self.t_max = self.peak_bulk_fuel_temp + self.peak_ax_triso_power_hot_pin /(6.0*self.layer_k[0]*self.layerrad[0])
+        for idx in xrange(1,len(self.layer_k)):
+            self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
+                                      - 1.0/(self.layer_k[idx]*self.layerrad[idx - 1]))
+
 
     def print_all_powers(self):
         print 'Input params: power = {:.3e}, height = {:.3e}'.format(self.core_power, self.core_h)
         print 'Avg assm power is {:.3e}'.format(self.avg_assm_power)
         print 'Peak assm power is {:.3e}, using a peaking factor of {:.3e}'.format(
                self.peak_assm_power, self.radial_peak)
-        print 'Peak assm volumetric power is {:.3e}'.format(self.peak_assm_vol_power)
+        print 'Peak assm volumetric power is {:.3e}'.format(self.peak_vol_power)
         print 'Peak assm and axial volumetric power is {:.3e}'.format(
-               self.peak_assm_peak_ax_vol_power)
+               self.peak_ax_vol_power)
         print 'Peaked pin powers are:'
         print self.peaked_pin_powers
 
@@ -1618,7 +1664,7 @@ def mod_partdist(new_universenum, orig_partdist_fname, new_partdist_fname):
 # Both this function and the next use generators to efficiently and cleanly evaluate the lists/tuples given to them as input
 # cleans the data values by converting from floats (or any other numerical type) to string, and removing the decimals
 def prep_val(inp):
-    inner_tuple = tuple( (str(item).replace(".","") for item in inp) )
+    inner_tuple = tuple( ('{:.4f}'.format(item).replace(".","") for item in inp) )
     return inner_tuple
 
 # Makes a tuple of combined name-value strings for use in file names and other
