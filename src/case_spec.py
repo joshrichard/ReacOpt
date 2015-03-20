@@ -83,7 +83,8 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('iter_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_dump_iter.out')), \
 ('final_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_final.out')) ])
 
-detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002')])
+detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002'), 
+                      ('assm_pow_detname', 'DET1003')])
 
 plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
     

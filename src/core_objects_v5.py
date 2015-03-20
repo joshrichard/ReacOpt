@@ -1190,8 +1190,8 @@ class CaseMatrix(object):
 #        for element in itertools.product(*self.fit_dv_dict.values()):
 #            self.fit_dv_mtx[cnt] = list(element)
 #            cnt += 1
-        self.data = np.array([], dtype=float)
-        self.error = np.array([], dtype=float)
+        self.data = []#np.array([], dtype=float)
+        self.error = []#np.array([], dtype=float)
         self.ff_shape = FF_num
         self.shape_typ = shape_typ
 
@@ -1209,8 +1209,8 @@ class CaseMatrix(object):
                    # then loop through dict
         
     def add_vals(self, val, error):
-        self.data = np.append(self.data, float(val))
-        self.error = np.append(self.error, float(error))
+        self.data.append(float(val)) # = np.append(self.data, float(val))
+        self.error.append(float(error)) # = np.append(self.error, float(error))
         
     def calc_length(self):
         self.mysizetot = len(self.data.ravel())
@@ -1227,6 +1227,12 @@ class CaseMatrix(object):
     def set_shape_extras(self, file_points, extra_states):
         self.file_points = file_points
         self.extra_states = extra_states
+        
+    def cast_data_asarray(self):
+        if type(self.data) is not numpy.ndarray:
+            self.data = np.array(self.data)
+        if type(self_error) is not numpy.ndarray:
+            self.error = np.array(self.error)
     
     # Note: Could only thin from cdens, then opt over a single bu or avg of all bu
     # TAG: Improve
@@ -1235,6 +1241,7 @@ class CaseMatrix(object):
         #self.data_shape = numpy.array(self.data).reshape(self.myshapetot)
         #self.error_shape = numpy.array(self.error).reshape(self.myshapetot)
         # Then, make an array with data only from 2nd bu step (xe equil) and dens=1.0 for fitting purposes       
+        self.cast_data_asarray()
         self.data_fit = copy.deepcopy(self.data)
         self.error_fit = copy.deepcopy(self.error)
         if self.shape_typ == '1d':
@@ -1267,6 +1274,9 @@ class CaseMatrix(object):
     def get_surro_err(self):
         return self.error_fit
         
+class ArrayCaseMat(CaseMatrix):
+    
+
 
 class CoeffCaseMat(CaseMatrix):
     
