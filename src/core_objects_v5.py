@@ -11,6 +11,7 @@ from sklearn import preprocessing
 import pyDOE
 from scipy.spatial.distance import pdist
 import codecs
+from bisect import bisect_right
 
 #import weakref
 #from collections import *
@@ -1701,6 +1702,33 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
         msg = "scal_type must be either 'to-real' or 'to-zeroone', not {}".format(scal_type)
         raise TypeError(msg)
     return dv_new
+    
+
+def find_xs_lib(mat_temp, lib_temp_vals=[300.0, 600.0, 900.0, 1200.0, 1500.0, 1800.0], 
+                 lib_temp_ext=['.03c', '.06c', '09c', '.12c', '.15c', '.18c']):
+
+        if mat_temp < lib_temp_vals[0]:
+            raise Exception('Fuel temp of {} is too low! must be >= lowest xs library temp {}'.format(
+                             mat_temp, lib_temp_vals[0]))
+        xs_lib_dict = dict(zip(lib_temp_vals, lib_temp_ext))
+        position = bisect_right(lib_temp_vals, mat_temp) - 1
+        xs_lib = xs_lib_dict[lib_temp_vals[position]]
+        return xs_lib
+        
+def find_sab_lib(mat_temp, sab_temp_vals=[294.0, 400.0, 500.0, 600.0, 700.0, 800.0, 
+                 1000.0, 1200.0, 1600.0, 1999.0],
+                 sab_lib_ext=['.00t', '.04t', '.08t', '.12t', '.16t', '.18t', '.20t', 
+                 '.22t', '.24t', '.26t']):
+    
+    if mat_temp < sab_temp_vals[0]:
+        raise Exception('Fuel temp of {} is too low! must be >= lowest sab library temp {}'.format(
+                         mat_temp, sab_temp_vals[0]))
+    sab_lib_dict = dict(zip(sab_temp_vals, sab_lib_ext))
+    position = bisect_right(sab_temp_vals, mat_temp) - 1
+    sab_lib = sab_lib_dict[sab_temp_vals[position]]
+    return sab_lib
+        
+    
     
     
 # Logging streamer functionality courtesy of Ferry Boender

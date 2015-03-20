@@ -23,9 +23,11 @@ np.set_printoptions(linewidth=80, formatter={'float': lambda x: format(x, '3.3f'
 
 # 'same_nodep_assm_axial_2ring'
 # C:\input_files\coreh10507327408_pf0261441923649_krad00239351877217_enr163375033822_f2f281927426602_power215408039911\cdens10
-data_dirname = os.path.join('C:', os.sep, 'input_files',
-    'coreh10507327408_pf0261441923649_krad00239351877217_enr163375033822_f2f281927426602_power215408039911',
-    'cdens10')
+data_dirname = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research',
+    'Salt_reactor','SERPENT_files','standard_core', 'm_f_analysis', 'case_matrix',
+    'nafzrf4_r350_bpins_out_cool_fuel3', 'depletion', 
+    'same_nodep_axial_pow_3ring_enrfrac05'))  
+    
 #'C:', os.sep, 'input_files',
 #    'coreh102475731517_pf0254243520253_krad00242621915721_enr192951234339_f2f206490206182_power249223682443',
 #    'cdens10')
@@ -39,13 +41,13 @@ data_dirname = os.path.join('C:', os.sep, 'input_files',
 # same_nodep_assm_axial_2ring
 # same_nodep_3ring_powtallytest
     
-matlab_tally_filename = os.path.join(data_dirname, 'detector_data_3.mat')
-python_tallydata_filename = os.path.join(data_dirname, 'python_det_data_3.out')
+matlab_tally_filename = os.path.join(data_dirname, 'detector_data.mat')
+python_tallydata_filename = os.path.join(data_dirname, 'python_det_data.out')
 
 matlab_res_filename = os.path.join(data_dirname, 'res_data.mat')
 python_resdata_filename = os.path.join(data_dirname, 'python_res_data.out')
 
-tallyname_type = 'auto' # orig or auto
+tallyname_type = 'orig' # orig or auto
 if tallyname_type == 'orig':
     tallynames = {'assembly_map':'DET8815', 'pin_map':'DET8825', 
                   'axial':'DET7815', 'therm_flux':'DET84200'}
@@ -73,6 +75,7 @@ def analyze_assm_map_data():
         
     # Analyze assembly peaking
     assm_peak_map = detect_data[tallynames['assembly_map']][:,10]/1e6
+    assm_peak_map_err = detect_data[tallynames['assembly_map']][:,11]/1e6
     assm_peak_map_nonzero = assm_peak_map[assm_peak_map.nonzero()]
     assm_peak_map_normalized = assm_peak_map/(assm_peak_map_nonzero.mean())
     max_assm_pow_peak = assm_peak_map_nonzero.max()/assm_peak_map_nonzero.mean()
@@ -81,6 +84,8 @@ def analyze_assm_map_data():
     print assm_peak_map
     print 'Normalized assembly powers'
     print assm_peak_map_normalized
+#    print 'Relative uncertainties from serpent (unaltered):'
+#    print assm_peak_map_err
     print 'Total core power with -8: {}'.format(assm_peak_map_nonzero.sum())
     print 'Max assembly peaking: {}'.format(max_assm_pow_peak)
     

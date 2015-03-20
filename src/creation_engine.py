@@ -120,6 +120,7 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
         main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this? | TAG: Improve
         lowE_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '_lowE.inp'
         pdist_fnames = {'nominal':main_pdist_fname, 'lowE':lowE_pdist_fname}
+        # Adjust xs temps with doppler preprocessing
         make_std_inp(element, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
         file_path = os.path.join(root_path, 'input_files')
@@ -232,9 +233,19 @@ def make_mats(mats_inp_tuple, run_opts):
     #salt_dens = -2.96 * salt_dens_frac
     #salt_mat_name = run_opts['cool_mat']
     
+    # First, calculate the core-average fuel temperature based on this dv config
+    pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
+                                     pin_peaking = np.ones(len(mats_inp_tuple)))
+    pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_tuple)
+    fuel_temp = pow_obj.t_max
+    # Find the xs and sab extension for this temp:
+    fuel_xs_ext = core.find_xs_lib(fuel_temp)
+    fuel_sab_ext = core.find_sab_lib(fuel_temp)
+    
+    
     
     # Sab scattering kernel in graphite
-    sab_graph = core.Sab('grph', run_opts['sab_xs'], nuclide = '6000', lib = 'gre7')
+    sab_graph = core.Sab('grph', fuel_sab_ext, nuclide = '6000', lib = 'gre7')
     sab_graph_mod = core.Sab('grph_mod', run_opts['mod_sab_xs'], nuclide = '6000', lib = 'gre7')
 
     
@@ -252,42 +263,42 @@ def make_mats(mats_inp_tuple, run_opts):
     # Fuel material (using FuelMat subclass)
     # nominal enrichment
     fmat = core.FuelMat('uco', density = '-11.0', enrichment = u235_enrich, sab = sab_graph, color = '40 40 40')
-    fmat.add_nuclide(core.Nuclide('92235', run_opts['fuel_xs'], fmat.n_u235))
-    fmat.add_nuclide(core.Nuclide('92238', run_opts['fuel_xs'], fmat.n_u238))
-    fmat.add_nuclide(core.Nuclide('6000',run_opts['fuel_xs'], '1.39196E-01'))
-    fmat.add_nuclide(core.Nuclide('8016',run_opts['fuel_xs'], '5.06064E-01'))
-    fmat.add_nuclide(core.Nuclide('5010',run_opts['fuel_xs'], '5.19023E-06'))
-    fmat.add_nuclide(core.Nuclide('5011',run_opts['fuel_xs'], '2.08913E-05'))
+    fmat.add_nuclide(core.Nuclide('92235', fuel_xs_ext, fmat.n_u235))
+    fmat.add_nuclide(core.Nuclide('92238', fuel_xs_ext, fmat.n_u238))
+    fmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1.39196E-01'))
+    fmat.add_nuclide(core.Nuclide('8016', fuel_xs_ext, '5.06064E-01'))
+    fmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '5.19023E-06'))
+    fmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '2.08913E-05'))
     # low enrichment (first fuel ring)
     fmat_lowE = core.FuelMat('uco_lowE', density = '-11.0', enrichment = u235_low_enrich, sab = sab_graph, color = '237 45 2')
-    fmat_lowE.add_nuclide(core.Nuclide('92235', run_opts['fuel_xs'], fmat_lowE.n_u235))
-    fmat_lowE.add_nuclide(core.Nuclide('92238', run_opts['fuel_xs'], fmat_lowE.n_u238))
-    fmat_lowE.add_nuclide(core.Nuclide('6000',run_opts['fuel_xs'], '1.39196E-01'))
-    fmat_lowE.add_nuclide(core.Nuclide('8016',run_opts['fuel_xs'], '5.06064E-01'))
-    fmat_lowE.add_nuclide(core.Nuclide('5010',run_opts['fuel_xs'], '5.19023E-06'))
-    fmat_lowE.add_nuclide(core.Nuclide('5011',run_opts['fuel_xs'], '2.08913E-05'))
+    fmat_lowE.add_nuclide(core.Nuclide('92235', fuel_xs_ext, fmat_lowE.n_u235))
+    fmat_lowE.add_nuclide(core.Nuclide('92238', fuel_xs_ext, fmat_lowE.n_u238))
+    fmat_lowE.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1.39196E-01'))
+    fmat_lowE.add_nuclide(core.Nuclide('8016', fuel_xs_ext, '5.06064E-01'))
+    fmat_lowE.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '5.19023E-06'))
+    fmat_lowE.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '2.08913E-05'))
 
     
     # TRISO buffer layer
     bufmat = core.Material('buffer', density = '-1.0', sab = sab_graph)
-    bufmat.add_nuclide(core.Nuclide('6000', run_opts['fuel_xs'], '1'))
-    bufmat.add_nuclide(core.Nuclide('5010', run_opts['fuel_xs'], '6.63249E-07'))
-    bufmat.add_nuclide(core.Nuclide('5011', run_opts['fuel_xs'], '2.66966E-06'))
+    bufmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1'))
+    bufmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '6.63249E-07'))
+    bufmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '2.66966E-06'))
 
     
     # TRISO PyC layer (used for both inner PyC and outer PyC TRISO layers)
     pycmat = core.Material('pyc', density = '-1.87', sab = sab_graph)
-    pycmat.add_nuclide(core.Nuclide('6000', run_opts['fuel_xs'], '1'))
-    pycmat.add_nuclide(core.Nuclide('5010', run_opts['fuel_xs'], '6.63249E-07'))
-    pycmat.add_nuclide(core.Nuclide('5011', run_opts['fuel_xs'], '2.66966E-06'))
+    pycmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1'))
+    pycmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '6.63249E-07'))
+    pycmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '2.66966E-06'))
 
     
     # TRISO SiC layer
     sicmat = core.Material('sic', density = '-3.18', sab = sab_graph)
-    sicmat.add_nuclide(core.Nuclide('14000', run_opts['fuel_xs'], '0.5'))
-    sicmat.add_nuclide(core.Nuclide('6000', run_opts['fuel_xs'], '0.5'))
-    sicmat.add_nuclide(core.Nuclide('5010', run_opts['fuel_xs'], '1.10709E-06'))
-    sicmat.add_nuclide(core.Nuclide('5011', run_opts['fuel_xs'], '4.45616E-06'))
+    sicmat.add_nuclide(core.Nuclide('14000', fuel_xs_ext, '0.5'))
+    sicmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '0.5'))
+    sicmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '1.10709E-06'))
+    sicmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '4.45616E-06'))
 
     
     # Graphite compact Matrix material
