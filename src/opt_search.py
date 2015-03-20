@@ -114,16 +114,16 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     
     # Correlation (linear fit) for peak temp [K] in homogenized fuel 
     # as a function of volumetric power dens [W/m^3]
-    homog_peak_fuel_temps = np.array([1164.0, 1228.0, 1256.0, 1352.0])
-    vol_powdens = np.array([4.230E7, 5.711E7, 6.345E7, 8.566E7])[:,np.newaxis]
-    peak_fuel_temp_regress = LinearRegression()
-    peak_fuel_temp_regress.fit(vol_powdens, homog_peak_fuel_temps)
-    def calc_peak_bulk_fuel_temp(core_pow, core_height, 
-                                 powdens_calc = core.AssemblyPowerPeak(),
-                                 regress_func=peak_fuel_temp_regress.predict):
-        
-        core_powdens = powdens_calc.set_core_conditions(core_pow, core_height)
-        return regress_func(core_powdens)
+#    homog_peak_fuel_temps = np.array([1164.0, 1228.0, 1256.0, 1352.0])
+#    vol_powdens = np.array([4.230E7, 5.711E7, 6.345E7, 8.566E7])[:,np.newaxis]
+#    peak_fuel_temp_regress = LinearRegression()
+#    peak_fuel_temp_regress.fit(vol_powdens, homog_peak_fuel_temps)
+#    def calc_peak_bulk_fuel_temp(core_pow, core_height, 
+#                                 powdens_calc = core.AssemblyPowerPeak(),
+#                                 regress_func=peak_fuel_temp_regress.predict):
+#        
+#        core_powdens = powdens_calc.set_core_conditions(core_pow, core_height)
+#        return regress_func(core_powdens)
     
     
     # Want to find a way to make work for any length of features
@@ -144,47 +144,53 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
             boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
         return boxbound_constr_dict
         
-    def triso_pow_eval(dv_vec_scaled, bounds=dv_bounds):
-        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real').sum(0)
-        pf = dv_vec[1]
-        coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
-        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
-        power = dv_vec[5]*1e6 # TAG: Hardcode
+    def triso_pow_eval(dv_vec_scaled, dvbounds=dv_bounds):
+#        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real').sum(0)
+#        pf = dv_vec[1]
+#        coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
+#        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
+#        power = dv_vec[5]*1e6 # TAG: Hardcode
+#        pow_max_constr = 0.340 # peak triso power, in W/particle | TAG: Constraint
+#        npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
+#        pinrad = 0.007 # fuel pin radius, [m]
+#        layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
+#        tot_lay_thick = layer_thick.cumsum()
+#        layerrad = krad + tot_lay_thick*1e-2
+#        vol_pin = np.pi * pinrad**2.0 * coreh
+#        vol_triso = vol_pin * pf
+#        vol_single_triso = 4.0/3.0 * np.pi * layerrad[-1]**3.0
+#        num_triso_pin = vol_triso / vol_single_triso
+#        pow_pin = power / npins
+#        pow_triso = pow_pin / num_triso_pin
+#        # axial, radial, and pin peaking
+#        pow_triso_peak = pow_triso * 1.309 * 1.088 * 1.094
         pow_max_constr = 0.340 # peak triso power, in W/particle | TAG: Constraint
-        npins = 3240.0  # number of pins in core, 60 pin/assm*54 assm/core
-        pinrad = 0.007 # fuel pin radius, [m]
-        layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
-        tot_lay_thick = layer_thick.cumsum()
-        layerrad = krad + tot_lay_thick*1e-2
-        vol_pin = np.pi * pinrad**2.0 * coreh
-        vol_triso = vol_pin * pf
-        vol_single_triso = 4.0/3.0 * np.pi * layerrad[-1]**3.0
-        num_triso_pin = vol_triso / vol_single_triso
-        pow_pin = power / npins
-        pow_triso = pow_pin / num_triso_pin
-        # axial, radial, and pin peaking
-        pow_triso_peak = pow_triso * 1.309 * 1.088 * 1.094
-        pow_max_constr_eval = pow_max_constr - pow_triso_peak
+        pow_obj = core.AssemblyPowerPeak()
+        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
+        pow_max_constr_eval = pow_max_constr - pow_obj.peak_ax_triso_power_peak_pin
         return pow_max_constr_eval
 
     def fuel_temp_eval(dv_vec_scaled, dvbounds=dv_bounds):
-        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=dvbounds, scal_type='real').sum(0)
-        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
-        core_pow = dv_vec[5]
-        core_h = dv_vec[0]
-        t_surf = calc_peak_bulk_fuel_temp(core_pow, core_h) # 1209.0 + 50.0 # triso surface temp [k]
+#        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=dvbounds, scal_type='real').sum(0)
+#        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
+#        core_pow = dv_vec[5]
+#        core_h = dv_vec[0]
+#        t_surf = calc_peak_bulk_fuel_temp(core_pow, core_h) # 1209.0 + 50.0 # triso surface temp [k]
+#        t_max_constr = 1610.0 # TAG: Constraint
+#        layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
+#        tot_lay_thick = layer_thick.cumsum()
+#        layer_k = [3.5, 0.5, 4.0, 30.0, 4.0] # Thermal cond of layers [W/m-k], jianwei's thesis, pg. 18
+#        layerrad = krad + tot_lay_thick*1e-2
+#        # axial, radial, and pin peaking
+#        pow_triso_peak = 0.340 - triso_pow_eval(dv_vec_scaled, bounds = dvbounds) # | TAG: Constraint
+#        t_max = t_surf + pow_triso_peak/(6.0*layer_k[0]*layerrad[0])
+#        for idx in xrange(1,len(layer_k)):
+#            t_max = t_max - pow_triso_peak*(1.0/(layer_k[idx]*layerrad[idx]) \
+#                                      - 1.0/(layer_k[idx]*layerrad[idx - 1]))
         t_max_constr = 1610.0 # TAG: Constraint
-        layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004]) # [cm], convert to [m] later
-        tot_lay_thick = layer_thick.cumsum()
-        layer_k = [3.5, 0.5, 4.0, 30.0, 4.0] # Thermal cond of layers [W/m-k], jianwei's thesis, pg. 18
-        layerrad = krad + tot_lay_thick*1e-2
-        # axial, radial, and pin peaking
-        pow_triso_peak = 0.340 - triso_pow_eval(dv_vec_scaled, bounds = dvbounds) # | TAG: Constraint
-        t_max = t_surf + pow_triso_peak/(6.0*layer_k[0]*layerrad[0])
-        for idx in xrange(1,len(layer_k)):
-            t_max = t_max - pow_triso_peak*(1.0/(layer_k[idx]*layerrad[idx]) \
-                                      - 1.0/(layer_k[idx]*layerrad[idx - 1]))
-        t_max_constr_eval = t_max_constr - t_max
+        pow_obj = core.AssemblyPowerPeak()
+        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
+        t_max_constr_eval = t_max_constr - pow_obj.t_max
         return t_max_constr_eval
 
 

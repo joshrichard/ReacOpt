@@ -1068,7 +1068,7 @@ det 1004 du {fuel_u} dz {core_low_ref} {core_up_ref} {resolution} dr -8 void"""
 
 
 class SerpOpts(object):
-    def __init__(self, power, particles='5000', active='500', inactive='100', bumat=None,  optstring=None):
+    def __init__(self, power, particles='10000', active='250', inactive='50', bumat=None,  optstring=None):
         self.power = power
         self.particles = particles
         self.active = active
