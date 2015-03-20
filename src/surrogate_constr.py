@@ -45,6 +45,7 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     reac_co_data = data_dict['reac_coeff'].data_fit[:,1] # At some point, will want to make this for all bu steps | TAG: Improve
     void_w_data = data_dict['void_worth'].data_fit[:,1]
     max_cycle_data = data_dict['reac'].max_bu_data
+    assm_peak_data = data_dict['assm_peak'].get_surro_data()
     X_t = doe_set['doe_scaled']
     
     sur_type = fit_opts['sur_type']
@@ -89,6 +90,7 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     reac_co = gaussian_process.GaussianProcess()
     void_w = gaussian_process.GaussianProcess()
     max_cycle = gaussian_process.GaussianProcess()
+    assm_peak = gaussian_process.GaussianProcess()
     #test = neighbors.KNeighborsRegressor()
     #test = GradientBoostingRegressor()
     #    with open(data_opts['data_fname'], 'rb') as datf:
@@ -103,8 +105,9 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     reac_co.fit(X_t, reac_co_data)
     void_w.fit(X_t, void_w_data)
     max_cycle.fit(X_t, max_cycle_data)
+    assm_peak.fit(X_t, assm_peak_data)
     
-    fit_dict = {'X_t':X_t,'obj_val':obj_val, 'reac_co':reac_co, 'void_w':void_w, \
+    fit_dict = {'X_t':X_t,'obj_val':obj_val, 'assm_peak':assm_peak,'reac_co':reac_co, 'void_w':void_w, \
                 'max_cycle':max_cycle, 'xval_obj_val':xval_obj_val}
     
     # If using a regressing GPM, build a re-interpolator for use in search-and-infill

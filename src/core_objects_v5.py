@@ -12,6 +12,7 @@ import pyDOE
 from scipy.spatial.distance import pdist
 import codecs
 from bisect import bisect_right
+import sklearn
 
 #import weakref
 #from collections import *
@@ -1229,9 +1230,9 @@ class CaseMatrix(object):
         self.extra_states = extra_states
         
     def cast_data_asarray(self):
-        if type(self.data) is not numpy.ndarray:
+        if type(self.data).__module__ != np.__name__:
             self.data = np.array(self.data)
-        if type(self_error) is not numpy.ndarray:
+        if type(self.error).__module__ != np.__name__:
             self.error = np.array(self.error)
     
     # Note: Could only thin from cdens, then opt over a single bu or avg of all bu
@@ -1274,8 +1275,6 @@ class CaseMatrix(object):
     def get_surro_err(self):
         return self.error_fit
         
-class ArrayCaseMat(CaseMatrix):
-    
 
 
 class CoeffCaseMat(CaseMatrix):
@@ -1367,6 +1366,8 @@ class AssemblyPowerPeak(object):
         self.pf = self.dv_vec[1]
         self.krad = self.dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
         self.core_power = self.dv_vec[5]*1e6 # Input in [MW], store in [W]
+        if isinstance(self.radial_peak, sklearn.gaussian_process.gaussian_process.GaussianProcess):
+            self.calc_radial_peak()
         self.calc_volumes()
         self.calc_core_powers()
         self.calc_fuel_temps()
@@ -1402,6 +1403,10 @@ class AssemblyPowerPeak(object):
         for idx in xrange(1,len(self.layer_k)):
             self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
                                       - 1.0/(self.layer_k[idx]*self.layerrad[idx - 1]))
+                                      
+    def calc_radial_peak(self):
+        self.radial_peak_surrogate = copy.deepcopy(self.radial_peak)
+        self.radial_peak = self.radial_peak_surrogate.predict(self.dv_vec)
 
 
     def print_all_powers(self):

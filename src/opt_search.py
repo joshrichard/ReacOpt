@@ -103,6 +103,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
     reac_co_eval = reac_coeff_adj(fit_dict['reac_co'].predict)
     void_w_eval = void_worth_adj(fit_dict['void_w'].predict)
     max_cycle_eval = constr_cycle_len(fit_dict['max_cycle'].predict)
+    assm_peak_surro = fit_dict['assm_peak']
     sur_type = fit_opts['sur_type']
     dv_bounds = case_info['dv_bounds']
     if sur_type == 'regress':
@@ -144,7 +145,7 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
             boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
         return boxbound_constr_dict
         
-    def triso_pow_eval(dv_vec_scaled, dvbounds=dv_bounds):
+    def triso_pow_eval(dv_vec_scaled, dvbounds=dv_bounds, assm_pow=assm_peak_surro):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real').sum(0)
 #        pf = dv_vec[1]
 #        coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
@@ -166,11 +167,13 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
 #        pow_triso_peak = pow_triso * 1.309 * 1.088 * 1.094
         pow_max_constr = 0.340 # peak triso power, in W/particle | TAG: Constraint
         pow_obj = core.AssemblyPowerPeak()
+        # If want surrogate radial peak, use this:
+        # pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow)
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
         pow_max_constr_eval = pow_max_constr - pow_obj.peak_ax_triso_power_peak_pin
         return pow_max_constr_eval
 
-    def fuel_temp_eval(dv_vec_scaled, dvbounds=dv_bounds):
+    def fuel_temp_eval(dv_vec_scaled, dvbounds=dv_bounds, assm_pow=assm_peak_surro):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=dvbounds, scal_type='real').sum(0)
 #        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
 #        core_pow = dv_vec[5]
@@ -189,6 +192,8 @@ def get_optim_opts(fit_dict, data_opts, fit_opts, case_info):
 #                                      - 1.0/(layer_k[idx]*layerrad[idx - 1]))
         t_max_constr = 1610.0 # TAG: Constraint
         pow_obj = core.AssemblyPowerPeak()
+        # If want surrogate radial peak, use this:
+        # pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow)
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
         t_max_constr_eval = t_max_constr - pow_obj.t_max
         return t_max_constr_eval

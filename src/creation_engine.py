@@ -539,7 +539,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
 
     
     data_dict = dict([ ('reac', core.CaseMatrix('1d')), ('fuel_flux', core.MultCaseMat('1d')),
-                     ('mat_flux', core.MultCaseMat('1d')), ('assm_pow', core.CaseMatrix('1d')),
+                     ('mat_flux', core.MultCaseMat('1d')), ('assm_peak', core.CaseMatrix('1d')),
                      ('reac_coeff', core.CoeffCaseMat('2d')), ('void_worth', core.CoeffCaseMat('2d')) ])
     
 
@@ -587,16 +587,16 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
                             data_dict['mat_flux'].fast.add_vals(*line.split()[10:12])
                         if detnum == 0 and line.split()[0] == detector_opts['assm_pow_detname']:
                             line = df.next()
-                            while line != '\n':
+                            while line not in ['\r\n','\n']:
                                 if float(line.split()[10]) == 0.0:
                                     pass
                                 else:
                                     assm_pow_list_tmp.append(float(line.split()[10]))
                                     assm_err_list_tmp.append(float(line.split()[11]))
+                                line = df.next()
                                 
                     except IndexError:
                         pass
-                    
         # Now calculate maximum assembly peaking at the 0th burnup step and store in CaseMat
         assm_pow_list_tmp = np.array(assm_pow_list_tmp)
         assm_err_list_tmp = np.array(assm_err_list_tmp)
@@ -605,7 +605,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         assm_pow_max_peak = assm_pow_arr_norm.max()
         assm_pow_max_peak_val = assm_pow_max_peak.nominal_value
         assm_pow_max_peak_rel_err = assm_pow_max_peak.std_dev/assm_pow_max_peak_val
-        data_dict['assm_pow'].add_vals(assm_pow_max_peak_val, assm_pow_max_peak_rel_err)
+        data_dict['assm_peak'].add_vals(assm_pow_max_peak_val, assm_pow_max_peak_rel_err)
     
 
 
