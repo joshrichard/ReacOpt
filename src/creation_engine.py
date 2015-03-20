@@ -120,7 +120,6 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
         main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this? | TAG: Improve
         lowE_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '_lowE.inp'
         pdist_fnames = {'nominal':main_pdist_fname, 'lowE':lowE_pdist_fname}
-        # Adjust xs temps with doppler preprocessing
         make_std_inp(element, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
         file_path = os.path.join(root_path, 'input_files')
@@ -235,12 +234,17 @@ def make_mats(mats_inp_tuple, run_opts):
     
     # First, calculate the core-average fuel temperature based on this dv config
     pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
-                                     pin_peaking = np.ones(len(mats_inp_tuple)))
+                                     pin_peaking = np.ones(7))
     pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_tuple)
     fuel_temp = pow_obj.t_max
+    if fuel_temp < 1200.0:
+        fuel_temp = 1200.0
     # Find the xs and sab extension for this temp:
-    fuel_xs_ext = core.find_xs_lib(fuel_temp)
+    fuel_xs_ext, doppler = core.find_xs_lib(fuel_temp)
     fuel_sab_ext = core.find_sab_lib(fuel_temp)
+    if not doppler:
+        fuel_temp = None
+    
     
     
     
@@ -262,7 +266,8 @@ def make_mats(mats_inp_tuple, run_opts):
     
     # Fuel material (using FuelMat subclass)
     # nominal enrichment
-    fmat = core.FuelMat('uco', density = '-11.0', enrichment = u235_enrich, sab = sab_graph, color = '40 40 40')
+    fmat = core.FuelMat('uco', density = '-11.0', enrichment = u235_enrich, tmp = fuel_temp,
+                        sab = sab_graph, color = '40 40 40')
     fmat.add_nuclide(core.Nuclide('92235', fuel_xs_ext, fmat.n_u235))
     fmat.add_nuclide(core.Nuclide('92238', fuel_xs_ext, fmat.n_u238))
     fmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1.39196E-01'))
@@ -270,7 +275,8 @@ def make_mats(mats_inp_tuple, run_opts):
     fmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '5.19023E-06'))
     fmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '2.08913E-05'))
     # low enrichment (first fuel ring)
-    fmat_lowE = core.FuelMat('uco_lowE', density = '-11.0', enrichment = u235_low_enrich, sab = sab_graph, color = '237 45 2')
+    fmat_lowE = core.FuelMat('uco_lowE', density = '-11.0', enrichment = u235_low_enrich,
+                             tmp = fuel_temp, sab = sab_graph, color = '237 45 2')
     fmat_lowE.add_nuclide(core.Nuclide('92235', fuel_xs_ext, fmat_lowE.n_u235))
     fmat_lowE.add_nuclide(core.Nuclide('92238', fuel_xs_ext, fmat_lowE.n_u238))
     fmat_lowE.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1.39196E-01'))

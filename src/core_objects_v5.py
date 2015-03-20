@@ -110,12 +110,13 @@ class Sab(object):
 
 
 class Material(object):
-    def __init__(self, key, density='sum', sab = None, color = None, comment = None):
+    def __init__(self, key, density='sum', sab = None, tmp = None, color = None, comment = None):
         global n_materials
         n_materials += 1
         self.id = n_materials
         self.nuclides = []
         self.sab = sab
+        self.tmp = tmp
         self.key = key
         self.comment = comment
         self.color = color
@@ -159,6 +160,8 @@ class Material(object):
         if self.comment != None:
             serp_str += """%{0:^40}\n""".format(self.comment)
         serp_str += """mat {name} {density}""".format(name = self.key, density = self.density)
+        if self.tmp != None:
+            serp_str += """ tmp {mat_temp} """.format(mat_temp = self.tmp)
         if self.sab != None:
             serp_str += """  moder {key} {nuclide}  """.format(key=self.sab.key, nuclide=self.sab.nuclide)
         if self.color != None:        
@@ -757,12 +760,13 @@ class SolidFill(object):
 # Fuel() subclass that handles the "burn" option on the Serpent material card
 #     and automatically calculates a number density given an enrichment
 class FuelMat(Material):
-    def __init__(self, key, density='sum', enrichment = None, burn_div='1', sab = None, color = None, comment = None):
+    def __init__(self, key, density='sum', enrichment = None, burn_div='1', sab = None, tmp = None, color = None, comment = None):
         global n_materials
         n_materials += 1
         self.id = n_materials
         self.nuclides = []
         self.sab = sab
+        self.tmp = tmp
         self.key = key
         self.comment = comment
         self.color = color
@@ -784,6 +788,8 @@ class FuelMat(Material):
         if self.comment != None:
             serp_str += """%{0:^40}\n""".format(self.comment)
         serp_str += """mat {name} {density} burn {bdiv:>3}""".format(name = self.key, density = self.density, bdiv = self.burn_div)
+        if self.tmp != None:
+            serp_str += """ tmp {mat_temp} """.format(mat_temp=self.tmp)
         if self.sab != None:
             serp_str += """  moder {key} {nuclide}  """.format(key=self.sab.key, nuclide=self.sab.nuclide)
         if self.color != None:        
@@ -1705,21 +1711,25 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
     
 
 def find_xs_lib(mat_temp, lib_temp_vals=[300.0, 600.0, 900.0, 1200.0, 1500.0, 1800.0], 
-                 lib_temp_ext=['.03c', '.06c', '09c', '.12c', '.15c', '.18c']):
+                lib_temp_ext=['.03c', '.06c', '09c', '.12c', '.15c', '.18c']):
 
         if mat_temp < lib_temp_vals[0]:
             raise Exception('Fuel temp of {} is too low! must be >= lowest xs library temp {}'.format(
                              mat_temp, lib_temp_vals[0]))
+        if mat_temp in lib_temp_vals:
+            doppler = False
+        else:
+            doppler = True
         xs_lib_dict = dict(zip(lib_temp_vals, lib_temp_ext))
         position = bisect_right(lib_temp_vals, mat_temp) - 1
         xs_lib = xs_lib_dict[lib_temp_vals[position]]
-        return xs_lib
+        return xs_lib, doppler
         
 def find_sab_lib(mat_temp, sab_temp_vals=[294.0, 400.0, 500.0, 600.0, 700.0, 800.0, 
                  1000.0, 1200.0, 1600.0, 1999.0],
                  sab_lib_ext=['.00t', '.04t', '.08t', '.12t', '.16t', '.18t', '.20t', 
                  '.22t', '.24t', '.26t']):
-    
+                     
     if mat_temp < sab_temp_vals[0]:
         raise Exception('Fuel temp of {} is too low! must be >= lowest sab library temp {}'.format(
                          mat_temp, sab_temp_vals[0]))
