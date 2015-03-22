@@ -232,6 +232,10 @@ def make_mats(mats_inp_tuple, run_opts):
     #salt_dens = -2.96 * salt_dens_frac
     #salt_mat_name = run_opts['cool_mat']
     
+    mod_xs_ext = run_opts['mod_xs']
+    mod_sab_ext = run_opts['mod_sab_xs']
+    cool_xs_ext = run_opts['cool_xs']
+    
     # First, calculate the core-average fuel temperature based on this dv config
     pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
                                      pin_peaking = np.ones(7))
@@ -250,18 +254,18 @@ def make_mats(mats_inp_tuple, run_opts):
     
     # Sab scattering kernel in graphite
     sab_graph = core.Sab('grph', fuel_sab_ext, nuclide = '6000', lib = 'gre7')
-    sab_graph_mod = core.Sab('grph_mod', run_opts['mod_sab_xs'], nuclide = '6000', lib = 'gre7')
+    sab_graph_mod = core.Sab('grph_mod', mod_sab_ext, nuclide = '6000', lib = 'gre7')
 
     
     # Coolant material
     nafsalt = core.Material('nafzrf4', density = -2.96 * salt_dens_frac, color = '224 255 255')
-    nafsalt.add_nuclide(core.Nuclide('9019', run_opts['cool_xs'], '6.889580E-01'))
-    nafsalt.add_nuclide(core.Nuclide('11023', run_opts['cool_xs'], '1.850700E-01'))
-    nafsalt.add_nuclide(core.Nuclide('40090', run_opts['cool_xs'], '6.481260E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40091', run_opts['cool_xs'], '1.413406E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40092', run_opts['cool_xs'], '2.160420E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40094', run_opts['cool_xs'], '2.189393E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40096', run_opts['cool_xs'], '3.527216E-03'))
+    nafsalt.add_nuclide(core.Nuclide('9019', cool_xs_ext, '6.889580E-01'))
+    nafsalt.add_nuclide(core.Nuclide('11023', cool_xs_ext, '1.850700E-01'))
+    nafsalt.add_nuclide(core.Nuclide('40090', cool_xs_ext, '6.481260E-02'))
+    nafsalt.add_nuclide(core.Nuclide('40091', cool_xs_ext, '1.413406E-02'))
+    nafsalt.add_nuclide(core.Nuclide('40092', cool_xs_ext, '2.160420E-02'))
+    nafsalt.add_nuclide(core.Nuclide('40094', cool_xs_ext, '2.189393E-02'))
+    nafsalt.add_nuclide(core.Nuclide('40096', cool_xs_ext, '3.527216E-03'))
 
     
     # Fuel material (using FuelMat subclass)
@@ -286,41 +290,39 @@ def make_mats(mats_inp_tuple, run_opts):
 
     
     # TRISO buffer layer
-    bufmat = core.Material('buffer', density = '-1.0', sab = sab_graph)
-    bufmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1'))
-    bufmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '6.63249E-07'))
-    bufmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '2.66966E-06'))
+    bufmat = core.Material('buffer', density = '-1.0', sab = sab_graph_mod)
+    bufmat.add_nuclide(core.Nuclide('6000', mod_xs_ext, '1'))
+    bufmat.add_nuclide(core.Nuclide('5010', mod_xs_ext, '6.63249E-07'))
+    bufmat.add_nuclide(core.Nuclide('5011', mod_xs_ext, '2.66966E-06'))
 
     
     # TRISO PyC layer (used for both inner PyC and outer PyC TRISO layers)
-    pycmat = core.Material('pyc', density = '-1.87', sab = sab_graph)
-    pycmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '1'))
-    pycmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '6.63249E-07'))
-    pycmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '2.66966E-06'))
+    pycmat = core.Material('pyc', density = '-1.87', sab = sab_graph_mod)
+    pycmat.add_nuclide(core.Nuclide('6000', mod_xs_ext, '1'))
+    pycmat.add_nuclide(core.Nuclide('5010', mod_xs_ext, '6.63249E-07'))
+    pycmat.add_nuclide(core.Nuclide('5011', mod_xs_ext, '2.66966E-06'))
 
     
     # TRISO SiC layer
-    sicmat = core.Material('sic', density = '-3.18', sab = sab_graph)
-    sicmat.add_nuclide(core.Nuclide('14000', fuel_xs_ext, '0.5'))
-    sicmat.add_nuclide(core.Nuclide('6000', fuel_xs_ext, '0.5'))
-    sicmat.add_nuclide(core.Nuclide('5010', fuel_xs_ext, '1.10709E-06'))
-    sicmat.add_nuclide(core.Nuclide('5011', fuel_xs_ext, '4.45616E-06'))
+    sicmat = core.Material('sic', density = '-3.18', sab = sab_graph_mod)
+    sicmat.add_nuclide(core.Nuclide('14000', mod_xs_ext, '0.5'))
+    sicmat.add_nuclide(core.Nuclide('6000', mod_xs_ext, '0.5'))
+    sicmat.add_nuclide(core.Nuclide('5010', mod_xs_ext, '1.10709E-06'))
+    sicmat.add_nuclide(core.Nuclide('5011', mod_xs_ext, '4.45616E-06'))
 
     
     # Graphite compact Matrix material
     mtxmat = core.Material('matrix', density = '-1.59', sab = sab_graph_mod, color = '0 0 0')
-    mtxmat.add_nuclide(core.Nuclide('6000', run_opts['mod_xs'], '1.0'))
-    mtxmat.add_nuclide(core.Nuclide('5010', run_opts['mod_xs'], '6.63249E-07'))
-    mtxmat.add_nuclide(core.Nuclide('5011', run_opts['mod_xs'], '2.66966E-06'))
+    mtxmat.add_nuclide(core.Nuclide('6000', mod_xs_ext, '1.0'))
+    mtxmat.add_nuclide(core.Nuclide('5010', mod_xs_ext, '6.63249E-07'))
+    mtxmat.add_nuclide(core.Nuclide('5011', mod_xs_ext, '2.66966E-06'))
 
 
-
-    
     # Graphite block material
     blockmat  = core.Material('block', density = '-1.75', sab = sab_graph_mod, color='139 139 131')
-    blockmat.add_nuclide(core.Nuclide('6000', run_opts['mod_xs'], '1'))
-    blockmat.add_nuclide(core.Nuclide('5010', run_opts['mod_xs'], '6.63249E-07'))
-    blockmat.add_nuclide(core.Nuclide('5011', run_opts['mod_xs'], '2.66966E-06'))
+    blockmat.add_nuclide(core.Nuclide('6000', mod_xs_ext, '1'))
+    blockmat.add_nuclide(core.Nuclide('5010', mod_xs_ext, '6.63249E-07'))
+    blockmat.add_nuclide(core.Nuclide('5011', mod_xs_ext, '2.66966E-06'))
 
     
     
@@ -547,11 +549,11 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         res_fname = case + '_res.m'
         res_filepath = os.path.join(root_dir, res_fname)
         with open(res_filepath, 'rb') as rf:
-            for line in rf:
+            for file_line in rf:
                 try: 
-                    if line.split()[0] == 'COL_KEFF':
-                        reac_tmp = float(line.split()[6:7][0])
-                        err_tmp = float(line.split()[7:8][0]) # Note that this is relative error all the way through
+                    if file_line.split()[0] == 'COL_KEFF':
+                        reac_tmp = float(file_line.split()[6:7][0])
+                        err_tmp = float(file_line.split()[7:8][0]) # Note that this is relative error all the way through
 #                        err_tmp = err_tmp * 1.0 / abs( reac_tmp - 1.0 )
 #                        reac_tmp = ( 1.0 -  1.0 / reac_tmp ) * 1.0E5
                         reac_uncert = ufloat(reac_tmp, reac_tmp*err_tmp)
@@ -569,31 +571,31 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
             det_fname = case + '_det{}.m'.format(detnum)
             det_filepath = os.path.join(root_dir, det_fname)
             with open(det_filepath, 'rb') as df:
-                for line in df:
+                for file_line in df:
                     try:
-                        if line.split()[0] == detector_opts['fuel_detname']:
-                            line = df.next() 
-                            data_dict['fuel_flux'].therm.add_vals(*line.split()[10:12])
-                            line = df.next() 
-                            data_dict['fuel_flux'].epi.add_vals(*line.split()[10:12])
-                            line = df.next() 
-                            data_dict['fuel_flux'].fast.add_vals(*line.split()[10:12])
-                        if line.split()[0] == detector_opts['mat_detname']:
-                            line = df.next() 
-                            data_dict['mat_flux'].therm.add_vals(*line.split()[10:12])
-                            line = df.next() 
-                            data_dict['mat_flux'].epi.add_vals(*line.split()[10:12])
-                            line = df.next() 
-                            data_dict['mat_flux'].fast.add_vals(*line.split()[10:12])
-                        if detnum == 0 and line.split()[0] == detector_opts['assm_pow_detname']:
-                            line = df.next()
-                            while line not in ['\r\n','\n']:
-                                if float(line.split()[10]) == 0.0:
+                        if file_line.split()[0] == detector_opts['fuel_detname']:
+                            file_line = df.next() 
+                            data_dict['fuel_flux'].therm.add_vals(*file_line.split()[10:12])
+                            file_line = df.next() 
+                            data_dict['fuel_flux'].epi.add_vals(*file_line.split()[10:12])
+                            file_line = df.next() 
+                            data_dict['fuel_flux'].fast.add_vals(*file_line.split()[10:12])
+                        if file_line.split()[0] == detector_opts['mat_detname']:
+                            file_line = df.next() 
+                            data_dict['mat_flux'].therm.add_vals(*file_line.split()[10:12])
+                            file_line = df.next() 
+                            data_dict['mat_flux'].epi.add_vals(*file_line.split()[10:12])
+                            file_line = df.next() 
+                            data_dict['mat_flux'].fast.add_vals(*file_line.split()[10:12])
+                        if detnum == 0 and file_line.split()[0] == detector_opts['assm_pow_detname']:
+                            file_line = df.next()
+                            while file_line not in ['\r\n','\n']:
+                                if float(file_line.split()[10]) == 0.0:
                                     pass
                                 else:
-                                    assm_pow_list_tmp.append(float(line.split()[10]))
-                                    assm_err_list_tmp.append(float(line.split()[11]))
-                                line = df.next()
+                                    assm_pow_list_tmp.append(float(file_line.split()[10]))
+                                    assm_err_list_tmp.append(float(file_line.split()[11]))
+                                file_line = df.next()
                                 
                     except IndexError:
                         pass
@@ -608,9 +610,14 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         data_dict['assm_peak'].add_vals(assm_pow_max_peak_val, assm_pow_max_peak_rel_err)
     
 
+    # Convert all CaseMatrix .data attributes to numpy arrays
+    for case_mat_key in data_dict:
+        if case_mat_key not in ['reac_coeff','void_worth']:
+            data_dict[case_mat_key].cast_data_asarray()
+
 
     # prep for calculating reactivity coefficients from core reactivity
-    data_dict['reac'].calc_length()
+    #data_dict['reac'].calc_length()
     bu_stride = len(case_info['bu_steps'])
     cl_stride = calc_extra_states(case_info['extra_states']) # Only if cdens is the only extra state? | TAG: Improve
     delta =  (2960 - 2960 * 0.001)/ (0.889) # Only for nafzrf | TAG: Hardcode
@@ -640,6 +647,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
         
     
     for obj in data_dict.values():
+        obj.cast_data_asarray()
         obj.set_shape_extras(bu_stride, cl_stride)
         obj.final_shape(file_point_idx = 1, extra_state_idx = estate_end_idx)
     

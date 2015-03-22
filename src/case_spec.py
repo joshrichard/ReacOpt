@@ -114,7 +114,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'interact' # either 'interact' or 'iterate'
-run_mode = 'normal' # either 'restart' or 'normal'
+run_mode = 'restart' # either 'restart' or 'normal'
 use_exist_data = 'off'
 submit_interval = 5
 
@@ -285,10 +285,10 @@ def iter_loop():
             case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)
             c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
             ####
-            # Extract and post-process the doe output data
+            # Extract and post-process the doe and case set info
             ####
             global doe_sets
-            print 'Extracting output data'
+            print 'Extracting doe and case set info'
             with open(data_opts['cases_fname'], 'rb') as outpf:
                 case_info['case_set'] = cPickle.load(outpf)
             with open(data_opts['doe_fname'], 'rb') as f:
@@ -298,7 +298,7 @@ def iter_loop():
         if first_iter and use_exist_data == 'on':
             print 'not extracting new data...for now'
         else:
-            print 're-extracting output data in restart mode'
+            print 'extracting new output data'
             data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
             print 'All output data:'
             print data_dict

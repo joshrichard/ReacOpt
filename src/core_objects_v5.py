@@ -788,9 +788,9 @@ class FuelMat(Material):
         serp_str = ""
         if self.comment != None:
             serp_str += """%{0:^40}\n""".format(self.comment)
-        serp_str += """mat {name} {density} burn {bdiv:>3}""".format(name = self.key, density = self.density, bdiv = self.burn_div)
+        serp_str += """mat {name} {density} burn {bdiv} """.format(name = self.key, density = self.density, bdiv = self.burn_div)
         if self.tmp != None:
-            serp_str += """ tmp {mat_temp} """.format(mat_temp=self.tmp)
+            serp_str += """ tmp {mat_temp:.1f} """.format(mat_temp=self.tmp)
         if self.sab != None:
             serp_str += """  moder {key} {nuclide}  """.format(key=self.sab.key, nuclide=self.sab.nuclide)
         if self.color != None:        
@@ -1214,7 +1214,7 @@ class CaseMatrix(object):
         self.error.append(float(error)) # = np.append(self.error, float(error))
         
     def calc_length(self):
-        self.mysizetot = len(self.data.ravel())
+        self.mysizetot = len(self.data)
         
     def get_abs_error(self):
         return self.error * self.data
@@ -1242,7 +1242,6 @@ class CaseMatrix(object):
         #self.data_shape = numpy.array(self.data).reshape(self.myshapetot)
         #self.error_shape = numpy.array(self.error).reshape(self.myshapetot)
         # Then, make an array with data only from 2nd bu step (xe equil) and dens=1.0 for fitting purposes       
-        self.cast_data_asarray()
         self.data_fit = copy.deepcopy(self.data)
         self.error_fit = copy.deepcopy(self.error)
         if self.shape_typ == '1d':
@@ -1300,6 +1299,9 @@ class MultCaseMat(object):
         for key in new.__dict__.keys():
             new.__dict__[key] = self.__dict__[key] + other.__dict__[key]
         return new
+        
+    def cast_data_asarray(self):
+        [obj.cast_data_asarray() for obj in self.__dict__.values()]
         
     def final_shape(self, file_point_idx=1, extra_state_idx=2):
         [obj.final_shape(file_point_idx, extra_state_idx) for obj in self.__dict__.values()]
@@ -1366,7 +1368,7 @@ class AssemblyPowerPeak(object):
         self.pf = self.dv_vec[1]
         self.krad = self.dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
         self.core_power = self.dv_vec[5]*1e6 # Input in [MW], store in [W]
-        if isinstance(self.radial_peak, sklearn.gaussian_process.gaussian_process.GaussianProcess):
+        if type(self.radial_peak).__module__ is sklearn.__name__:
             self.calc_radial_peak()
         self.calc_volumes()
         self.calc_core_powers()
@@ -1403,6 +1405,7 @@ class AssemblyPowerPeak(object):
         for idx in xrange(1,len(self.layer_k)):
             self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
                                       - 1.0/(self.layer_k[idx]*self.layerrad[idx - 1]))
+        self.t_max = float(self.t_max)
                                       
     def calc_radial_peak(self):
         self.radial_peak_surrogate = copy.deepcopy(self.radial_peak)
