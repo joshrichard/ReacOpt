@@ -33,9 +33,9 @@ def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
         doe_scaled = scal.fit_transform(doe)
         doe = core.dv_scaler(doe_scaled, case_bounds, 'real')
     elif kwargs['doe_type'] == 'LHS':
-        doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
-#        optimal_lhs = core.OptimizedLHS(len(case_bounds), kwargs['num_LHS_samples'], 'euclidean')
-#        doe_scaled = optimal_lhs.make_olhs()
+        #doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
+        optimal_lhs = core.OptimizedLHS(len(case_bounds), kwargs['num_LHS_samples'], 'euclidean')
+        doe_scaled = optimal_lhs.make_olhs()
         doe = copy.deepcopy(doe_scaled)
         doe = core.dv_scaler(doe, case_bounds, 'real')
     else:
@@ -627,7 +627,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
             # Axial peaking next
             axial_pow_max_peak_val, axial_pow_max_peak_rel_err = get_peaking_val_err(axial_pow_list_tmp,
                                                                                      axial_err_list_tmp)
-            data_dict['axial_peak'].add_vals(assm_pow_max_peak_val, assm_pow_max_peak_rel_err)
+            data_dict['axial_peak'].add_vals(axial_pow_max_peak_val, axial_pow_max_peak_rel_err)
     
 
     # Convert all CaseMatrix .data attributes to numpy arrays

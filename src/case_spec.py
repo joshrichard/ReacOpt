@@ -50,13 +50,13 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_test1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_110_test1')
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':10, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':110, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
 
                  
 doe_sets = {}
@@ -114,10 +114,10 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart' or 'normal'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
+run_mode = 'normal' # either 'restart' or 'normal'
 use_exist_data = 'off'
-submit_interval = 5
+submit_interval = 10
 
 
 
@@ -327,10 +327,13 @@ def iter_loop():
         if first_iter and use_exist_data=='off':
             last_opt = None
         else:
-            with open(data_opts['iter_fname'], 'rb') as it_f:
-                last_opt = cPickle.load(it_f)
-            last_opt = last_opt[-1]
-        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts, fit_opts, case_info)
+            try:
+                with open(data_opts['iter_fname'], 'rb') as it_f:
+                    last_opt = cPickle.load(it_f)
+                last_opt = last_opt[-1]
+            except IOError:
+                last_opt = None
+        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info)
         opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
                                               outp_name = data_opts['opt_fname'])
         print 'Results of optimization:'
@@ -409,7 +412,7 @@ def iter_loop():
         iter_dump_data = {'doe_sets':doe_sets, 'doe_sets_iter':doe_sets_iter, 
                           'search_res':search_res, 'all_search_res':all_search_res,
                           'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
-                          'opt_res':opt_res, 'all_opt_res':all_opt_res}
+                          'opt_res':opt_res, 'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
         ####
         # Save data from each step into a single dump file for this iteration
         ####

@@ -12,7 +12,7 @@ import pyDOE
 from scipy.spatial.distance import pdist
 import codecs
 from bisect import bisect_right
-import sklearn
+from sklearn import gaussian_process
 
 #import weakref
 #from collections import *
@@ -1377,8 +1377,10 @@ class AssemblyPowerPeak(object):
         self.pf = self.dv_vec[1]
         self.krad = self.dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
         self.core_power = self.dv_vec[5]*1e6 # Input in [MW], store in [W]
-        if type(self.radial_peak).__module__ is sklearn.__name__:
+        if isinstance(self.radial_peak, gaussian_process.GaussianProcess): #type(self.radial_peak).__module__ is sklearn.__name__:
             self.calc_radial_peak()
+        if isinstance(self.axial_peak, gaussian_process.GaussianProcess): #type(self.axial_peak).__module__ is sklearn.__name__:
+            self.calc_axial_peak()
         self.calc_volumes()
         self.calc_core_powers()
         self.calc_fuel_temps()
@@ -1403,8 +1405,8 @@ class AssemblyPowerPeak(object):
         self.peak_triso_power = self.avg_triso_power * self.radial_peak
         self.peak_ax_vol_power = self.peak_vol_power * self.axial_peak
         self.peak_ax_triso_power = self.peak_triso_power * self.axial_peak
-        self.peak_ax_triso_power_peak_pin = self.peak_ax_triso_power * self.pin_peaking.max()
-        self.peak_ax_triso_power_hot_pin = self.peak_ax_triso_power * self.pin_peaking[4]
+        self.peak_ax_triso_power_peak_pin = float(self.peak_ax_triso_power * self.pin_peaking.max())
+        self.peak_ax_triso_power_hot_pin = float(self.peak_ax_triso_power * self.pin_peaking[4])
         self.peaked_pin_powers = self.peak_ax_vol_power * self.pin_peaking
         
 
@@ -1419,6 +1421,10 @@ class AssemblyPowerPeak(object):
     def calc_radial_peak(self):
         self.radial_peak_surrogate = copy.deepcopy(self.radial_peak)
         self.radial_peak = self.radial_peak_surrogate.predict(self.dv_vec)
+        
+    def calc_axial_peak(self):
+        self.axial_peak_surrogate = copy.deepcopy(self.axial_peak)
+        self.axial_peak = self.axial_peak_surrogate.predict(self.dv_vec)
 
 
     def print_all_powers(self):

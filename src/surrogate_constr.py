@@ -147,6 +147,7 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     
     for key_name in fit_dict:
         fit_dict[key_name]['surro_obj'].fit(X_t, fit_dict[key_name]['fit_data'])
+        fit_dict[key_name]['xval_obj'].fit(X_t, fit_dict[key_name]['fit_data'])
     
 #    obj_val.fit(X_t, obj_data)
 #    reac_co.fit(X_t, reac_co_data)
