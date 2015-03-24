@@ -77,6 +77,7 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('jobs_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_jobids.out')), \
 ('data_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_data.out')), \
 ('fit_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_fit.out')), \
+('xval_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_xval.out')), \
 ('opt_inp_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_inp_settings.out')), \
 ('opt_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_results.out')), \
 ('search_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_search.out')), \
@@ -84,7 +85,7 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('final_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_final.out')) ])
 
 detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002'), 
-                      ('assm_pow_detname', 'DET1003')])
+                      ('assm_pow_detname', 'DET1003'), ('axial_pow_detname','DET1004')])
 
 plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
     
@@ -311,12 +312,12 @@ def iter_loop():
         with open(data_opts['data_fname'], 'rb') as f:
             data_dict = cPickle.load(f)
             doe_sets = cPickle.load(f)
-        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, fit_opts)
+        fit_dict, xval_fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, fit_opts)
         print 'Created surrogate:'
         print fit_dict
         print 'Evaluating surrogate'
-        fit_dict = sur_constr.eval_meta(data_dict, fit_dict, data_opts, fit_opts)
-        print fit_dict['scores']
+        xval_scores_dict = sur_constr.eval_meta(xval_fit_dict, data_opts, fit_opts)
+        print xval_scores_dict
         ####
         # Optimize the objective function using the surrogate
         ####

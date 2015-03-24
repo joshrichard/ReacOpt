@@ -40,13 +40,33 @@ from scipy.optimize import basinhopping
 def make_meta(data_dict, doe_set, data_opts, fit_opts):
     
     obj_inp = fit_opts['obj_spec']
-    obj_data = data_dict[obj_inp].get_surro_data()
-    obj_err = np.square(data_dict[obj_inp].get_surro_err())
-    reac_co_data = data_dict['reac_coeff'].data_fit[:,1] # At some point, will want to make this for all bu steps | TAG: Improve
-    void_w_data = data_dict['void_worth'].data_fit[:,1]
-    max_cycle_data = data_dict['reac'].max_bu_data
-    assm_peak_data = data_dict['assm_peak'].get_surro_data()
+#    obj_data = data_dict[obj_inp].get_surro_data()
+#    obj_err = np.square(data_dict[obj_inp].get_surro_err())
+#    reac_co_data = data_dict['reac_coeff'].get_surro_data() # data_fit.max(axis=1) #[:,1] # At some point, will want to make this for all bu steps | TAG: Improve
+#    void_w_data = data_dict['void_worth'].get_surro_data() #[:,1]
+#    max_cycle_data = data_dict['reac'].max_bu_data
+#    assm_peak_data = data_dict['assm_peak'].get_surro_data()
+#    axial_peak_data = data_dict['axial_peak'].get_surro_data()
+    
     X_t = doe_set['doe_scaled']
+    surrogate_key_list = ['obj_val', 'assm_peak', 'axial_peak', 'reac_co',
+                          'void_w', 'max_cycle']
+    data_name_list = [obj_inp, 'assm_peak', 'axial_peak', 'reac_coeff', 'void_worth',
+                      'max_cycle']
+    namemap_dict = dict(zip(surrogate_key_list, data_name_list))
+    fit_dict = {}
+    
+    # First, build container dict and get training data for each surrogate
+    for key_name in surrogate_key_list:    
+        fit_dict.update({key_name:{}})
+        if key_name == 'max_cycle':
+            fit_dict[key_name].update({'fit_data':data_dict['reac'].max_bu_data})
+        else: 
+            fit_dict[key_name].update({'fit_data':data_dict[namemap_dict[key_name]].get_surro_data()})
+            fit_dict[key_name].update({'fit_error':data_dict[namemap_dict[key_name]].get_surro_err()})
+    
+
+    
     
     sur_type = fit_opts['sur_type']
     theta_opt = fit_opts['theta_opt']
@@ -66,31 +86,55 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     # select theta type for obj_val only for now
     if sur_type == 'interp':
         if theta_opt == 'default':
-            obj_val = gaussian_process.GaussianProcess()
+            generic_gpm = gaussian_process.GaussianProcess()
         elif theta_opt == 'custom':
-            obj_val = gaussian_process.GaussianProcess(theta0 = theta_guess, thetaL = theta_lowb,
+            generic_gpm = gaussian_process.GaussianProcess(theta0 = theta_guess, thetaL = theta_lowb,
                                                        thetaU = theta_upb)
         else:
             raise Exception('{} is not a valid theta_opt specification!'.format(theta_opt))
-        xval_obj_val = copy.deepcopy(obj_val)
+        for key_name in fit_dict:
+            fit_dict[key_name].update({'surro_obj':copy.deepcopy(generic_gpm), 
+                                       'xval_obj':copy.deepcopy(generic_gpm)})
     elif sur_type == 'regress':
         if theta_opt == 'default':
-            obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
-            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err)) # Could make this np.max() to be conservative | TAG: CHANGE
+            for key_name in fit_dict:
+                if key_name == 'max_cycle':
+                    fit_dict[key_name].update({'surro_obj':gaussian_process.GaussianProcess(),
+                                               'xval_obj':gaussian_process.GaussianProcess()})
+                else:       
+                    fit_dict[key_name].update({'surro_obj':gaussian_process.GaussianProcess(
+                                                           nugget = fit_dict[key_name]['fit_error']),
+                                               'xval_obj':gaussian_process.GaussianProcess(
+                                                           nugget = np.mean(fit_dict[key_name]['fit_error']))})
+#            obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
+#            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err)) # Could make this np.max() to be conservative | TAG: CHANGE
         elif theta_opt == 'custom':
-            obj_val = gaussian_process.GaussianProcess(nugget = obj_err, theta0=theta_guess,
-                                                       thetaL = theta_lowb, thetaU = theta_upb)
-            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err), theta0=theta_guess,
-                                                       thetaL = theta_lowb, thetaU = theta_upb)
+            for key_name in fit_dict:
+                if key_name == 'max_cycle':
+                    fit_dict[key_name].update({'surro_obj':gaussian_process.GaussianProcess(theta0=theta_guess,
+                                                       thetaL = theta_lowb, thetaU = theta_upb),
+                                               'xval_obj':gaussian_process.GaussianProcess(theta0=theta_guess,
+                                                       thetaL = theta_lowb, thetaU = theta_upb)})
+                else:       
+                    fit_dict[key_name].update({'surro_obj':gaussian_process.GaussianProcess(
+                                                           nugget = fit_dict[key_name]['fit_error'], 
+                                                           theta0=theta_guess, thetaL = theta_lowb,
+                                                           thetaU = theta_upb),
+                                               'xval_obj':gaussian_process.GaussianProcess(
+                                                           nugget = np.mean(fit_dict[key_name]['fit_error']),
+                                                           theta0=theta_guess, thetaL = theta_lowb,
+                                                           thetaU = theta_upb)})
+
+#            obj_val = gaussian_process.GaussianProcess(nugget = obj_err, theta0=theta_guess,
+#                                                       thetaL = theta_lowb, thetaU = theta_upb)
+#            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err), theta0=theta_guess,
+#                                                       thetaL = theta_lowb, thetaU = theta_upb)
         else:
             raise Exception('{} is not a valid theta_opt specification!'.format(theta_opt))
     else:
         raise Exception('{} is not a valid sur_type option!'.format(sur_type))
 
-    reac_co = gaussian_process.GaussianProcess()
-    void_w = gaussian_process.GaussianProcess()
-    max_cycle = gaussian_process.GaussianProcess()
-    assm_peak = gaussian_process.GaussianProcess()
+
     #test = neighbors.KNeighborsRegressor()
     #test = GradientBoostingRegressor()
     #    with open(data_opts['data_fname'], 'rb') as datf:
@@ -101,30 +145,43 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
         #test = Ridge()
         #test = tree.DecisionTreeRegressor()    
     
-    obj_val.fit(X_t, obj_data)
-    reac_co.fit(X_t, reac_co_data)
-    void_w.fit(X_t, void_w_data)
-    max_cycle.fit(X_t, max_cycle_data)
-    assm_peak.fit(X_t, assm_peak_data)
+    for key_name in fit_dict:
+        fit_dict[key_name]['surro_obj'].fit(X_t, fit_dict[key_name]['fit_data'])
     
-    fit_dict = {'X_t':X_t,'obj_val':obj_val, 'assm_peak':assm_peak,'reac_co':reac_co, 'void_w':void_w, \
-                'max_cycle':max_cycle, 'xval_obj_val':xval_obj_val}
+#    obj_val.fit(X_t, obj_data)
+#    reac_co.fit(X_t, reac_co_data)
+#    void_w.fit(X_t, void_w_data)
+#    max_cycle.fit(X_t, max_cycle_data)
+#    assm_peak.fit(X_t, assm_peak_data)
+#    axial_peak.fit(X_t, axial_peak_data)
+    
+    # Get reference prediction data at all data points
+    # INSERT HERE! | TAG: Finish
+    
+#    fit_dict = {'X_t':X_t,'obj_val':obj_val, 'assm_peak':assm_peak, 'axial_peak':axial_peak,
+#                'reac_co':reac_co, 'void_w':void_w, 'max_cycle':max_cycle}
+#                
+#    xval_fit_dict = {'xval_obj_val':(obj_data, xval_obj_val), 'xval_assm_peak':(assm_peak_data, xval_assm_peak),
+#                     'xval_axial_peak':(axial_peak_data, xval_axial_peak), 'xval_reac_co':(reac_co_data, xval_reac_co), 
+#                     'xval_void_w':(void_w_data, xval_void_w), 'xval_max_cycle':(max_cycle_data, xval_max_cycle),
+#                     'X_t':X_t}
     
     # If using a regressing GPM, build a re-interpolator for use in search-and-infill
     if sur_type == 'regress':
         # Start by getting the rGPM data at each DOE location
-        igpm_obj_val_data = np.apply_along_axis(obj_val.predict, 1, X_t).sum(1)
+        igpm_obj_val_data = np.apply_along_axis(fit_dict['obj_val']['surro_obj'].predict, 1, X_t).sum(1)
         # Now, use this as the data to fit with a new interpolating GPM (iGPM)
         # that uses the same hyperparameters as the rGPM
-        igpm_obj_val = gaussian_process.GaussianProcess(theta0=obj_val.theta_)
+        igpm_obj_val = gaussian_process.GaussianProcess(theta0=fit_dict['obj_val']['surro_obj'].theta_)
         igpm_obj_val.fit(X_t, igpm_obj_val_data)
-        fit_dict.update({'igpm_obj_val':igpm_obj_val})
+        fit_dict['obj_val'].update({'igpm_surro_obj':igpm_obj_val})
     
 
     with open(data_opts['fit_fname'], 'wb') as fitf:
         cPickle.dump(fit_dict, fitf, 2)
+#        cPickle.dump(xval_fit_dict, fitf, 2)
 
-    return fit_dict
+    return fit_dict #, xval_fit_dict
     
     
     # NOTE: should plot with all values save the x-axis at 1, not 0
@@ -156,23 +213,23 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
 #    print res.x
 #    pass
 
-def eval_meta(data_dict, fit_dict, data_opts, fit_opts):
+def eval_meta(fit_dict, doe_set, data_opts, fit_opts):
     
-    obj_inp = fit_opts['obj_spec']
-    obj_data = data_dict[obj_inp].get_surro_data()
-    obj_gpm = fit_dict['xval_obj_val'] #fit_dict['obj_val']
-    X_t = fit_dict['X_t']
+    scores_dict = {}
     k_num = fit_opts['num_k_folds']
+    X_t = doe_set['doe_scaled']
     
-    # Modified to work with GPM regression by using an average 'nugget' instead of pointwise nugget
-    scores = cross_validation.cross_val_score(obj_gpm, X_t, obj_data, cv = k_num)
-    fit_dict.update({'scores':scores}) 
+    for key_name in fit_dict:
+        xval_scorename = key_name + '_scores'
+        # Modified to work with GPM regression by using an average 'nugget' instead of pointwise nugget
+        scores = cross_validation.cross_val_score(fit_dict[key_name]['xval_obj'], X_t, fit_dict[key_name]['fit_data'], cv = k_num)
+        scores_dict.update({xval_scorename:scores})
     # Return coefficient of determination (R^2) value of the fit
     # Best possible score = 1.0, lower values worse
 
-    with open(data_opts['fit_fname'], 'wb') as fitf:
-        cPickle.dump(fit_dict, fitf, 2)
-    return fit_dict
+    with open(data_opts['xval_fname'], 'wb') as fitf:
+        cPickle.dump(scores_dict, fitf, 2)
+    return scores_dict
     
     
     

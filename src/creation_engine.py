@@ -541,8 +541,9 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
 
     
     data_dict = dict([ ('reac', core.CaseMatrix('1d')), ('fuel_flux', core.MultCaseMat('1d')),
-                     ('mat_flux', core.MultCaseMat('1d')), ('assm_peak', core.CaseMatrix('1d')),
-                     ('reac_coeff', core.CoeffCaseMat('2d')), ('void_worth', core.CoeffCaseMat('2d')) ])
+                     ('mat_flux', core.MultCaseMat('1d')), ('assm_peak', core.CaseMatrix('2d', remove_cdens=True)),
+                     ('axial_peak', core.CaseMatrix('2d', remove_cdens=True)),
+                     ('reac_coeff', core.CaseMatrix('2d')), ('void_worth', core.CaseMatrix('2d')) ])
     
 
     for case in case_set:
@@ -565,9 +566,12 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
                         data_dict['reac'].add_vals(reac_tmp, err_tmp)
                 except IndexError:
                     pass
-        assm_pow_list_tmp = []
-        assm_err_list_tmp = []
+
         for detnum in xrange(4): # Can make this a user input | TAG: improve
+            assm_pow_list_tmp = []
+            assm_err_list_tmp = []
+            axial_pow_list_tmp = []
+            axial_err_list_tmp = []
             det_fname = case + '_det{}.m'.format(detnum)
             det_filepath = os.path.join(root_dir, det_fname)
             with open(det_filepath, 'rb') as df:
@@ -587,27 +591,43 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
                             data_dict['mat_flux'].epi.add_vals(*file_line.split()[10:12])
                             file_line = df.next() 
                             data_dict['mat_flux'].fast.add_vals(*file_line.split()[10:12])
-                        if detnum == 0 and file_line.split()[0] == detector_opts['assm_pow_detname']:
+                        if file_line.split()[0] == detector_opts['assm_pow_detname']:
                             file_line = df.next()
-                            while file_line not in ['\r\n','\n']:
+                            while '];' not in file_line.split(): #file_line not in ['\r\n','\n']
                                 if float(file_line.split()[10]) == 0.0:
                                     pass
                                 else:
                                     assm_pow_list_tmp.append(float(file_line.split()[10]))
                                     assm_err_list_tmp.append(float(file_line.split()[11]))
                                 file_line = df.next()
+                        if file_line.split()[0] == detector_opts['axial_pow_detname']:
+                            file_line = df.next()
+                            while '];' not in file_line.split():
+                                if float(file_line.split()[10]) == 0.0:
+                                    pass
+                                else:
+                                    axial_pow_list_tmp.append(float(file_line.split()[10]))
+                                    axial_err_list_tmp.append(float(file_line.split()[11]))
+                                file_line = df.next()
                                 
                     except IndexError:
                         pass
-        # Now calculate maximum assembly peaking at the 0th burnup step and store in CaseMat
-        assm_pow_list_tmp = np.array(assm_pow_list_tmp)
-        assm_err_list_tmp = np.array(assm_err_list_tmp)
-        assm_pow_arr = unumpy.uarray(assm_pow_list_tmp, assm_pow_list_tmp*assm_err_list_tmp)
-        assm_pow_arr_norm = assm_pow_arr/assm_pow_arr.mean()
-        assm_pow_max_peak = assm_pow_arr_norm.max()
-        assm_pow_max_peak_val = assm_pow_max_peak.nominal_value
-        assm_pow_max_peak_rel_err = assm_pow_max_peak.std_dev/assm_pow_max_peak_val
-        data_dict['assm_peak'].add_vals(assm_pow_max_peak_val, assm_pow_max_peak_rel_err)
+            # Now calculate maximum assembly and axial peaking at the ith burnup step and store in CaseMat
+            # Assembly peaking first
+            assm_pow_max_peak_val, assm_pow_max_peak_rel_err = get_peaking_val_err(assm_pow_list_tmp,
+                                                                                   assm_err_list_tmp)
+#            assm_pow_list_tmp = np.array(assm_pow_list_tmp)
+#            assm_err_list_tmp = np.array(assm_err_list_tmp)
+#            assm_pow_arr = unumpy.uarray(assm_pow_list_tmp, assm_pow_list_tmp*assm_err_list_tmp)
+#            assm_pow_arr_norm = assm_pow_arr/assm_pow_arr.mean()
+#            assm_pow_max_peak = assm_pow_arr_norm.max()
+#            assm_pow_max_peak_val = assm_pow_max_peak.nominal_value
+#            assm_pow_max_peak_rel_err = assm_pow_max_peak.std_dev/assm_pow_max_peak_val
+            data_dict['assm_peak'].add_vals(assm_pow_max_peak_val, assm_pow_max_peak_rel_err)
+            # Axial peaking next
+            axial_pow_max_peak_val, axial_pow_max_peak_rel_err = get_peaking_val_err(axial_pow_list_tmp,
+                                                                                     axial_err_list_tmp)
+            data_dict['axial_peak'].add_vals(assm_pow_max_peak_val, assm_pow_max_peak_rel_err)
     
 
     # Convert all CaseMatrix .data attributes to numpy arrays
@@ -631,14 +651,15 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     for bu_dim in xrange(bu_stride):
         reac_bu1 = data_dict['reac'].data[bu_dim::bu_stride] # These strides only hold if 
         reac_bu1_error = data_dict['reac'].error[bu_dim::bu_stride]
-        void_worth = reac_bu1[estate_start_idx::cl_stride] - reac_bu1[estate_end_idx::cl_stride] # Only works for 2 cdens! | TAG: hardcode, improve
+        reac_bu1_unc = unumpy.uarray(reac_bu1, abs(reac_bu1_error*reac_bu1))
+        void_worth = reac_bu1_unc[estate_start_idx::cl_stride] - reac_bu1_unc[estate_end_idx::cl_stride] # Only works for 2 cdens! | TAG: hardcode, improve
         reac_coeff = void_worth / delta
-        vw_err = ( ( reac_bu1[estate_start_idx::cl_stride] * reac_bu1_error[estate_start_idx::cl_stride] )**2  + \
-                   ( reac_bu1[estate_end_idx::cl_stride] * reac_bu1_error[estate_end_idx::cl_stride] )**2 ) \
-                   / abs(void_worth)
-        temp_reac_coeff.append(np.array(reac_coeff))
-        temp_void_worth.append(np.array(void_worth))
-        temp_vw_err.append(np.array(vw_err))
+#        vw_err = ( ( reac_bu1[estate_start_idx::cl_stride] * reac_bu1_error[estate_start_idx::cl_stride] )**2  + \
+#                   ( reac_bu1[estate_end_idx::cl_stride] * reac_bu1_error[estate_end_idx::cl_stride] )**2 ) \
+#                   / abs(void_worth)
+        temp_reac_coeff.append(unumpy.nominal_values(reac_coeff))
+        temp_void_worth.append(unumpy.nominal_values(void_worth))
+        temp_vw_err.append(np.abs(unumpy.std_devs(void_worth) / unumpy.nominal_values(void_worth)))
     
     data_dict['reac_coeff'].data = np.vstack(temp_reac_coeff).T.ravel() # .reshape([-1, bu_stride])
     data_dict['reac_coeff'].error = np.vstack(temp_vw_err).T.ravel()
@@ -690,3 +711,13 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
 
 
     
+
+def get_peaking_val_err(pow_list_tmp, err_list_tmp):
+    pow_list_tmp = np.array(pow_list_tmp)
+    err_list_tmp = np.array(err_list_tmp)
+    pow_arr = unumpy.uarray(pow_list_tmp, pow_list_tmp*err_list_tmp)
+    pow_arr_norm = pow_arr/pow_arr.mean()
+    pow_max_peak = pow_arr_norm.max()
+    pow_max_peak_val = pow_max_peak.nominal_value
+    pow_max_peak_rel_err = pow_max_peak.std_dev/pow_max_peak_val
+    return pow_max_peak_val, pow_max_peak_rel_err
