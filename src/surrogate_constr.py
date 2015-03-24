@@ -103,9 +103,9 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
                                                'xval_obj':gaussian_process.GaussianProcess()})
                 else:       
                     fit_dict[key_name].update({'surro_obj':gaussian_process.GaussianProcess(
-                                                           nugget = fit_dict[key_name]['fit_error']),
+                                                           nugget = np.square(fit_dict[key_name]['fit_error'])),
                                                'xval_obj':gaussian_process.GaussianProcess(
-                                                           nugget = np.mean(fit_dict[key_name]['fit_error']))})
+                                                           nugget = np.mean(np.square(fit_dict[key_name]['fit_error'])))})
 #            obj_val = gaussian_process.GaussianProcess(nugget = obj_err)
 #            xval_obj_val = gaussian_process.GaussianProcess(nugget = np.mean(obj_err)) # Could make this np.max() to be conservative | TAG: CHANGE
         elif theta_opt == 'custom':
@@ -117,11 +117,11 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
                                                        thetaL = theta_lowb, thetaU = theta_upb)})
                 else:       
                     fit_dict[key_name].update({'surro_obj':gaussian_process.GaussianProcess(
-                                                           nugget = fit_dict[key_name]['fit_error'], 
+                                                           nugget = np.square(fit_dict[key_name]['fit_error']), 
                                                            theta0=theta_guess, thetaL = theta_lowb,
                                                            thetaU = theta_upb),
                                                'xval_obj':gaussian_process.GaussianProcess(
-                                                           nugget = np.mean(fit_dict[key_name]['fit_error']),
+                                                           nugget = np.mean(np.square(fit_dict[key_name]['fit_error'])),
                                                            theta0=theta_guess, thetaL = theta_lowb,
                                                            thetaU = theta_upb)})
 
