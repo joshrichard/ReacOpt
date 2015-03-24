@@ -312,11 +312,11 @@ def iter_loop():
         with open(data_opts['data_fname'], 'rb') as f:
             data_dict = cPickle.load(f)
             doe_sets = cPickle.load(f)
-        fit_dict, xval_fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, fit_opts)
+        fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, fit_opts)
         print 'Created surrogate:'
         print fit_dict
         print 'Evaluating surrogate'
-        xval_scores_dict = sur_constr.eval_meta(xval_fit_dict, data_opts, fit_opts)
+        xval_scores_dict = sur_constr.eval_meta(fit_dict, doe_sets, data_opts, fit_opts)
         print xval_scores_dict
         ####
         # Optimize the objective function using the surrogate
