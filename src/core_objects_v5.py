@@ -1772,6 +1772,16 @@ def find_sab_lib(mat_temp, sab_temp_vals=[294.0, 400.0, 500.0, 600.0, 700.0, 800
     return sab_lib
         
     
+# Functions for use in data postprocessing
+def get_coolant_temp_delta(coolant_name):
+    if coolant_name == 'nafzrf4':
+        delta = (2960.0 - 2960.0 * 0.001)/ (0.889)
+    elif coolant_name == 'flibe':
+        delta = (1940.0 - 1940.0 * 0.001)/ (0.4884) 
+    else:
+        raise Exception("Please specify coolant_name argument as either 'nafzrf4' or 'flibe', not '{}' ".format(
+                         coolant_name))
+    return delta # units of [K]
     
     
 # Logging streamer functionality courtesy of Ferry Boender

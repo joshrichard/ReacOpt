@@ -33,13 +33,16 @@ def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
         doe_scaled = scal.fit_transform(doe)
         doe = core.dv_scaler(doe_scaled, case_bounds, 'real')
     elif kwargs['doe_type'] == 'LHS':
-        #doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
+        doe_scaled = pyDOE.lhs(len(case_bounds), samples=kwargs['num_LHS_samples'], criterion=kwargs['LHS_type'])
+        doe = copy.deepcopy(doe_scaled)
+        doe = core.dv_scaler(doe, case_bounds, 'real')
+    elif kwargs['doe_type'] == 'O-LHS':
         optimal_lhs = core.OptimizedLHS(len(case_bounds), kwargs['num_LHS_samples'], 'euclidean')
         doe_scaled = optimal_lhs.make_olhs()
         doe = copy.deepcopy(doe_scaled)
         doe = core.dv_scaler(doe, case_bounds, 'real')
     else:
-        msg = "doe_type must be either 'FF' for full factorial or 'LHS' for latin hypercube, not {}".format(kwargs['doe_type'])
+        msg = "doe_type must be either 'FF' for full factorial, 'LHS' for standard latin hypercube or 'O-LHS' for optimized LHS, not {}".format(kwargs['doe_type'])
         raise TypeError(msg)
     
     with open(output_fname, 'wb') as outpf:
@@ -258,14 +261,25 @@ def make_mats(mats_inp_tuple, run_opts):
 
     
     # Coolant material
-    nafsalt = core.Material('nafzrf4', density = -2.96 * salt_dens_frac, color = '224 255 255')
-    nafsalt.add_nuclide(core.Nuclide('9019', cool_xs_ext, '6.889580E-01'))
-    nafsalt.add_nuclide(core.Nuclide('11023', cool_xs_ext, '1.850700E-01'))
-    nafsalt.add_nuclide(core.Nuclide('40090', cool_xs_ext, '6.481260E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40091', cool_xs_ext, '1.413406E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40092', cool_xs_ext, '2.160420E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40094', cool_xs_ext, '2.189393E-02'))
-    nafsalt.add_nuclide(core.Nuclide('40096', cool_xs_ext, '3.527216E-03'))
+    # select between 'nafzrf4' and 'flibe'
+    if run_opts['cool_mat'] == 'nafzrf4':
+        nafsalt = core.Material('nafzrf4', density = -2.96 * salt_dens_frac, color = '224 255 255')
+        nafsalt.add_nuclide(core.Nuclide('9019', cool_xs_ext, '6.889580E-01'))
+        nafsalt.add_nuclide(core.Nuclide('11023', cool_xs_ext, '1.850700E-01'))
+        nafsalt.add_nuclide(core.Nuclide('40090', cool_xs_ext, '6.481260E-02'))
+        nafsalt.add_nuclide(core.Nuclide('40091', cool_xs_ext, '1.413406E-02'))
+        nafsalt.add_nuclide(core.Nuclide('40092', cool_xs_ext, '2.160420E-02'))
+        nafsalt.add_nuclide(core.Nuclide('40094', cool_xs_ext, '2.189393E-02'))
+        nafsalt.add_nuclide(core.Nuclide('40096', cool_xs_ext, '3.527216E-03'))
+    elif run_opts['cool_mat'] == 'flibe':
+        flibesalt = core.Material('flibe', density = -1.94 * salt_dens_frac, color = '0 191 255')
+        flibesalt.add_nuclide(core.Nuclide('9019', cool_xs_ext, '5.713673E-01'))
+        flibesalt.add_nuclide(core.Nuclide('3006', cool_xs_ext, '1.667335E-05'))
+        flibesalt.add_nuclide(core.Nuclide('3007', cool_xs_ext, '2.858813E-01'))
+        flibesalt.add_nuclide(core.Nuclide('4009', cool_xs_ext, '1.427347E-01'))
+    else:
+        raise Exception("Coolant material must be either 'nafzrf4' or 'flibe', not '{}' ".format(
+                         run_opts['cool_mat']))
 
     
     # Fuel material (using FuelMat subclass)
@@ -533,11 +547,12 @@ def make_qsub(qsub_inp_fname, qsub_fname):
 
 
 # Data extraction function
-def read_data(case_info, data_opts, detector_opts, data_sets):
+def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
     
     case_set = case_info['case_set']
     root_dir = data_opts['input_dirname']
     doe_set = data_sets
+    cool_typ = run_opts['cool_mat']
 
     
     data_dict = dict([ ('reac', core.CaseMatrix('1d')), ('fuel_flux', core.MultCaseMat('1d')),
@@ -640,7 +655,7 @@ def read_data(case_info, data_opts, detector_opts, data_sets):
     #data_dict['reac'].calc_length()
     bu_stride = len(case_info['bu_steps'])
     cl_stride = calc_extra_states(case_info['extra_states']) # Only if cdens is the only extra state? | TAG: Improve
-    delta =  (2960 - 2960 * 0.001)/ (0.889) # Only for nafzrf | TAG: Hardcode
+    delta = core.get_coolant_temp_delta(cool_typ) #(2960 - 2960 * 0.001)/ (0.889) # Only for nafzrf | TAG: Hardcode
     estate_start_idx = 0
     estate_end_idx = 1
        

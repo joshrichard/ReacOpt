@@ -50,13 +50,13 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_110_test1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_10_test1')
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
-doe_opts = {'doe_type':'LHS', 'num_LHS_samples':110, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'LHS', 'num_LHS_samples':10, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
 
                  
 doe_sets = {}
@@ -114,7 +114,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
+outp_mode = 'interact' # either 'interact' or 'iterate'
 run_mode = 'normal' # either 'restart' or 'normal'
 use_exist_data = 'off'
 submit_interval = 10
@@ -300,7 +300,7 @@ def iter_loop():
             print 'not extracting new data...for now'
         else:
             print 'extracting new output data'
-            data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
+            data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets, run_opts)
             print 'All output data:'
             print data_dict
             print 'Full DoE set:'
