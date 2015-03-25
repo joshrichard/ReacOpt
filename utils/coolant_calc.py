@@ -20,10 +20,10 @@ def main():
     
     # inlet conditions
     pump_eff = 0.85
-    power = 30E6
+    power = 20E6
     global core_del_t 
     core_del_t = 10.0 # add 5 K for each 10 MW added to core power to preserve ~same htc
-    active_core_h = 1.00 # [m]
+    active_core_h = 1.35 # [m]
     fric_form_loss = (0.5, 1.0)
     n_assm = 54.0 # 30 for 2 ring, 54 for 3 ring
     n_pins = 24.0 # number of coolant channels (24)
@@ -33,7 +33,7 @@ def main():
     peak_assm_totpow = power/n_assm*radial_peak
     t_out = 700.0 + 273.0
     t_in = t_out - core_del_t
-    coolant = NaFZrF4()
+    coolant = NaFZrF4() # FLiBe() 
     r_tube_sm = 0.007 # [m]
     r_tube_lg = 0.021 # [m]
     a_flow_sm = np.pi*r_tube_sm**2.0*n_pins
@@ -121,6 +121,8 @@ def main():
         else:
             break
     
+    print 'Reynolds number in small tubes (2-tube model) is: {}'.format(re_sm.mean())
+    print 'Reynolds number in large tubes (2-tube model) is: {}'.format(re_lg.mean())
     nusselt_sm = nusselt_calc(re_sm, prandtl)
     nusselt_lg = nusselt_calc(re_lg, prandtl)
     htc_sm = htc_calc(nusselt_sm, thc, r_tube_sm)
@@ -228,6 +230,13 @@ class NaFZrF4(Salt):
         hcap = 1172.0
         super(NaFZrF4, self).__init__(visc, thc, rho, hcap)
         
+class FLiBe(Salt):
+    def __init__(self):
+        visc = {'coeff':1.16E-4, 'expon':3755.0}
+        thc = {'yint':0.63}
+        rho = {'drdt':-0.4884, 'rhospec':2413.0}
+        hcap = 2416.0
+        super(FLiBe, self).__init__(visc, thc, rho, hcap)
         
 #class AssemblyPowerPeak(object):
 #    def __init__(self, radial_peak=1.5159, axial_peak=1.2856, pin_peaking=None,
