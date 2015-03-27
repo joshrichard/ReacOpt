@@ -416,23 +416,26 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)//(sigma*math.sqrt(2.0)) ))
                 ei_term2 = (sigma * 1.0//math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0//(2.0*MSE) )
                 exp_imp = ei_term1 + ei_term2
-                if np.isclose(exp_imp, 0.0):
-                    exp_imp = np.finfo(np.array(exp_imp).dtype).eps
-                exp_imp = np.log(exp_imp)
+#                if np.isclose(exp_imp, 0.0):
+#                    exp_imp = np.finfo(np.array(exp_imp).dtype).eps
+#                exp_imp = np.log(exp_imp)
             #now get probability of exceeding constraints
             c_min = 0.0
             prob_f_list = []
             for constr_gpm in constr_info:
                 gpm_eval, gpm_MSE = constr_gpm(x, eval_MSE=True)
                 p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)//(np.sqrt(2.0*gpm_MSE)))
-                if np.isclose(p_f_single, 0.0):
-                    p_f_single = np.finfo(np.array(p_f_single).dtype).eps
-                p_f_single = np.log(p_f_single)
+#                if np.isclose(p_f_single, 0.0):
+#                    p_f_single = np.finfo(np.array(p_f_single).dtype).eps
+#                p_f_single = np.log(p_f_single)
                 prob_f_list.append(p_f_single)
-            # Now sum all P(F(x))
-            prob_f_list = np.array(prob_f_list).sum()
-            exp_imp = exp_imp + prob_f_list
-            return exp_imp
+            # Now find product of all P[F(x)] and multiply by E[I(x)]
+            tot_prob_f = np.array(prob_f_list).prod()
+            exp_constr_imp = exp_imp * tot_prob_f
+            if np.isclose(exp_constr_imp, 0.0):
+                exp_constr_imp = np.finfo(np.array(exp_constr_imp).dtype).eps
+            exp_constr_imp = np.log(exp_constr_imp)
+            return exp_constr_imp
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve
     
