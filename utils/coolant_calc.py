@@ -15,25 +15,24 @@ def main():
 
     # user options
     pts_per_node = 5
-    flow_paths = 'nolarge'
     np.set_printoptions(formatter={'float': lambda x: format(x, '6.3E')}) # precision=5, suppress=True
     
     # inlet conditions
     pump_eff = 0.85
     power = 20E6
     global core_del_t 
-    core_del_t = 10.0 # add 5 K for each 10 MW added to core power to preserve ~same htc
+    core_del_t = 7.0 # add 5 K for each 10 MW added to core power to preserve ~same htc
     active_core_h = 1.35 # [m]
     fric_form_loss = (0.5, 1.0)
     n_assm = 54.0 # 30 for 2 ring, 54 for 3 ring
     n_pins = 24.0 # number of coolant channels (24)
     unheat_lengths = (1.65-active_core_h)/2.0 # [m]
     unheat_lengths = (unheat_lengths, unheat_lengths)
-    radial_peak = 1.5159
+    radial_peak = 1.0 #1.5159
     peak_assm_totpow = power/n_assm*radial_peak
     t_out = 700.0 + 273.0
     t_in = t_out - core_del_t
-    coolant = NaFZrF4() # FLiBe() 
+    coolant = NaFZrF4() # FLiBe() or NaFZrF4()
     r_tube_sm = 0.007 # [m]
     r_tube_lg = 0.021 # [m]
     a_flow_sm = np.pi*r_tube_sm**2.0*n_pins
@@ -121,8 +120,6 @@ def main():
         else:
             break
     
-    print 'Reynolds number in small tubes (2-tube model) is: {}'.format(re_sm.mean())
-    print 'Reynolds number in large tubes (2-tube model) is: {}'.format(re_lg.mean())
     nusselt_sm = nusselt_calc(re_sm, prandtl)
     nusselt_lg = nusselt_calc(re_lg, prandtl)
     htc_sm = htc_calc(nusselt_sm, thc, r_tube_sm)
@@ -131,22 +128,31 @@ def main():
     print htc_sm
     print 'htc as a function of z in the large tube is:'
     print htc_lg
+    print 'min htc in the small tube is: {}'.format(htc_sm.min())
+    print 'min htc in the large tube: {}'.format(htc_lg.min())
     
     volflow_tot = mflow_tot/rho.mean()
     volflow_tot_gpm = volflow_tot * 15850.0
     pump_pow = dp_sm*volflow_tot/(pump_eff)
     pump_pow_hp = pump_pow/746.0
     dp_head_feet = dp_sm / (rho.mean()*9.81) * 3.281
+    print 'Flow velocity in the small tubes: {}'.format(v_sm.mean())
+    print 'Flow velocity in the large tubes: {}'.format(v_lg.mean())
+    print 'Min Reynolds number in small tubes (2-tube model) is: {}'.format(re_sm.min())
+    print 'Min Reynolds number in large tubes (2-tube model) is: {}'.format(re_lg.min())
+    print 'Nusselt number in the small tubes: {}'.format(nusselt_sm.min())
+    print 'Nusselt number in the large tubes: {}'.format(nusselt_lg.min())
     print 'flowrate in gpm is {}'.format(volflow_tot_gpm)
     print 'split pump hp is {}'.format(pump_pow_hp)
     print 'split pressure drop in feet is {}'.format(dp_head_feet)
+    print 'split pressure drop in pa is {:.6e}'.format(dp_sm)
     
     pump_pow_samesize = dp_tot*volflow_tot/pump_eff
     pump_pow_samesize_hp = pump_pow_samesize/746.0
     dp_samesize_head_feet = dp_tot/(rho.mean()*9.81) * 3.281
     print 'samesize pump hp is {}'.format(pump_pow_samesize_hp)
     print 'samesize pressure drop in feet is {}'.format(dp_samesize_head_feet)
-    print 'done!'
+    print 'samesize pressure drop in pa is {:.6e}'.format(dp_tot)
     
     # Calc assembly powers
     assem_powers = core.AssemblyPowerPeak()
