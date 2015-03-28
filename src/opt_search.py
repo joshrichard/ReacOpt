@@ -96,7 +96,8 @@ def all_bounds_constr(X):
             result = feature
     return result
 
-def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info):
+def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr):
+    iter_num = iter_cntr
     num_feat = doe_sets['doe_scaled'].shape[-1]
     x_guess = np.array([0.8]*num_feat) # Improve guess spot? | TAG: Improve
     obj_eval = make_neg(fit_dict['obj_val']['surro_obj'].predict)
@@ -110,6 +111,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info):
     if sur_type == 'regress':
         igpm_obj_eval = make_neg(fit_dict['obj_val']['igpm_surro_obj'].predict)
 #    bounds_eval = all_bounds_constr
+    
     
     #global meta_dict
     # Constraints for COBYLA
@@ -238,7 +240,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info):
     gpm_constr = [constr['fun'] for constr in cobyla_constr_gpm]
     cobyla_opts = {'catol':1E-3}
     basinhopping_opts = {'interval':15, 'disp':False}
-    randomized_opts = {'niter':10, 'repeat_stop':15}
+    randomized_opts = {'niter':100} # , 'repeat_stop':15
     min_kwargs = {"method":"COBYLA", "options":cobyla_opts}
     min_kwargs_obj_fun = merge_dict(min_kwargs, {'constraints':cobyla_constr_obj_fun})
     min_kwargs_search =  merge_dict(min_kwargs, {'constraints':cobyla_constr_search}) # replace with cobyla_constr_search |TAG: DEBUG
@@ -247,7 +249,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info):
     optim_options = {'fmin_opts_obj_fun':min_kwargs_obj_fun, 'fmin_opts_search':min_kwargs_search ,'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval, 'search_constr_gpm':gpm_constr,
                      'basin_opts':basinhopping_opts, 'global_type':global_type,
-                     'random_opts':randomized_opts} # want the constr_dict here explicitly? | TAG: Question
+                     'random_opts':randomized_opts, 'iter_num':iter_num} # want the constr_dict here explicitly? | TAG: Question
     if sur_type == 'regress':
         optim_options.update({'igpm_obj_eval':igpm_obj_eval})
 #    with open(data_opts['opt_inp_fname'], 'wb') as f:
@@ -378,6 +380,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             x_guess = prev_opt_data['search_res']['new_doe_scaled']
     else:
         x_guess = optim_options['x_guess']
+    iter_num = optim_options['iter_num']
     obj_eval = optim_options['obj_eval']
     myaccept = optim_options['accept_test']
     global_type = optim_options['global_type']
@@ -449,7 +452,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         # Try the local minimizer first, make sure that it doesn't fail
         # otherwise try a new starting guess and repeat
         x_guess_ok = False
-        pseudo_rand_basin = np.random.RandomState(8)
+        pseudo_rand_basin = np.random.RandomState(iter_num + 5)
         while not x_guess_ok:
             # do a local optimize with current x_guess
             local_res = minimize(opt_fun, x_guess, **min_kwargs)
@@ -467,7 +470,13 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         
     elif global_type == 'random':
         global_obj = RandGlobal()
-        pseudo_rand = np.random.RandomState(5)
+        if opt_purpose == 'search_opt':
+            x_guess = opt_results.x
+            global_obj.add_x_guess(x_guess)
+            local_res = minimize(opt_fun, x_guess, **min_kwargs)
+            global_obj.add_result(local_res)
+            random_iter = random_iter - 1
+        pseudo_rand = np.random.RandomState(iter_num + 5)
         for local_iter in xrange(random_iter):
             x_guess = pseudo_rand.random_sample([len(x_guess)])
             global_obj.add_x_guess(x_guess)
@@ -498,19 +507,24 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
     
     dv_bounds = case_info['dv_bounds']
     search_type = optim_options['search_type']
+    global_opt_type = optim_options['global_type']
     #First, select whether exploitation or hybrid
     if search_type == 'exploit':
         search_res = {'new_doe_scaled':opt_result.x, 'search_val':opt_result.fun,
                       'new_doe':core.dv_scaler(opt_result.x, dv_bounds, 'real'),
                       }
     elif search_type == 'hybrid':
-        try:
+        if global_opt_type == 'random':
             search_point = optimize_wrapper(optim_options, exist_opt, opt_purpose = 'search_opt',
                                             opt_results = opt_result, fit_opts = fit_op)
-        except ValueError:
-            print 'ValueError in Basinhopping, trying again....'
-            search_res = search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fit_op)
-            return search_res
+        elif global_opt_type == 'basin':
+            try:
+                search_point = optimize_wrapper(optim_options, exist_opt, opt_purpose = 'search_opt',
+                                                opt_results = opt_result, fit_opts = fit_op)
+            except ValueError:
+                print 'ValueError in Basinhopping, trying again....'
+                search_res = search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fit_op)
+                return search_res
         search_res = {'new_doe_scaled':search_point.x, 'search_val':search_point.fun,
                       'new_doe':core.dv_scaler(search_point.x, dv_bounds, 'real'),
                       'search_res_obj':search_point}

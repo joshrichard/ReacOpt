@@ -50,9 +50,9 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
-# 'run_dump_files', 'lhs_10_test1'
+# 'run_dump_files', 'lhs_110_test1'
 # 'test_exec', 'test_efpd_neg', 'lhs_110_efpd_testdata'
-dump_dir = os.path.join(data_dir, 'test_exec', 'test_efpd_neg', 'lhs_110_efpd_testdata')
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_110_test1')
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
@@ -115,9 +115,9 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'on'
+use_exist_data = 'off'
 submit_interval = 10
 
 
@@ -336,7 +336,8 @@ def iter_loop():
                 last_opt = last_opt[-1]
             except IOError:
                 last_opt = None
-        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info)
+        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
+                                                         fit_opts, case_info, iter_cntr)
         opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
                                               outp_name = data_opts['opt_fname'])
         print 'Results of optimization:'
