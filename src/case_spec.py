@@ -52,7 +52,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
 # 'run_dump_files', 'lhs_10_test1'
 # 'test_exec', 'test_efpd_neg', 'lhs_110_efpd_testdata'
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_110_test1')
+dump_dir = os.path.join(data_dir, 'test_exec', 'test_efpd_neg', 'lhs_110_efpd_testdata')
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
@@ -115,7 +115,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
+outp_mode = 'interact' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
 use_exist_data = 'on'
 submit_interval = 10

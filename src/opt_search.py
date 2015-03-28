@@ -238,10 +238,10 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info):
     gpm_constr = [constr['fun'] for constr in cobyla_constr_gpm]
     cobyla_opts = {'catol':1E-3}
     basinhopping_opts = {'interval':15, 'disp':False}
-    randomized_opts = {'niter':100, 'repeat_stop':15}
+    randomized_opts = {'niter':10, 'repeat_stop':15}
     min_kwargs = {"method":"COBYLA", "options":cobyla_opts}
     min_kwargs_obj_fun = merge_dict(min_kwargs, {'constraints':cobyla_constr_obj_fun})
-    min_kwargs_search =  merge_dict(min_kwargs, {'constraints':cobyla_constr_search})
+    min_kwargs_search =  merge_dict(min_kwargs, {'constraints':cobyla_constr_search}) # replace with cobyla_constr_search |TAG: DEBUG
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, fuel_temp_eval, triso_pow_eval, num_feat)
     global_type = 'random'
     optim_options = {'fmin_opts_obj_fun':min_kwargs_obj_fun, 'fmin_opts_search':min_kwargs_search ,'accept_test':myaccept,
@@ -430,19 +430,26 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
 #                p_f_single = np.log(p_f_single)
                 prob_f_list.append(p_f_single)
             # Now find product of all P[F(x)] and multiply by E[I(x)]
-            tot_prob_f = np.array(prob_f_list).prod()
+            tot_prob_f = np.array(prob_f_list).prod() # 1.0 | TAG: Debug
             exp_constr_imp = exp_imp * tot_prob_f
             if np.isclose(exp_constr_imp, 0.0):
                 exp_constr_imp = np.finfo(np.array(exp_constr_imp).dtype).eps
             exp_constr_imp = np.log(exp_constr_imp)
+#            if exp_constr_imp > 0.0: # TAG: Debug
+#                print 'stop!'
             return exp_constr_imp
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve
+    
+    
+#    test1 = opt_fun(np.array([0.3359,1.0,1.0,1.0,0.4483,1.0]))# | TAG: debug
+#    test2 = opt_fun(np.array([ 0.37025,  0.97972,  0.99783,  0.9968 ,  0.4031 ,  0.99588]))
     
     if global_type == 'basin':
         # Try the local minimizer first, make sure that it doesn't fail
         # otherwise try a new starting guess and repeat
         x_guess_ok = False
+        pseudo_rand_basin = np.random.RandomState(8)
         while not x_guess_ok:
             # do a local optimize with current x_guess
             local_res = minimize(opt_fun, x_guess, **min_kwargs)
@@ -452,7 +459,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             else:
                 print 'x_guess not ok! = {}'.format(x_guess)
                 print 'making new x_guess'
-                x_guess = np.random.random_sample([len(x_guess)])
+                x_guess = pseudo_rand_basin.random_sample([len(x_guess)])
                 print 'new x_guess: {}'.format(x_guess)
         # Once the inital local fmin works, start the basinhopping
         global_res = basinhopping(func=opt_fun, x0=x_guess, minimizer_kwargs=min_kwargs, \
@@ -460,8 +467,9 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         
     elif global_type == 'random':
         global_obj = RandGlobal()
+        pseudo_rand = np.random.RandomState(5)
         for local_iter in xrange(random_iter):
-            x_guess = np.random.random_sample([len(x_guess)])
+            x_guess = pseudo_rand.random_sample([len(x_guess)])
             global_obj.add_x_guess(x_guess)
             local_res = minimize(opt_fun, x_guess, **min_kwargs)
             global_obj.add_result(local_res)

@@ -170,10 +170,10 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     # If using a regressing GPM, build a re-interpolator for use in search-and-infill
     if sur_type == 'regress':
         # Start by getting the rGPM data at each DOE location
-        igpm_obj_val_data = np.apply_along_axis(fit_dict['obj_val']['surro_obj'].predict, 1, X_t).sum(1)
+        igpm_obj_val_data = fit_dict['obj_val']['surro_obj'].predict(X_t) # np.apply_along_axis(fit_dict['obj_val']['surro_obj'].predict, 1, X_t).sum(1), or fit_dict['obj_val']['surro_obj'].predict(X_t)
         # Now, use this as the data to fit with a new interpolating GPM (iGPM)
         # that uses the same hyperparameters as the rGPM
-        igpm_obj_val = gaussian_process.GaussianProcess(theta0=fit_dict['obj_val']['surro_obj'].theta_)
+        igpm_obj_val = gaussian_process.GaussianProcess(theta0=fit_dict['obj_val']['surro_obj'].theta_) # theta0=fit_dict['obj_val']['surro_obj'].theta_ or theta0=theta_guess, thetaL = theta_lowb, thetaU = theta_upb
         igpm_obj_val.fit(X_t, igpm_obj_val_data)
         fit_dict['obj_val'].update({'igpm_surro_obj':igpm_obj_val})
     
