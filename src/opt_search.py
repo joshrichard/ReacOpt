@@ -331,8 +331,8 @@ def optimize_search(opt_results, optim_options):
         if MSE == 0.0: # Check tolerances here!
             exp_imp = 0.0
         else:
-            ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)//(sigma*math.sqrt(2.0)) ))
-            ei_term2 = (sigma * 1.0//math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0//(2.0*MSE) )
+            ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)/(sigma*math.sqrt(2.0)) ))
+            ei_term2 = (sigma * 1.0/math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0/(2.0*MSE) )
             exp_imp = ei_term1 + ei_term2
         return exp_imp
         
@@ -416,8 +416,8 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
 #                ei_term2 = sigma // math.sqrt(2.0*math.pi)
 #                exp_imp = (ei_term1 + ei_term2) * math.exp(-1.0*a_sub**2.0)
             else:
-                ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)//(sigma*math.sqrt(2.0)) ))
-                ei_term2 = (sigma * 1.0//math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0//(2.0*MSE) )
+                ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)/(sigma*math.sqrt(2.0)) ))
+                ei_term2 = (sigma * 1.0/math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0/(2.0*MSE) )
                 exp_imp = ei_term1 + ei_term2
 #                if np.isclose(exp_imp, 0.0):
 #                    exp_imp = np.finfo(np.array(exp_imp).dtype).eps
@@ -427,7 +427,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             prob_f_list = []
             for constr_gpm in constr_info:
                 gpm_eval, gpm_MSE = constr_gpm(x, eval_MSE=True)
-                p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)//(np.sqrt(2.0*gpm_MSE)))
+                p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)/(np.sqrt(2.0*gpm_MSE)))
 #                if np.isclose(p_f_single, 0.0):
 #                    p_f_single = np.finfo(np.array(p_f_single).dtype).eps
 #                p_f_single = np.log(p_f_single)
@@ -435,8 +435,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             # Now find product of all P[F(x)] and multiply by E[I(x)]
             tot_prob_f = np.array(prob_f_list).prod() # 1.0 | TAG: Debug
             exp_constr_imp = exp_imp * tot_prob_f
-            if np.isclose(exp_constr_imp, 0.0):
-                exp_constr_imp = np.finfo(np.array(exp_constr_imp).dtype).eps
+            exp_constr_imp += 10.0*np.finfo(np.array(exp_constr_imp).dtype).eps
             exp_constr_imp = np.log(exp_constr_imp)
 #            if exp_constr_imp > 0.0: # TAG: Debug
 #                print 'stop!'
@@ -445,7 +444,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         opt_fun = neg_expect_improve
     
     
-#    test1 = opt_fun(np.array([0.3359,1.0,1.0,1.0,0.4483,1.0]))# | TAG: debug
+    test1 = opt_fun(np.array([ 0.00455,  0.05434, 0.0,       0.00009, 0.0,       0.0055 ]))# | TAG: debug
 #    test2 = opt_fun(np.array([ 0.37025,  0.97972,  0.99783,  0.9968 ,  0.4031 ,  0.99588]))
     
     if global_type == 'basin':

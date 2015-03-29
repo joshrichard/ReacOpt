@@ -115,9 +115,9 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
+outp_mode = 'interact' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'off'
+use_exist_data = 'on'
 submit_interval = 10
 
 
@@ -161,9 +161,9 @@ def main():
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off') #Test
     parser.add_argument("-o","--opt", default='off') #test
-    parser.add_argument("-s","--search", default='off') #test
+    parser.add_argument("-s","--search", default='on') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='on')
+    parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()
     
@@ -216,12 +216,25 @@ def main():
         opt_res = opt_module.optimize_dv(optimization_options, data_opts)
 
     if args.search == 'on':
+        with open(data_opts['data_fname'], 'rb') as f:
+            data_dict = cPickle.load(f)
+            doe_sets = cPickle.load(f)
+        with open(data_opts['fit_fname'], 'rb') as f:
+            fit_dict = cPickle.load(f)
+        last_opt = None
+        iter_cntr = 0
+        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
+                                                         fit_opts, case_info, iter_cntr)
+        print 'Searching for new evaluation location'
         with open(data_opts['opt_fname'], 'rb') as optf:
             opt_res = cPickle.load(optf)
         optimization_options['search_type'] = search_type
-#        tst = optimization_options['obj_eval'](np.array([0.8,0.8,0.8,0.8]), eval_MSE=True)
-        search_res = opt_module.search_infill(opt_res, optimization_options, 
-                                                case_info, data_opts)
+        search_res = opt_module.search_infill(opt_res, optimization_options, last_opt,
+                                                case_info, data_opts, fit_opts)
+        new_search_dv = search_res['new_doe_scaled']
+        print 'Search result:'
+        print search_res
+        optimization_options['accept_test'].print_result(new_search_dv)
                                                 
     if args.check == 'on':
         conv_res = opt_module.converge_check()
