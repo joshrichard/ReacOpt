@@ -444,7 +444,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         opt_fun = neg_expect_improve
     
     
-    test1 = opt_fun(np.array([ 0.00455,  0.05434, 0.0,       0.00009, 0.0,       0.0055 ]))# | TAG: debug
+#    test1 = opt_fun(np.array([ 0.00455,  0.05434, 0.0,       0.00009, 0.0,       0.0055 ]))# | TAG: debug
 #    test2 = opt_fun(np.array([ 0.37025,  0.97972,  0.99783,  0.9968 ,  0.4031 ,  0.99588]))
     
     if global_type == 'basin':
@@ -471,16 +471,20 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         global_obj = RandGlobal()
         if opt_purpose == 'search_opt':
             x_guess = opt_results.x
-            global_obj.add_x_guess(x_guess)
-            local_res = minimize(opt_fun, x_guess, **min_kwargs)
-            global_obj.add_result(local_res)
-            random_iter = random_iter - 1
+            try:
+                local_res = minimize(opt_fun, x_guess, **min_kwargs)
+                global_obj.add_x_guess(x_guess)
+                global_obj.add_result(local_res)
+                random_iter = random_iter - 1
+            except ValueError:
+                pass
         pseudo_rand = np.random.RandomState(iter_num + 5)
         for local_iter in xrange(random_iter):
-            x_guess = pseudo_rand.random_sample([len(x_guess)])
-            global_obj.add_x_guess(x_guess)
-            local_res = minimize(opt_fun, x_guess, **min_kwargs)
-            global_obj.add_result(local_res)
+            exec_minimizer(pseudo_rand, len(x_guess), global_obj, opt_fun, min_kwargs)
+#            x_guess = pseudo_rand.random_sample([len(x_guess)])
+#            global_obj.add_x_guess(x_guess)
+#            local_res = minimize(opt_fun, x_guess, **min_kwargs)
+#            global_obj.add_result(local_res)
             # Check to see if not finding improved result | TAG: outtest
 #            if global_obj.best_count >= random_repeat_stop:
 #                print 'Have not found improved global opt after {} iter'.format(random_repeat_stop)
@@ -752,6 +756,23 @@ class MaxTrisoTemp(object):
     def get_tmax_constr(self):
         return self.t_max_constr - self.t_max
             
+
+        
+        
+#x_guess = pseudo_rand.random_sample([len(x_guess)])
+#global_obj.add_x_guess(x_guess)
+#local_res = minimize(opt_fun, x_guess, **min_kwargs)
+#global_obj.add_result(local_res)
+        
+def exec_minimizer(rand_state, rand_len, global_store, opt_fun, min_kwargs):
+    x_guess = rand_state.random_sample([rand_len])
+    try:
+        local_res = minimize(opt_fun, x_guess, **min_kwargs)
+        global_store.add_x_guess(x_guess)
+        global_store.add_result(local_res)
+    except ValueError:
+        exec_minimizer(rand_state, rand_len, global_store, opt_fun, min_kwargs)
+        
 
         
 
