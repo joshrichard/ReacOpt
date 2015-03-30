@@ -403,9 +403,12 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             # Use same ymin here, or use the igpm to estimate it? For now, use same | TAG: Check            
         ymin = opt_results.fun
         def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval, constr_info=gpm_constr_list):
+            y_min = float(y_min)
             y_eval, MSE = obj_eval_func(x, eval_MSE=True)
-            sigma = np.sqrt(MSE)
-            if MSE == 0.0: # Check tolerances here!
+            y_eval = float(y_eval)
+            MSE = float(MSE)
+            sigma = math.sqrt(MSE)
+            if MSE < 1e-3: # Check tolerances here!
                 exp_imp = 0.0
 #            else: #a_sub < some_num:
 #                a_sub = (y_min - y_eval) // (math.sqrt(2.0) * sigma)
@@ -419,24 +422,34 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 ei_term1 = (y_min-y_eval) * (0.5 + 0.5 * math.erf( (y_min-y_eval)/(sigma*math.sqrt(2.0)) ))
                 ei_term2 = (sigma * 1.0/math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0/(2.0*MSE) )
                 exp_imp = ei_term1 + ei_term2
-#                if np.isclose(exp_imp, 0.0):
-#                    exp_imp = np.finfo(np.array(exp_imp).dtype).eps
+                if exp_imp < np.finfo(np.array([5.0]).dtype).eps:
+                    exp_imp = 10.0 * float(np.finfo(np.array([5.0]).dtype).eps)
 #                exp_imp = np.log(exp_imp)
             #now get probability of exceeding constraints
             c_min = 0.0
             prob_f_list = []
             for constr_gpm in constr_info:
                 gpm_eval, gpm_MSE = constr_gpm(x, eval_MSE=True)
-                p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)/(np.sqrt(2.0*gpm_MSE)))
+                gpm_eval = float(gpm_eval)
+                gpm_MSE = float(gpm_MSE)
+                p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)/(math.sqrt(2.0*gpm_MSE)))
 #                if np.isclose(p_f_single, 0.0):
 #                    p_f_single = np.finfo(np.array(p_f_single).dtype).eps
 #                p_f_single = np.log(p_f_single)
                 prob_f_list.append(p_f_single)
             # Now find product of all P[F(x)] and multiply by E[I(x)]
-            tot_prob_f = np.array(prob_f_list).prod() # 1.0 | TAG: Debug
+#            try:
+            tot_prob_f = 1.0 # float(np.array(prob_f_list).prod()) # 1.0 | TAG: Debug
+            for prob_f in prob_f_list:
+                tot_prob_f *= prob_f
             exp_constr_imp = exp_imp * tot_prob_f
-            exp_constr_imp += 10.0*np.finfo(np.array(exp_constr_imp).dtype).eps
-            exp_constr_imp = np.log(exp_constr_imp)
+            if exp_constr_imp < np.finfo(np.array([5.0]).dtype).eps:
+                exp_constr_imp = 10.0 * float(np.finfo(np.array([5.0]).dtype).eps)
+#            exp_constr_imp += 10.0*np.finfo(np.array(exp_constr_imp).dtype).eps
+#            exp_constr_imp = exp_constr_imp
+            exp_constr_imp = math.log(exp_constr_imp)
+#            except FloatingPointError:
+#                print 'Caught an error!'
 #            if exp_constr_imp > 0.0: # TAG: Debug
 #                print 'stop!'
             return exp_constr_imp
@@ -480,6 +493,8 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 pass
         pseudo_rand = np.random.RandomState(iter_num + 5)
         for local_iter in xrange(random_iter):
+#            if local_iter == 25:
+#                print 'iter 25!'
             exec_minimizer(pseudo_rand, len(x_guess), global_obj, opt_fun, min_kwargs)
 #            x_guess = pseudo_rand.random_sample([len(x_guess)])
 #            global_obj.add_x_guess(x_guess)
@@ -771,6 +786,7 @@ def exec_minimizer(rand_state, rand_len, global_store, opt_fun, min_kwargs):
         global_store.add_x_guess(x_guess)
         global_store.add_result(local_res)
     except ValueError:
+        print 'ValueError in minimizer, trying with the next random number set in the sequence'
         exec_minimizer(rand_state, rand_len, global_store, opt_fun, min_kwargs)
         
 

@@ -25,6 +25,7 @@ import time
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
+np.seterr(all='raise')
 
 # Global access variables
 
@@ -161,9 +162,9 @@ def main():
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off') #Test
     parser.add_argument("-o","--opt", default='off') #test
-    parser.add_argument("-s","--search", default='off') #test
+    parser.add_argument("-s","--search", default='on') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='on')
+    parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()
     
@@ -222,7 +223,7 @@ def main():
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
         last_opt = None
-        iter_cntr = 0
+        iter_cntr = 19
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
         print 'Searching for new evaluation location'
