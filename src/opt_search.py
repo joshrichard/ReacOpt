@@ -438,7 +438,6 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
 #                p_f_single = np.log(p_f_single)
                 prob_f_list.append(p_f_single)
             # Now find product of all P[F(x)] and multiply by E[I(x)]
-#            try:
             tot_prob_f = 1.0 # float(np.array(prob_f_list).prod()) # 1.0 | TAG: Debug
             for prob_f in prob_f_list:
                 tot_prob_f *= prob_f
@@ -448,10 +447,6 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
 #            exp_constr_imp += 10.0*np.finfo(np.array(exp_constr_imp).dtype).eps
 #            exp_constr_imp = exp_constr_imp
             exp_constr_imp = math.log(exp_constr_imp)
-#            except FloatingPointError:
-#                print 'Caught an error!'
-#            if exp_constr_imp > 0.0: # TAG: Debug
-#                print 'stop!'
             return exp_constr_imp
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve

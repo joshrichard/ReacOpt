@@ -25,7 +25,7 @@ import time
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
-np.seterr(all='raise')
+#np.seterr(all='raise')
 
 # Global access variables
 
@@ -223,7 +223,7 @@ def main():
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
         last_opt = None
-        iter_cntr = 19
+        iter_cntr = 20
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
         print 'Searching for new evaluation location'
