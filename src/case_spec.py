@@ -115,7 +115,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
 use_exist_data = 'on'
 submit_interval = 10
@@ -161,9 +161,9 @@ def main():
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off') #Test
     parser.add_argument("-o","--opt", default='off') #test
-    parser.add_argument("-s","--search", default='on') #test
+    parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='off')
+    parser.add_argument("-i", "--iterate", default='on')
     
     args = parser.parse_args()
     
@@ -250,6 +250,23 @@ def iter_loop():
     #search_duplicate = False
     first_iter = True
     iter_cntr = 0
+    # Load data from previous iterations if it exists
+    # and in restart mode using existing data
+    if first_iter and use_exist_data == 'off':
+        print 'Not using prexisting opt and search res data'
+    else:
+        try:
+            global run_dump_data_list
+            global all_opt_res
+            global all_search_res
+            with open(data_opts['iter_fname'], 'rb') as it_f:
+                run_dump_data_list = cPickle.load(it_f)
+            all_opt_res = run_dump_data_list[-1]['all_opt_res']
+            all_search_res = run_dump_data_list[-1]['all_search_res']
+            iter_cntr = len(run_dump_data_list)
+        except IOError:
+            print "Couldn't find input file, dumping new data out"
+            pass
 
     while not converged:
         ####
@@ -384,22 +401,6 @@ def iter_loop():
 #                #search_duplicate = True
 #                break
         # Cleanup step
-        # Load data from previous iterations if it exists
-        # and in restart mode using existing data
-        if first_iter and use_exist_data == 'off':
-            print 'Not using prexisting opt and search res data'
-        else:
-            try:
-                global run_dump_data_list
-                global all_opt_res
-                global all_search_res
-                with open(data_opts['iter_fname'], 'rb') as it_f:
-                    run_dump_data_list = cPickle.load(it_f)
-                all_opt_res = run_dump_data_list[-1]['all_opt_res']
-                all_search_res = run_dump_data_list[-1]['all_search_res']
-            except IOError:
-                print "Couldn't find input file, dumping new data out"
-                pass
         iter_cntr += 1
         #iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
         all_opt_res.append(opt_res.fun) # TAG: Improve?
@@ -409,7 +410,6 @@ def iter_loop():
         print all_opt_res
         print 'Currently identified expected improvements:'
         print all_search_res
-        
         ####
         # Check expect val convergence
         ####
