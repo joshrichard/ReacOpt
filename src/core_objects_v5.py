@@ -13,6 +13,9 @@ from scipy.spatial.distance import pdist
 import codecs
 from bisect import bisect_right
 from sklearn import gaussian_process
+from uncertainties import ufloat
+#import pdb
+
 
 #import weakref
 #from collections import *
@@ -1405,26 +1408,33 @@ class AssemblyPowerPeak(object):
         self.peak_triso_power = self.avg_triso_power * self.radial_peak
         self.peak_ax_vol_power = self.peak_vol_power * self.axial_peak
         self.peak_ax_triso_power = self.peak_triso_power * self.axial_peak
-        self.peak_ax_triso_power_peak_pin = float(self.peak_ax_triso_power * self.pin_peaking.max())
-        self.peak_ax_triso_power_hot_pin = float(self.peak_ax_triso_power * self.pin_peaking[4])
+        self.peak_ax_triso_power_peak_pin = self.peak_ax_triso_power * self.pin_peaking.max()
+        self.peak_ax_triso_power_hot_pin = self.peak_ax_triso_power * self.pin_peaking[4]
         self.peaked_pin_powers = self.peak_ax_vol_power * self.pin_peaking
         
 
     def calc_fuel_temps(self):
-        self.peak_bulk_fuel_temp = self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power)
+        self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power.nominal_value))
         self.t_max = self.peak_bulk_fuel_temp + self.peak_ax_triso_power_hot_pin /(6.0*self.layer_k[0]*self.layerrad[0])
         for idx in xrange(1,len(self.layer_k)):
             self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
                                       - 1.0/(self.layer_k[idx]*self.layerrad[idx - 1]))
-        self.t_max = float(self.t_max)
                                       
     def calc_radial_peak(self):
         self.radial_peak_surrogate = copy.deepcopy(self.radial_peak)
-        self.radial_peak = self.radial_peak_surrogate.predict(self.dv_vec)
-        
+        radpeak_val, radpeak_MSE = self.radial_peak_surrogate.predict(self.dv_vec, eval_MSE=True)
+        self.radial_peak = ufloat(radpeak_val, (radpeak_MSE)**0.5)
+
     def calc_axial_peak(self):
         self.axial_peak_surrogate = copy.deepcopy(self.axial_peak)
-        self.axial_peak = self.axial_peak_surrogate.predict(self.dv_vec)
+        axpeak_val, axpeak_MSE = self.axial_peak_surrogate.predict(self.dv_vec, eval_MSE=True)
+        self.axial_peak = ufloat(axpeak_val, (axpeak_MSE)**0.5)
+        
+    def get_peak_triso_pow(self):
+        return self.peak_ax_triso_power_peak_pin
+        
+    def get_peak_triso_temp(self):
+        return self.t_max
 
 
     def print_all_powers(self):

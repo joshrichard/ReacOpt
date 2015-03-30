@@ -116,9 +116,9 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'on'
+use_exist_data = 'off'
 submit_interval = 10
 
 
@@ -162,9 +162,9 @@ def main():
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off') #Test
     parser.add_argument("-o","--opt", default='off') #test
-    parser.add_argument("-s","--search", default='on') #test
+    parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='off')
+    parser.add_argument("-i", "--iterate", default='on')
     
     args = parser.parse_args()
     
@@ -209,12 +209,20 @@ def main():
         fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
         
     if args.opt == 'on':
+        with open(data_opts['data_fname'], 'rb') as f:
+            data_dict = cPickle.load(f)
+            doe_sets = cPickle.load(f)
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
-        optimization_options = opt_module.get_optim_opts(fit_dict, data_opts)
-#        with open(data_opts['opt_inp_fname'], 'rb') as f:
-#            optimization_options = cPickle.load(f)
-        opt_res = opt_module.optimize_dv(optimization_options, data_opts)
+        last_opt = None
+        iter_cntr = 19
+        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
+                                                         fit_opts, case_info, iter_cntr)
+        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
+                                              outp_name = data_opts['opt_fname'])
+        print 'Results of optimization:'
+        print opt_res # Make this work with new data struc from opt
+        optimization_options['accept_test'].print_result(opt_res.x)
 
     if args.search == 'on':
         with open(data_opts['data_fname'], 'rb') as f:
@@ -223,7 +231,7 @@ def main():
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
         last_opt = None
-        iter_cntr = 20
+        iter_cntr = 19
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
         print 'Searching for new evaluation location'

@@ -20,11 +20,14 @@ import cPickle
 from scipy.optimize import minimize
 from scipy.optimize import basinhopping
 from scipy.spatial.distance import euclidean
-from scipy.misc import factorial2
-from sklearn.linear_model import LinearRegression
+#from scipy.misc import factorial2
+#from sklearn.linear_model import LinearRegression
 #from scipy import optimize
 
 import core_objects_v5 as core
+
+
+#import pdb
 
 # Decorator to make a function return the negative of it's usual value
 def make_neg(func):
@@ -148,7 +151,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
             boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
         return boxbound_constr_dict
         
-    def triso_pow_eval(dv_vec_scaled, dvbounds=dv_bounds, assm_pow=assm_peak_surro,
+    def triso_pow_eval(dv_vec_scaled, eval_MSE=False, dvbounds=dv_bounds, assm_pow=assm_peak_surro,
                        axial_pow=axial_peak_surro):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real').sum(0)
 #        pf = dv_vec[1]
@@ -174,10 +177,15 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow, axial_peak=axial_pow)
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
-        pow_max_constr_eval = pow_max_constr - pow_obj.peak_ax_triso_power_peak_pin
-        return pow_max_constr_eval
+        pow_max_constr_eval = pow_max_constr - pow_obj.get_peak_triso_pow()
+        val_pow_max_constr = pow_max_constr_eval.nominal_value
+        mse_pow_max_constr = (float(pow_max_constr_eval.std_dev))**2.0
+        if eval_MSE:
+            return val_pow_max_constr, mse_pow_max_constr
+        else:
+            return val_pow_max_constr
 
-    def fuel_temp_eval(dv_vec_scaled, dvbounds=dv_bounds, assm_pow=assm_peak_surro,
+    def fuel_temp_eval(dv_vec_scaled, eval_MSE = False, dvbounds=dv_bounds, assm_pow=assm_peak_surro,
                        axial_pow=axial_peak_surro):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=dvbounds, scal_type='real').sum(0)
 #        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
@@ -200,8 +208,17 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow, axial_peak=axial_pow)
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
-        t_max_constr_eval = t_max_constr - pow_obj.t_max
-        return t_max_constr_eval
+        t_max_constr_eval = t_max_constr - pow_obj.get_peak_triso_temp()
+        val_t_max_constr = t_max_constr_eval.nominal_value
+        mse_t_max_constr = (float(t_max_constr_eval.std_dev))**2.0
+        if eval_MSE:
+            return val_t_max_constr, mse_t_max_constr
+        else:
+            return val_t_max_constr
+        
+#    dv_tst = np.ones(6)
+#    test1 = triso_pow_eval(dv_tst)
+#    test2 = fuel_temp_eval(dv_tst)
 
 
 #    def constr_x1_upper(x):
@@ -233,9 +250,10 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
 #                      {'type':'ineq', 'fun':max_cycle_eval}]
 
     cobyla_constr_gpm = [{'type':'ineq', 'fun':reac_co_eval}, {'type':'ineq', 'fun':void_w_eval}, 
-                     {'type':'ineq', 'fun':max_cycle_eval}]
-    cobyla_constr_nongpm = [{'type':'ineq', 'fun':fuel_temp_eval}, {'type':'ineq', 'fun':triso_pow_eval}]
-    cobyla_constr_search = cobyla_constr_nongpm + boxbound_constr_dict    
+                     {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':fuel_temp_eval}, 
+                     {'type':'ineq', 'fun':triso_pow_eval}]
+    #cobyla_constr_nongpm = [{'type':'ineq', 'fun':fuel_temp_eval}, {'type':'ineq', 'fun':triso_pow_eval}]
+    cobyla_constr_search = boxbound_constr_dict # + cobyla_constr_nongpm
     cobyla_constr_obj_fun = cobyla_constr_gpm + cobyla_constr_search
     gpm_constr = [constr['fun'] for constr in cobyla_constr_gpm]
     cobyla_opts = {'catol':1E-3}
@@ -488,8 +506,6 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 pass
         pseudo_rand = np.random.RandomState(iter_num + 5)
         for local_iter in xrange(random_iter):
-#            if local_iter == 25:
-#                print 'iter 25!'
             exec_minimizer(pseudo_rand, len(x_guess), global_obj, opt_fun, min_kwargs)
 #            x_guess = pseudo_rand.random_sample([len(x_guess)])
 #            global_obj.add_x_guess(x_guess)
