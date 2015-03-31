@@ -118,7 +118,7 @@ thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'off'
+use_exist_data = 'on'
 submit_interval = 10
 
 
@@ -134,13 +134,17 @@ if run_mode == 'normal':
         os.rename(data_opts['data_fname'], namestring)
     except OSError:
         pass
-elif run_mode == 'restart' and use_exist_data == 'off': # careful with this!
+elif run_mode == 'restart':
     try:
-        os.remove(data_opts['data_fname'])
+        if use_exist_data == 'off': # careful with this!
+            os.remove(data_opts['data_fname'])
         #os.remove(data_opts['iter_fname'])
-        if outp_mode == 'iterate':
-            namestring = data_opts['log_fname'][:-4] + timestring + '.out'
-            os.rename(data_opts['log_fname'], namestring)
+    except OSError:
+        pass
+if outp_mode == 'iterate':
+    try:
+        namestring = data_opts['log_fname'][:-4] + timestring + '.out'
+        os.rename(data_opts['log_fname'], namestring)
     except OSError:
         pass
 
@@ -264,23 +268,7 @@ def iter_loop():
     #search_duplicate = False
     first_iter = True
     iter_cntr = 0
-    # Load data from previous iterations if it exists
-    # and in restart mode using existing data
-    if first_iter and use_exist_data == 'off':
-        print 'Not using prexisting opt and search res data'
-    else:
-        try:
-            global run_dump_data_list
-            global all_opt_res
-            global all_search_res
-            with open(data_opts['iter_fname'], 'rb') as it_f:
-                run_dump_data_list = cPickle.load(it_f)
-            all_opt_res = run_dump_data_list[-1]['all_opt_res']
-            all_search_res = run_dump_data_list[-1]['all_search_res']
-            iter_cntr = len(run_dump_data_list)
-        except IOError:
-            print "Couldn't find input file, dumping new data out"
-            pass
+
 
     while not converged:
         ####
@@ -378,7 +366,7 @@ def iter_loop():
                 with open(data_opts['iter_fname'], 'rb') as it_f:
                     last_opt = cPickle.load(it_f)
                 last_opt = last_opt[-1]
-            except IOError:
+            except (IOError, EOFError):
                 last_opt = None
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
@@ -415,6 +403,23 @@ def iter_loop():
 #                #search_duplicate = True
 #                break
         # Cleanup step
+        # Load data from previous iterations if it exists
+        # and in restart mode using existing data
+        if first_iter and use_exist_data == 'off':
+            print 'Not using prexisting opt and search res data'
+        else:
+            try:
+                global run_dump_data_list
+                global all_opt_res
+                global all_search_res
+                with open(data_opts['iter_fname'], 'rb') as it_f:
+                    run_dump_data_list = cPickle.load(it_f)
+                all_opt_res = run_dump_data_list[-1]['all_opt_res']
+                all_search_res = run_dump_data_list[-1]['all_search_res']
+                iter_cntr = len(run_dump_data_list)
+            except (IOError, EOFError):
+                print "Couldn't find input file, dumping new data out"
+                pass
         iter_cntr += 1
         #iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
         all_opt_res.append(opt_res.fun) # TAG: Improve?
