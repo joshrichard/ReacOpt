@@ -137,8 +137,10 @@ if run_mode == 'normal':
 elif run_mode == 'restart' and use_exist_data == 'off': # careful with this!
     try:
         os.remove(data_opts['data_fname'])
-        namestring = data_opts['log_fname'][:-4] + timestring + '.out'
-        os.rename(data_opts['log_fname'], namestring)
+        #os.remove(data_opts['iter_fname'])
+        if outp_mode == 'iterate':
+            namestring = data_opts['log_fname'][:-4] + timestring + '.out'
+            os.rename(data_opts['log_fname'], namestring)
     except OSError:
         pass
 
@@ -173,11 +175,14 @@ def main():
         case_info['dv_bounds'], data_opts['doe_fname'], **doe_opts)
     
     if args.make == 'on':
+        print 'Making input files'
         with open(data_opts['doe_fname'], 'rb') as f:
             doe_sets['doe'] = cPickle.load(f)
             doe_sets['doe_scaled'] = cPickle.load(f)
+        first_iter = False
         case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts, data_opts, first_iter)
+
         
     if args.run == 'on':
         with open(data_opts['cases_fname'], 'rb') as outpf:

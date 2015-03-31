@@ -24,6 +24,8 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
+#import pdb
+
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
     if kwargs['doe_type'] == 'FF':
@@ -243,7 +245,7 @@ def make_mats(mats_inp_tuple, run_opts):
     pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
                                      pin_peaking = np.ones(7))
     pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_tuple)
-    fuel_temp = pow_obj.t_max
+    fuel_temp = pow_obj.get_peak_triso_temp()
     if fuel_temp < 1200.0:
         fuel_temp = 1200.0
     # Find the xs and sab extension for this temp:

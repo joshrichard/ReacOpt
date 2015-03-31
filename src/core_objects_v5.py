@@ -1414,7 +1414,7 @@ class AssemblyPowerPeak(object):
         
 
     def calc_fuel_temps(self):
-        self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power.nominal_value))
+        self.calc_peak_bulk_fuel_temp()
         self.t_max = self.peak_bulk_fuel_temp + self.peak_ax_triso_power_hot_pin /(6.0*self.layer_k[0]*self.layerrad[0])
         for idx in xrange(1,len(self.layer_k)):
             self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
@@ -1435,6 +1435,12 @@ class AssemblyPowerPeak(object):
         
     def get_peak_triso_temp(self):
         return self.t_max
+        
+    def calc_peak_bulk_fuel_temp(self):
+        try:
+            self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power.nominal_value))
+        except AttributeError:
+            self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power))
 
 
     def print_all_powers(self):
