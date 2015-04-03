@@ -1372,7 +1372,7 @@ class AssemblyPowerPeak(object):
     def set_core_conditions(self, dv_type, **kwargs):
         if dv_type == 'real':
             self.dv_vec = kwargs['dv_real']
-            self.dv_vec_scaled = dv_scaler(kwargs['dv_real'], dv_bounds=kwargs['bounds'], scal_type='scaled').sum(0)
+            #self.dv_vec_scaled = dv_scaler(kwargs['dv_real'], dv_bounds=kwargs['bounds'], scal_type='scaled').sum(0)
         elif dv_type == 'scaled':
             self.dv_vec_scaled = kwargs['dv_scaled']
             self.dv_vec = dv_scaler(kwargs['dv_scaled'], dv_bounds=kwargs['bounds'], scal_type='real').sum(0)
