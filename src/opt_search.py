@@ -430,7 +430,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             y_eval = float(y_eval)
             MSE = float(MSE)
             sigma = math.sqrt(MSE)
-            if MSE < 1e-3: # Check tolerances here!
+            if MSE < np.finfo(np.array([5.0]).dtype).eps: # Check tolerances here!
                 exp_imp = 0.0
 #            else: #a_sub < some_num:
 #                a_sub = (y_min - y_eval) // (math.sqrt(2.0) * sigma)
@@ -453,6 +453,8 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 gpm_eval, gpm_MSE = constr_gpm(x, eval_MSE=True)
                 gpm_eval = float(gpm_eval)
                 gpm_MSE = float(gpm_MSE)
+                if gpm_MSE < np.finfo(np.array([5.0]).dtype).eps:
+                    gpm_MSE = 10.0*np.finfo(np.array([5.0]).dtype).eps
                 p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)/(math.sqrt(2.0*gpm_MSE)))
                 prob_f_list.append(p_f_single)
             # Now find product of all P[F(x)] and multiply by E[I(x)]
