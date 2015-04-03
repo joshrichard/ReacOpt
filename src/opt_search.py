@@ -27,7 +27,7 @@ from scipy.spatial.distance import euclidean
 import core_objects_v5 as core
 
 
-import pdb
+#import pdb
 
 # Decorator to make a function return the negative of it's usual value
 def make_neg(func):
@@ -109,7 +109,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
     max_cycle_eval = constr_cycle_len(fit_dict['max_cycle']['igpm_surro_obj'].predict)
     assm_peak_surro = fit_dict['assm_peak']['igpm_surro_obj']
     axial_peak_surro = fit_dict['axial_peak']['igpm_surro_obj']
-    pdb.set_trace()
+    #pdb.set_trace()
     sur_type = fit_opts['sur_type']
     dv_bounds = case_info['dv_bounds']
     if sur_type == 'regress':
@@ -217,9 +217,12 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         else:
             return val_t_max_constr
         
-#    dv_tst = np.ones(6)
-#    test1 = triso_pow_eval(dv_tst)
-#    test2 = fuel_temp_eval(dv_tst)
+#    pdb.set_trace()
+#    dv_test = np.array([ 0.44616,  1.     ,  1.     ,  0.9531 ,  0.14932,  1.     ])
+##    print assm_peak_surro.predict(dv_test, eval_MSE=True)
+##    print axial_peak_surro.predict(dv_test, eval_MSE=True)
+#    test1 = triso_pow_eval(dv_test)
+#    test2 = fuel_temp_eval(dv_test)
 
 
 #    def constr_x1_upper(x):
@@ -460,15 +463,14 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             if exp_constr_imp < np.finfo(np.array([5.0]).dtype).eps:
                 exp_constr_imp = 10.0 * float(np.finfo(np.array([5.0]).dtype).eps)
             exp_constr_imp = math.log(exp_constr_imp)
-            pdb.set_trace()
             return exp_constr_imp
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve
     
-    pdb.set_trace()
-    dv_test = np.array([ 0.44616,  1.     ,  1.     ,  0.9531 ,  0.14932,  1.     ])
-    test1 = opt_fun(dv_test) # | TAG: debug
-    myaccept.print_result(dv_test)
+#    pdb.set_trace()
+#    dv_test = np.array([ 0.44616,  1.     ,  1.     ,  0.9531 ,  0.14932,  1.     ])
+#    test1 = opt_fun(dv_test) # | TAG: debug
+#    myaccept.print_result(dv_test)
 #    test2 = opt_fun(np.array([ 0.37025,  0.97972,  0.99783,  0.9968 ,  0.4031 ,  0.99588]))
     
     if global_type == 'basin':

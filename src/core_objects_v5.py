@@ -1372,7 +1372,9 @@ class AssemblyPowerPeak(object):
     def set_core_conditions(self, dv_type, **kwargs):
         if dv_type == 'real':
             self.dv_vec = kwargs['dv_real']
+            self.dv_vec_scaled = dv_scaler(kwargs['dv_real'], dv_bounds=kwargs['bounds'], scal_type='scaled').sum(0)
         elif dv_type == 'scaled':
+            self.dv_vec_scaled = kwargs['dv_scaled']
             self.dv_vec = dv_scaler(kwargs['dv_scaled'], dv_bounds=kwargs['bounds'], scal_type='real').sum(0)
         else:
             raise Exception("first positional argument must be either 'real' or 'scaled', not {}".format(dv_type))
@@ -1422,12 +1424,12 @@ class AssemblyPowerPeak(object):
                                       
     def calc_radial_peak(self):
         self.radial_peak_surrogate = copy.deepcopy(self.radial_peak)
-        radpeak_val, radpeak_MSE = self.radial_peak_surrogate.predict(self.dv_vec, eval_MSE=True)
+        radpeak_val, radpeak_MSE = self.radial_peak_surrogate.predict(self.dv_vec_scaled, eval_MSE=True)
         self.radial_peak = ufloat(radpeak_val, (radpeak_MSE)**0.5)
 
     def calc_axial_peak(self):
         self.axial_peak_surrogate = copy.deepcopy(self.axial_peak)
-        axpeak_val, axpeak_MSE = self.axial_peak_surrogate.predict(self.dv_vec, eval_MSE=True)
+        axpeak_val, axpeak_MSE = self.axial_peak_surrogate.predict(self.dv_vec_scaled, eval_MSE=True)
         self.axial_peak = ufloat(axpeak_val, (axpeak_MSE)**0.5)
         
     def get_peak_triso_pow(self):
@@ -1746,7 +1748,7 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
             scal = preprocessing.MinMaxScaler(feature_range=bounds)
             scal.fit(min_max)
             dv_new[:,index] = scal.transform(dv_new[:,index])
-    elif scal_type == 'zeroone':
+    elif scal_type == 'scaled':
         for index, bounds in enumerate(dv_bounds.values()):
             min_max = np.array([bounds[0],bounds[-1]])
             min_max = min_max[:, np.newaxis]
@@ -1754,7 +1756,7 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
             scal.fit(min_max)
             dv_new[:,index] = scal.transform(dv_new[:,index])
     else:
-        msg = "scal_type must be either 'to-real' or 'to-zeroone', not {}".format(scal_type)
+        msg = "scal_type must be either 'real' or 'scaled', not {}".format(scal_type)
         raise TypeError(msg)
     return dv_new
     

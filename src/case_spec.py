@@ -22,7 +22,7 @@ import logging
 import numpy as np
 import time
 #from scipy.spatial.distance import euclidean
-import pdb
+#import pdb
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
@@ -53,8 +53,8 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 #data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_rand')
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
 # 'run_dump_files', 'lhs_110_test1'
-# 'test_exec', 'test_efpd_neg', 'lhs_110_efpd_testdata'
-dump_dir = os.path.join(data_dir, 'test_exec', 'test_search_progress', 'lhs_110_searchprogress_testdata')
+# 'test_exec', 'test_search_progress', 'lhs_110_searchprogress_testdata'
+dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_110_test1')
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
                  ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
@@ -117,9 +117,9 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart' or 'normal'
-use_exist_data = 'on'
+use_exist_data = 'off'
 submit_interval = 10
 
 
@@ -226,6 +226,7 @@ def main():
             fit_dict = cPickle.load(f)
         last_opt = None
         iter_cntr = 19
+        #pdb.set_trace()
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
         opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
@@ -235,21 +236,21 @@ def main():
         optimization_options['accept_test'].print_result(opt_res.x)
 
     if args.search == 'on':
-#        with open(data_opts['data_fname'], 'rb') as f:
-#            data_dict = cPickle.load(f)
-#            doe_sets = cPickle.load(f)
-#        with open(data_opts['fit_fname'], 'rb') as f:
-#            fit_dict = cPickle.load(f)
-#        with open(data_opts['opt_fname'], 'rb') as optf:
-#            opt_res = cPickle.load(optf)
-        with open(data_opts['iter_fname'], 'rb') as f:
-            run_dump_data_list = cPickle.load(f)
-        dump_list_idx = -6
-        #data_dict = run_dump_data_list[dump_list_idx]['data_dict']
-        pdb.set_trace()
-        doe_sets = run_dump_data_list[dump_list_idx]['doe_sets']
-        fit_dict = run_dump_data_list[dump_list_idx]['fit_dict']
-        opt_res = run_dump_data_list[dump_list_idx]['opt_res']
+        with open(data_opts['data_fname'], 'rb') as f:
+            data_dict = cPickle.load(f)
+            doe_sets = cPickle.load(f)
+        with open(data_opts['fit_fname'], 'rb') as f:
+            fit_dict = cPickle.load(f)
+        with open(data_opts['opt_fname'], 'rb') as optf:
+            opt_res = cPickle.load(optf)
+#        with open(data_opts['iter_fname'], 'rb') as f:
+#            run_dump_data_list = cPickle.load(f)
+#        dump_list_idx = -6
+#        #data_dict = run_dump_data_list[dump_list_idx]['data_dict']
+#        pdb.set_trace()
+#        doe_sets = run_dump_data_list[dump_list_idx]['doe_sets']
+#        fit_dict = run_dump_data_list[dump_list_idx]['fit_dict']
+#        opt_res = run_dump_data_list[dump_list_idx]['opt_res']
         
         last_opt = None
         iter_cntr = 19
@@ -360,7 +361,6 @@ def iter_loop():
         fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts, fit_opts)
         print 'Created surrogate:'
         print fit_dict
-        pdb.set_trace()
         print 'Evaluating surrogate'
         xval_scores_dict = sur_constr.eval_meta(fit_dict, doe_sets, data_opts, fit_opts)
         print xval_scores_dict
