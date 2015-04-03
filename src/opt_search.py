@@ -27,7 +27,7 @@ from scipy.spatial.distance import euclidean
 import core_objects_v5 as core
 
 
-#import pdb
+import pdb
 
 # Decorator to make a function return the negative of it's usual value
 def make_neg(func):
@@ -103,12 +103,13 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
     iter_num = iter_cntr
     num_feat = doe_sets['doe_scaled'].shape[-1]
     x_guess = np.array([0.8]*num_feat) # Improve guess spot? | TAG: Improve
-    obj_eval = make_neg(fit_dict['obj_val']['surro_obj'].predict)
-    reac_co_eval = reac_coeff_adj(fit_dict['reac_co']['surro_obj'].predict)
-    void_w_eval = void_worth_adj(fit_dict['void_w']['surro_obj'].predict)
-    max_cycle_eval = constr_cycle_len(fit_dict['max_cycle']['surro_obj'].predict)
-    assm_peak_surro = fit_dict['assm_peak']['surro_obj']
-    axial_peak_surro = fit_dict['axial_peak']['surro_obj']
+    obj_eval = make_neg(fit_dict['obj_val']['igpm_surro_obj'].predict)
+    reac_co_eval = reac_coeff_adj(fit_dict['reac_co']['igpm_surro_obj'].predict)
+    void_w_eval = void_worth_adj(fit_dict['void_w']['igpm_surro_obj'].predict)
+    max_cycle_eval = constr_cycle_len(fit_dict['max_cycle']['igpm_surro_obj'].predict)
+    assm_peak_surro = fit_dict['assm_peak']['igpm_surro_obj']
+    axial_peak_surro = fit_dict['axial_peak']['igpm_surro_obj']
+    pdb.set_trace()
     sur_type = fit_opts['sur_type']
     dv_bounds = case_info['dv_bounds']
     if sur_type == 'regress':
@@ -442,7 +443,6 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 exp_imp = ei_term1 + ei_term2
                 if exp_imp < np.finfo(np.array([5.0]).dtype).eps:
                     exp_imp = 10.0 * float(np.finfo(np.array([5.0]).dtype).eps)
-#                exp_imp = np.log(exp_imp)
             #now get probability of exceeding constraints
             c_min = 0.0
             prob_f_list = []
@@ -451,9 +451,6 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 gpm_eval = float(gpm_eval)
                 gpm_MSE = float(gpm_MSE)
                 p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)/(math.sqrt(2.0*gpm_MSE)))
-#                if np.isclose(p_f_single, 0.0):
-#                    p_f_single = np.finfo(np.array(p_f_single).dtype).eps
-#                p_f_single = np.log(p_f_single)
                 prob_f_list.append(p_f_single)
             # Now find product of all P[F(x)] and multiply by E[I(x)]
             tot_prob_f = 1.0 # float(np.array(prob_f_list).prod()) # 1.0 | TAG: Debug
@@ -462,15 +459,16 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             exp_constr_imp = exp_imp * tot_prob_f
             if exp_constr_imp < np.finfo(np.array([5.0]).dtype).eps:
                 exp_constr_imp = 10.0 * float(np.finfo(np.array([5.0]).dtype).eps)
-#            exp_constr_imp += 10.0*np.finfo(np.array(exp_constr_imp).dtype).eps
-#            exp_constr_imp = exp_constr_imp
             exp_constr_imp = math.log(exp_constr_imp)
+            pdb.set_trace()
             return exp_constr_imp
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve
     
-    
-#    test1 = opt_fun(np.array([ 0.00455,  0.05434, 0.0,       0.00009, 0.0,       0.0055 ]))# | TAG: debug
+    pdb.set_trace()
+    dv_test = np.array([ 0.44616,  1.     ,  1.     ,  0.9531 ,  0.14932,  1.     ])
+    test1 = opt_fun(dv_test) # | TAG: debug
+    myaccept.print_result(dv_test)
 #    test2 = opt_fun(np.array([ 0.37025,  0.97972,  0.99783,  0.9968 ,  0.4031 ,  0.99588]))
     
     if global_type == 'basin':

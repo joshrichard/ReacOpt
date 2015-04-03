@@ -167,15 +167,19 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
 #                     'xval_void_w':(void_w_data, xval_void_w), 'xval_max_cycle':(max_cycle_data, xval_max_cycle),
 #                     'X_t':X_t}
     
-    # If using a regressing GPM, build a re-interpolator for use in search-and-infill
+    # If using a regressing GPM, build a re-interpolator for obj_fun and each constr for use in search-and-infill
     if sur_type == 'regress':
-        # Start by getting the rGPM data at each DOE location
-        igpm_obj_val_data = fit_dict['obj_val']['surro_obj'].predict(X_t) # np.apply_along_axis(fit_dict['obj_val']['surro_obj'].predict, 1, X_t).sum(1), or fit_dict['obj_val']['surro_obj'].predict(X_t)
-        # Now, use this as the data to fit with a new interpolating GPM (iGPM)
-        # that uses the same hyperparameters as the rGPM
-        igpm_obj_val = gaussian_process.GaussianProcess(theta0=fit_dict['obj_val']['surro_obj'].theta_) # theta0=fit_dict['obj_val']['surro_obj'].theta_ or theta0=theta_guess, thetaL = theta_lowb, thetaU = theta_upb
-        igpm_obj_val.fit(X_t, igpm_obj_val_data)
-        fit_dict['obj_val'].update({'igpm_surro_obj':igpm_obj_val})
+        for key_name in fit_dict:
+            if key_name == 'max_cycle':
+                fit_dict[key_name].update({'igpm_surro_obj':fit_dict[key_name]['surro_obj']})
+            else:
+                # Start by getting the rGPM data at each DOE location
+                igpm_data = fit_dict[key_name]['surro_obj'].predict(X_t) # np.apply_along_axis(fit_dict['obj_val']['surro_obj'].predict, 1, X_t).sum(1), or fit_dict['obj_val']['surro_obj'].predict(X_t)
+                # Now, use this as the data to fit with a new interpolating GPM (iGPM)
+                # that uses the same hyperparameters as the rGPM
+                fit_dict[key_name].update({'igpm_surro_obj':gaussian_process.GaussianProcess(theta0=fit_dict[key_name]['surro_obj'].theta_)}) # theta0=fit_dict['obj_val']['surro_obj'].theta_ or theta0=theta_guess, thetaL = theta_lowb, thetaU = theta_upb
+                fit_dict[key_name]['igpm_surro_obj'].fit(X_t, igpm_data)
+                
     
 
     with open(data_opts['fit_fname'], 'wb') as fitf:
