@@ -113,7 +113,9 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
     all_names = dv_names + extra_names
     
     # Starting filepath
-    root_path = data_opts['data_dirname']
+    #root_path = data_opts['data_dirname']
+    file_path = data_opts['input_dirname']
+    pdist_path = data_opts['pdist_dirname']
     
 
     # Now make input files (and folders, where necessary) for Serpent
@@ -127,8 +129,8 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
         pdist_fnames = {'nominal':main_pdist_fname, 'lowE':lowE_pdist_fname}
         make_std_inp(element, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
-        file_path = os.path.join(root_path, 'input_files')
-        pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
+#        file_path = os.path.join(root_path, 'input_files')
+#        pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
         save_filepath = '_'.join(dv_str_element)
         dv_path = os.path.join(file_path, save_filepath)
         if not os.path.isdir(file_path):
@@ -146,9 +148,9 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
             save_filepath = combine_path
         final_path = os.path.join( file_path, save_filepath)
         for the_file in [main_inp_fname, main_qsub_fname]: # os.listdir(final_path) Note that if there's a directory in here, will fail
-            file_path = os.path.join(final_path, the_file)
+            unique_file_path = os.path.join(final_path, the_file)
             try:
-                os.remove(file_path)
+                os.remove(unique_file_path)
             except OSError:
                 pass
         shutil.move(main_inp_fname, final_path)
@@ -551,6 +553,7 @@ def make_qsub(qsub_inp_fname, qsub_fname):
 # Data extraction function
 def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
     
+    
     case_set = case_info['case_set']
     root_dir = data_opts['input_dirname']
     doe_set = data_sets
@@ -658,6 +661,8 @@ def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
     bu_stride = len(case_info['bu_steps'])
     cl_stride = calc_extra_states(case_info['extra_states']) # Only if cdens is the only extra state? | TAG: Improve
     delta = core.get_coolant_temp_delta(cool_typ) #(2960 - 2960 * 0.001)/ (0.889) # Only for nafzrf | TAG: Hardcode
+    print 'Coolant type: {}'.format(cool_typ)
+    print 'Coolant temp delta: {}'.format(delta)
     estate_start_idx = 0
     estate_end_idx = 1
        

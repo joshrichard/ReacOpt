@@ -47,6 +47,13 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 #    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
 #    ('bu', [0.0, 5.0, 89.0, 183.0]) ])
     
+
+
+run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 
+salt_file_dirname = run_opts['cool_mat']
+
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
 # '~joshrich', 'SERPENT', 'new_core', 'opt_runs_new'
@@ -54,10 +61,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
 # 'run_dump_files', 'lhs_110_test1'
 # 'test_exec', 'test_search_progress', 'lhs_110_searchprogress_testdata'
-dump_dir = os.path.join(data_dir, 'run_dump_files', 'lhs_110_test1')
-
-run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'], 'lhs_110_test1')
                  
 doe_opts = {'doe_type':'O-LHS', 'num_LHS_samples':110, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
 
@@ -70,7 +74,10 @@ fit_dict = {}
 
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
+# , salt_file_dirname
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
+#('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), \
+('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')), \
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
 ('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), \
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')), \
@@ -118,7 +125,7 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart' or 'normal'
+run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
 use_exist_data = 'off'
 submit_interval = 10
 
@@ -135,7 +142,7 @@ if run_mode == 'normal':
         os.rename(data_opts['data_fname'], namestring)
     except OSError:
         pass
-elif run_mode == 'restart':
+elif run_mode == 'restart' or run_mode == 'reuse_doe':
     try:
         if use_exist_data == 'off': # careful with this!
             os.remove(data_opts['data_fname'])
@@ -292,8 +299,8 @@ def iter_loop():
                 doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
                         case_info['dv_bounds'], data_opts['doe_fname'], 
                         data_opts['init_doe_fname'], **doe_opts)
-            elif run_mode == 'restart':
-                print 'run_type = restart: Using preexisting DoE'
+            elif run_mode == 'restart' or run_mode == 'reuse_doe':
+                print 'run_mode = {}: Using preexisting DoE'.format(run_mode)
                 with open(data_opts['init_doe_fname'], 'rb') as f:
                     doe_sets['doe'] = cPickle.load(f)
                     doe_sets['doe_scaled'] = cPickle.load(f)
