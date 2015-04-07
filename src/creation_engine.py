@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-#import pdb
+import pdb
 
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
@@ -116,17 +116,20 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
     #root_path = data_opts['data_dirname']
     file_path = data_opts['input_dirname']
     pdist_path = data_opts['pdist_dirname']
+    pdist_lastpath = os.path.basename(pdist_path)
     
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
+        pdb.set_trace()
         dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
         str_element = core.combo_nameval(all_names, core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
         main_qsub_fname = 'fhtr_opt_' + '_'.join(str_element) +'.qsub'
         main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this? | TAG: Improve
         lowE_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '_lowE.inp'
-        pdist_fnames = {'nominal':main_pdist_fname, 'lowE':lowE_pdist_fname}
+        pdist_fnames = {'nominal':os.path.join(pdist_lastpath, main_pdist_fname), 
+                        'lowE':os.path.join(pdist_lastpath, lowE_pdist_fname)}
         make_std_inp(element, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
 #        file_path = os.path.join(root_path, 'input_files')
