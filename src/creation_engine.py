@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-import pdb
+#import pdb
 
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
@@ -121,7 +121,6 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
-        pdb.set_trace()
         dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
         str_element = core.combo_nameval(all_names, core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
