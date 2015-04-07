@@ -50,7 +50,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 
@@ -74,12 +74,10 @@ fit_dict = {}
 
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
-# , salt_file_dirname
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
-#('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), \
-('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')), \
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), \
+('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files' , salt_file_dirname)), \
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
-('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), \
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')), \
 ('init_doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_initdoe.out')), \
 ('cases_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_cases.out')), \
@@ -124,10 +122,10 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
+outp_mode = 'interact' # either 'interact' or 'iterate'
+run_mode = 'reuse_doe' # either 'restart', 'normal', or 'reuse_doe'
 use_exist_data = 'off'
-submit_interval = 10
+submit_interval = 8
 
 
 
@@ -304,11 +302,11 @@ def iter_loop():
                 with open(data_opts['init_doe_fname'], 'rb') as f:
                     doe_sets['doe'] = cPickle.load(f)
                     doe_sets['doe_scaled'] = cPickle.load(f)
+            else:
+                raise Exception('{} not a valid run_mode'.format(run_mode))
         print 'Current DoE:'
         print doe_sets['doe']
         print doe_sets['doe_scaled']
-        # Then put current iteration's doe into a storage variable
-        doe_sets_iter = copy.deepcopy(doe_sets)
         ####
         # Next, make input files for current doe
         ####
@@ -323,9 +321,15 @@ def iter_loop():
                 doe_sets['doe_scaled'] = cPickle.load(f)
         else:
             print 'Making input files'
-            with open(data_opts['doe_fname'], 'rb') as f:
-                doe_sets['doe'] = cPickle.load(f)
-                doe_sets['doe_scaled'] = cPickle.load(f)
+            if first_iter and run_mode == 'reuse_doe':
+                print 'first iter in reuse_doe mode: Extracting preexisting doe data'
+                with open(data_opts['init_doe_fname'], 'rb') as f: # could get rid of this?
+                    doe_sets['doe'] = cPickle.load(f)
+                    doe_sets['doe_scaled'] = cPickle.load(f)
+            else:
+                with open(data_opts['doe_fname'], 'rb') as f:
+                    doe_sets['doe'] = cPickle.load(f)
+                    doe_sets['doe_scaled'] = cPickle.load(f)
             case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                    run_opts, data_opts, first_iter)
             print 'Current case set:'
@@ -463,7 +467,7 @@ def iter_loop():
         ####
         #
         ####
-        iter_dump_data = {'doe_sets':doe_sets, 'doe_sets_iter':doe_sets_iter, 
+        iter_dump_data = {'doe_sets':doe_sets, 
                           'search_res':search_res, 'all_search_res':all_search_res,
                           'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
                           'opt_res':opt_res, 'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
