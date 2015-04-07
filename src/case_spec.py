@@ -168,7 +168,7 @@ def main():
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='off')
-    parser.add_argument("-m","--make", default='off')
+    parser.add_argument("-m","--make", default='on')
     parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='off') #test
     parser.add_argument("-p","--plot", default='off')
@@ -176,7 +176,7 @@ def main():
     parser.add_argument("-o","--opt", default='off') #test
     parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='on')
+    parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()
     
@@ -186,18 +186,25 @@ def main():
     
     if args.make == 'on':
         print 'Making input files'
-        with open(data_opts['doe_fname'], 'rb') as f:
-            doe_sets['doe'] = cPickle.load(f)
-            doe_sets['doe_scaled'] = cPickle.load(f)
-        first_iter = False
+        first_iter = True
+        if first_iter and run_mode == 'reuse_doe':
+            print 'first iter in reuse_doe mode: Extracting preexisting doe data'
+            with open(data_opts['init_doe_fname'], 'rb') as f: # could get rid of this?
+                doe_sets['doe'] = cPickle.load(f)
+                doe_sets['doe_scaled'] = cPickle.load(f)
+        else:
+            with open(data_opts['doe_fname'], 'rb') as f:
+                doe_sets['doe'] = cPickle.load(f)
+                doe_sets['doe_scaled'] = cPickle.load(f)
         case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                run_opts, data_opts, first_iter)
 
         
     if args.run == 'on':
+        print 'Running current case set'
         with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
-        case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts)
+        case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)
         c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
     
     if args.extract == 'on':
