@@ -76,7 +76,7 @@ fit_dict = {}
 #TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
 ('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), \
-('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files' , salt_file_dirname)), \
+('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')), \
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')), \
 ('init_doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_initdoe.out')), \
@@ -168,7 +168,7 @@ def main():
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='off')
-    parser.add_argument("-m","--make", default='on')
+    parser.add_argument("-m","--make", default='off')
     parser.add_argument("-r","--run", default='off')
     parser.add_argument("-e","--extract", default='off') #test
     parser.add_argument("-p","--plot", default='off')
@@ -176,7 +176,7 @@ def main():
     parser.add_argument("-o","--opt", default='off') #test
     parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='off')
+    parser.add_argument("-i", "--iterate", default='on')
     
     args = parser.parse_args()
     
