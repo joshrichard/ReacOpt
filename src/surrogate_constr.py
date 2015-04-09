@@ -148,6 +148,10 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
     for key_name in fit_dict:
         fit_dict[key_name]['surro_obj'].fit(X_t, fit_dict[key_name]['fit_data'])
         fit_dict[key_name]['xval_obj'].fit(X_t, fit_dict[key_name]['fit_data'])
+        # Deactivate MLE for later xval loop eval
+        fit_dict[key_name]['xval_obj'].theta0 = fit_dict[key_name]['xval_obj'].theta_
+        fit_dict[key_name]['xval_obj'].thetaL = None
+        fit_dict[key_name]['xval_obj'].thetaU = None
     
 #    obj_val.fit(X_t, obj_data)
 #    reac_co.fit(X_t, reac_co_data)
@@ -225,10 +229,14 @@ def eval_meta(fit_dict, doe_set, data_opts, fit_opts):
     X_t = doe_set['doe_scaled']
     
     for key_name in fit_dict:
-        xval_scorename = key_name + '_scores'
+        # First, calculate coefficient of determination for the fit on the whole dataset
+        standard_scorename = key_name + '_standard_score'
+        standard_score = fit_dict[key_name]['surro_obj'].score(X_t, fit_dict[key_name]['fit_data'])
+        # Next, calculate coefficients of determination using k-fold cross validation
+        xval_scorename = key_name + '_xval_scores'
         # Modified to work with GPM regression by using an average 'nugget' instead of pointwise nugget
         scores = cross_validation.cross_val_score(fit_dict[key_name]['xval_obj'], X_t, fit_dict[key_name]['fit_data'], cv = k_num)
-        scores_dict.update({xval_scorename:scores})
+        scores_dict.update({xval_scorename:scores, standard_scorename:standard_score})
     # Return coefficient of determination (R^2) value of the fit
     # Best possible score = 1.0, lower values worse
 
