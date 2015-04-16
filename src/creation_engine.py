@@ -186,18 +186,24 @@ def run_case_matrix(case_set_names, data_opts, interval):
     job_interval = interval
     job_cnt = 0
     for full_file_path in case_set_names:
-        job_cnt += 1
         file_dir = os.path.dirname(full_file_path)
         file_name = os.path.basename(full_file_path)
-        print file_name
         main_qsub_fname = file_name +'.qsub'
         file_dir = os.path.join(root_dir, file_dir)
         os.chdir(file_dir)
-        jobid = subprocess.check_output(["qsub", main_qsub_fname])
-        jobid = jobid.split('.')[0]
-        job_set_names.append(jobid)
-        all_job_set_names.append(jobid)
-        completed_case_names.append(full_file_path)
+        # Check and see if the job in this folder has already been run
+        # by checking for a specific output file
+        checkfile = file_name + '.bumat3'
+        if os.path.isfile(checkfile):
+            print 'Case {} has already run, skipping'.format(file_name)
+        else:
+            print 'Submitting case {}'.format(file_name)
+            jobid = subprocess.check_output(["qsub", main_qsub_fname])
+            jobid = jobid.split('.')[0]
+            job_set_names.append(jobid)
+            all_job_set_names.append(jobid)
+            completed_case_names.append(full_file_path)
+            job_cnt += 1
         if job_cnt % job_interval == 0:
             wait_case_matrix(job_set_names, completed_case_names)
             completed_case_names = [] # Could just have it check all jobids every time

@@ -57,7 +57,7 @@ def main():
     iter_val_plot(search_loc_rel_dists, search_rel_dist_axis, 'search_rel_dist')
     # Plot dists from each search location to original search location
     search_loc_orig_dists = cdist(doe_scaled, doe_scaled[0, np.newaxis])[:,0]
-    search_orig_dist_axis = {'y_axis':'Distance from each opt point to orig'}
+    search_orig_dist_axis = {'y_axis':'Distance from each search point to orig'}
     iter_val_plot(search_loc_orig_dists, search_orig_dist_axis, 'search_orig_dist')    
     # Write out table of search point locations
     with open(table_filename, 'w') as f:

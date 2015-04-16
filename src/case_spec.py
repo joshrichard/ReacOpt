@@ -169,14 +169,14 @@ def main():
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='off')
     parser.add_argument("-m","--make", default='off')
-    parser.add_argument("-r","--run", default='off')
+    parser.add_argument("-r","--run", default='on')
     parser.add_argument("-e","--extract", default='off') #test
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off') #Test
     parser.add_argument("-o","--opt", default='off') #test
     parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='on')
+    parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()
     
@@ -201,8 +201,8 @@ def main():
 
         
     if args.run == 'on':
-        print 'Running current case set'
-        with open(data_opts['cases_fname'], 'rb') as outpf:
+        print 'Running case set'
+        with open(data_opts['res_cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
         case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)
         c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
