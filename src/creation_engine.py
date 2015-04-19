@@ -193,8 +193,8 @@ def run_case_matrix(case_set_names, data_opts, interval):
         os.chdir(file_dir)
         # Check and see if the job in this folder has already been run
         # by checking for a specific output file
-        checkfile = file_name + '.bumat3'
-        if os.path.isfile(checkfile):
+        checkfile_name = file_name + '.bumat3'
+        if os.path.isfile(checkfile_name):
             print 'Case {} has already run, skipping'.format(file_name)
         else:
             print 'Submitting case {}'.format(file_name)
@@ -204,7 +204,9 @@ def run_case_matrix(case_set_names, data_opts, interval):
             all_job_set_names.append(jobid)
             completed_case_names.append(full_file_path)
             job_cnt += 1
-        if job_cnt % job_interval == 0:
+        if job_cnt == 0:
+            pass
+        elif job_cnt % job_interval == 0:
             wait_case_matrix(job_set_names, completed_case_names)
             completed_case_names = [] # Could just have it check all jobids every time
             job_set_names = []
@@ -384,10 +386,10 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     # nominal enrichment
     core.Surface('matrix_inf_s', 'inf')
     core.Cell('matrix_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../../" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
+    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
     # low enrichment
     core.Cell('matrix_lowE_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_lowE_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../../" + lowE_partdist_fname)
+    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../" + lowE_partdist_fname)
     
     # Assembly pin definitions
     
