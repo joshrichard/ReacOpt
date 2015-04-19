@@ -50,7 +50,7 @@ bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 
@@ -75,7 +75,7 @@ fit_dict = {}
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
-('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), #, salt_file_dirname
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), \
 ('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')), \
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')), \
@@ -123,8 +123,8 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
-use_exist_data = 'on'
+run_mode = 'reuse_doe' # either 'restart', 'normal', or 'reuse_doe'
+use_exist_data = 'off'
 submit_interval = 8
 
 

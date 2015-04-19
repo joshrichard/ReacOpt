@@ -386,10 +386,10 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     # nominal enrichment
     core.Surface('matrix_inf_s', 'inf')
     core.Cell('matrix_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
+    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../../" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
     # low enrichment
     core.Cell('matrix_lowE_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_lowE_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../" + lowE_partdist_fname)
+    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../../" + lowE_partdist_fname)
     
     # Assembly pin definitions
     
