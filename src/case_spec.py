@@ -123,9 +123,9 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'reuse_doe' # either 'restart', 'normal', or 'reuse_doe'
+run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
 use_exist_data = 'off'
-submit_interval = 8
+submit_interval = 2
 
 
 
@@ -309,6 +309,9 @@ def iter_loop():
                 with open(data_opts['init_doe_fname'], 'rb') as f:
                     doe_sets['doe'] = cPickle.load(f)
                     doe_sets['doe_scaled'] = cPickle.load(f)
+                with open(data_opts['doe_fname'], 'wb') as f:
+                    cPickle.dump(doe_sets['doe'], f, 2)
+                    cPickle.dump(doe_sets['doe_scaled'], f, 2)
             else:
                 raise Exception('{} not a valid run_mode'.format(run_mode))
         print 'Current DoE:'
@@ -323,20 +326,14 @@ def iter_loop():
             print 'Extracting preexisting doe data'
             with open(data_opts['res_cases_fname'], 'rb') as outpf:
                 case_info['case_set'] = cPickle.load(outpf)
-            with open(data_opts['init_doe_fname'], 'rb') as f: # could get rid of this?
+            with open(data_opts['doe_fname'], 'rb') as f: # could get rid of this?
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
         else:
             print 'Making input files'
-            if first_iter and run_mode == 'reuse_doe':
-                print 'first iter in reuse_doe mode: Extracting preexisting doe data'
-                with open(data_opts['init_doe_fname'], 'rb') as f: # could get rid of this?
-                    doe_sets['doe'] = cPickle.load(f)
-                    doe_sets['doe_scaled'] = cPickle.load(f)
-            else:
-                with open(data_opts['doe_fname'], 'rb') as f:
-                    doe_sets['doe'] = cPickle.load(f)
-                    doe_sets['doe_scaled'] = cPickle.load(f)
+            with open(data_opts['doe_fname'], 'rb') as f:
+                doe_sets['doe'] = cPickle.load(f)
+                doe_sets['doe_scaled'] = cPickle.load(f)
             case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
                                    run_opts, data_opts, first_iter)
             print 'Current case set:'
