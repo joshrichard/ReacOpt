@@ -43,6 +43,10 @@ dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
+default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
+                            ('enr', 19.5), ('f2f', 25.0),('power', 20.0),
+                            ('cdens', 1.0)])
+
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
 #    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
 #    ('bu', [0.0, 5.0, 89.0, 183.0]) ])
@@ -99,7 +103,8 @@ plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
     
 # Input prep
 
-case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_steps}
+case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_steps,
+             'default_core':default_core}
 #case_info['dv_names'] = {k: dv_bounds.keys().index(k) for k in dv_bounds.keys()}
 
 #case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
@@ -334,7 +339,7 @@ def iter_loop():
             with open(data_opts['doe_fname'], 'rb') as f:
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
-            case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+            case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info,
                                    run_opts, data_opts, first_iter)
             print 'Current case set:'
             print case_info['case_set']

@@ -1371,17 +1371,18 @@ class AssemblyPowerPeak(object):
         
     def set_core_conditions(self, dv_type, **kwargs):
         if dv_type == 'real':
-            self.dv_vec = kwargs['dv_real']
+            self.dv_dict = kwargs['dv_real']
             #self.dv_vec_scaled = dv_scaler(kwargs['dv_real'], dv_bounds=kwargs['bounds'], scal_type='scaled').sum(0)
         elif dv_type == 'scaled':
             self.dv_vec_scaled = kwargs['dv_scaled']
-            self.dv_vec = dv_scaler(kwargs['dv_scaled'], dv_bounds=kwargs['bounds'], scal_type='real').sum(0)
+            dv_vec = dv_scaler(kwargs['dv_scaled'], dv_bounds=kwargs['bounds'], scal_type='real').sum(0)
+            self.dv_dict = make_design_dict(dv_vec, kwargs['bounds'].keys(), kwargs['default_core'])
         else:
             raise Exception("first positional argument must be either 'real' or 'scaled', not {}".format(dv_type))
-        self.core_h = self.dv_vec[0]*1e-2 # core height [input: cm, output: m]
-        self.pf = self.dv_vec[1]
-        self.krad = self.dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
-        self.core_power = self.dv_vec[5]*1e6 # Input in [MW], store in [W]
+        self.core_h = float(self.dv_dict['coreh'])*1e-2 # core height [input: cm, output: m]
+        self.pf = float(self.dv_dict['pf'])
+        self.krad = float(self.dv_dict['krad'])*1e-2 # kernel radius [input: cm, output: m]
+        self.core_power = float(self.dv_dict['power'])*1e6 # Input in [MW], store in [W]
         if isinstance(self.radial_peak, gaussian_process.GaussianProcess): #type(self.radial_peak).__module__ is sklearn.__name__:
             self.calc_radial_peak()
         if isinstance(self.axial_peak, gaussian_process.GaussianProcess): #type(self.axial_peak).__module__ is sklearn.__name__:
@@ -1678,16 +1679,16 @@ class OptimizedLHS(object):
 
 # Function to handle Serpent's '-disperse' runtime option to make particle dist files
 
-def make_partdist(inp_tuple, cyl_rad, part_univ, fname):
+def make_partdist(inp_dict, cyl_rad, part_univ, fname):
 
     typ = 2 # 2 for cylinder
     c_rad = cyl_rad # cylinder radius
-    core_height = inp_tuple[0]
+    core_height = inp_dict['coreh']
     #tot_core_height = float(inp_tuple[0]) + 40.0
-    pf = inp_tuple[1]
+    pf = inp_dict['pf']
     #pf = 0.05
     #k_rad = 0.035
-    p_rad = float(inp_tuple[2]) + 0.0215
+    p_rad = float(inp_dict['krad']) + 0.0215
     #p_u = 1
     #fname = '{root}{pf}.inp'.format(root=fname_root, pf=str(pf).replace(".",""))
     #fname = 'partdist_coreh{}_pf{}_krad{}.inp'.format(*varname_prep(inp_tuple))
@@ -1760,6 +1761,20 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
         raise TypeError(msg)
     return dv_new
     
+def make_design_dict(feature_vals, feature_names, default_features):
+    # where feature_vals and feature_names are lists (or tuples)
+    # of the variable features
+    # and default_features is a dict of the default feature names and vales
+    feature_dict = OrderedDict(zip(feature_names, feature_vals))
+    ## See if a feature is variable or is constant
+    all_feature_set = OrderedDict()
+    for feature in default_features:
+        # See if this feature has bounds
+        if feature in feature_dict:
+            all_feature_set.update({feature:feature_dict[feature]})
+        else:
+            all_feature_set.update({feature:default_features[feature]})
+    return all_feature_set
 
 def find_xs_lib(mat_temp, lib_temp_vals=[300.0, 600.0, 900.0, 1200.0, 1500.0, 1800.0], 
                 lib_temp_ext=['.03c', '.06c', '09c', '.12c', '.15c', '.18c']):

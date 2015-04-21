@@ -112,6 +112,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
     #pdb.set_trace()
     sur_type = fit_opts['sur_type']
     dv_bounds = case_info['dv_bounds']
+    default_core = case_info['default_core']
     if sur_type == 'regress':
         igpm_obj_eval = make_neg(fit_dict['obj_val']['igpm_surro_obj'].predict)
 #    bounds_eval = all_bounds_constr
@@ -152,8 +153,9 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
             boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
         return boxbound_constr_dict
         
-    def triso_pow_eval(dv_vec_scaled, eval_MSE=False, dvbounds=dv_bounds, assm_pow=assm_peak_surro,
-                       axial_pow=axial_peak_surro):
+    def triso_pow_eval(dv_vec_scaled, eval_MSE=False, 
+                       dvbounds=dv_bounds, defaultcore=default_core,
+                       assm_pow=assm_peak_surro, axial_pow=axial_peak_surro):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real').sum(0)
 #        pf = dv_vec[1]
 #        coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
@@ -177,7 +179,8 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         # pow_obj = core.AssemblyPowerPeak()
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow, axial_peak=axial_pow)
-        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
+        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
+                                    bounds=dvbounds, default_core=defaultcore)
         pow_max_constr_eval = pow_max_constr - pow_obj.get_peak_triso_pow()
         val_pow_max_constr = pow_max_constr_eval.nominal_value
         mse_pow_max_constr = (float(pow_max_constr_eval.std_dev))**2.0
@@ -186,8 +189,9 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         else:
             return val_pow_max_constr
 
-    def fuel_temp_eval(dv_vec_scaled, eval_MSE = False, dvbounds=dv_bounds, assm_pow=assm_peak_surro,
-                       axial_pow=axial_peak_surro):
+    def fuel_temp_eval(dv_vec_scaled, eval_MSE = False, 
+                       dvbounds=dv_bounds, defaultcore=default_core,
+                       assm_pow=assm_peak_surro, axial_pow=axial_peak_surro):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=dvbounds, scal_type='real').sum(0)
 #        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
 #        core_pow = dv_vec[5]
@@ -208,7 +212,8 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         # pow_obj = core.AssemblyPowerPeak()
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow, axial_peak=axial_pow)
-        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, bounds=dvbounds)
+        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
+                                    bounds=dvbounds, default_core=defaultcore)
         t_max_constr_eval = t_max_constr - pow_obj.get_peak_triso_temp()
         val_t_max_constr = t_max_constr_eval.nominal_value
         mse_t_max_constr = (float(t_max_constr_eval.std_dev))**2.0

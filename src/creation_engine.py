@@ -99,9 +99,14 @@ def calc_extra_states(extra_states):
 # Formatted as:
 #   - Return the names and store into a data_names dict
 
-def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts, 
+def make_case_matrix(case_set, case_info, run_opts, data_opts, 
                      first_iter): # change from case_matrix... to a case_set that can be updated?
-
+    
+    #extra_states, dv_bounds
+    extra_states = case_info['extra_states']
+    dv_bounds = case_info['dv_bounds']
+    default_core = case_info['default_core']
+    
     created_filepaths = []
 
     # First, add extra states to dv case set
@@ -121,15 +126,16 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
+        design_config_dict = core.make_design_dict(element, all_names, default_core)
         dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
         str_element = core.combo_nameval(all_names, core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
         main_qsub_fname = 'fhtr_opt_' + '_'.join(str_element) +'.qsub'
-        main_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '.inp' # Should try to generalize this? | TAG: Improve
-        lowE_pdist_fname = 'partdist_' + '_'.join(str_element[0:3]) + '_lowE.inp'
+        main_pdist_fname = 'partdist_coreh{coreh:.4f}_pf{pf:.4f}_krad{krad:.4f}'.format(**design_config_dict).replace(".","") + '.inp' # Should try to generalize this? | TAG: Improve
+        lowE_pdist_fname = 'partdist_coreh{coreh:.4f}_pf{pf:.4f}_krad{krad:.4f}'.format(**design_config_dict).replace(".","") + '_lowE.inp'
         pdist_fnames = {'nominal':os.path.join(pdist_lastpath, main_pdist_fname), 
                         'lowE':os.path.join(pdist_lastpath, lowE_pdist_fname)}
-        make_std_inp(element, main_inp_fname, pdist_fnames, run_opts)
+        make_std_inp(design_config_dict, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
 #        file_path = os.path.join(root_path, 'input_files')
 #        pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
@@ -158,7 +164,7 @@ def make_case_matrix(case_set, extra_states, dv_bounds, run_opts, data_opts,
         shutil.move(main_inp_fname, final_path)
         shutil.move(main_qsub_fname, final_path)
         if not os.path.isfile(os.path.join(pdist_path, main_pdist_fname)): # Must test on cluster | TAG: Test
-            core.make_partdist(element[0:3], run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
+            core.make_partdist(design_config_dict, run_opts['pin_rad'], core.univ_dict.intdict['triso_u'].id, main_pdist_fname)
             shutil.move(main_pdist_fname, pdist_path)
         if not os.path.isfile(os.path.join(pdist_path, lowE_pdist_fname)): # Must test on cluster | TAG: Test
             core.mod_partdist(core.univ_dict.intdict['triso_lowE_u'].id, os.path.join(pdist_path, main_pdist_fname), lowE_pdist_fname)
@@ -232,20 +238,20 @@ def wait_case_matrix(jobid_set, case_set, wait_time=350):
                 done = True
         
 
-def make_std_inp(inp_tuple, fmake_inp_fname, fmake_pdist_fname, run_opts):
+def make_std_inp(inp_dict, fmake_inp_fname, fmake_pdist_fname, run_opts):
     # Define materials
-    make_mats(inp_tuple, run_opts)
+    make_mats(inp_dict, run_opts)
     # Define geometry
-    make_geom(inp_tuple, fmake_pdist_fname, run_opts)
+    make_geom(inp_dict, fmake_pdist_fname, run_opts)
     # Write out input file
-    make_inp(inp_tuple, fmake_inp_fname, run_opts)
+    make_inp(inp_dict, fmake_inp_fname, run_opts)
 
 
-def make_mats(mats_inp_tuple, run_opts):
+def make_mats(mats_inp_dict, run_opts):
     
-    u235_enrich = mats_inp_tuple[3]
+    u235_enrich = mats_inp_dict['enr']
     u235_low_enrich = u235_enrich * 0.5
-    salt_dens_frac = float(mats_inp_tuple[-1])
+    salt_dens_frac = float(mats_inp_dict['cdens'])
     #salt_dens = -2.96 * salt_dens_frac
     #salt_mat_name = run_opts['cool_mat']
     
@@ -256,7 +262,7 @@ def make_mats(mats_inp_tuple, run_opts):
     # First, calculate the core-average fuel temperature based on this dv config
     pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
                                      pin_peaking = np.ones(7))
-    pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_tuple)
+    pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_tuple) # Fix this to work with new dv dict approach!
     fuel_temp = pow_obj.get_peak_triso_temp()
     if fuel_temp < 1200.0:
         fuel_temp = 1200.0
@@ -354,12 +360,12 @@ def make_mats(mats_inp_tuple, run_opts):
 
     
     
-def make_geom(geom_inp_tuple, partdist_fname, run_opts):
+def make_geom(geom_inp_dict, partdist_fname, run_opts):
 
     core_h = float(run_opts['total_coreh'])
-    act_core_h = float(geom_inp_tuple[0])
-    k_rad = float(geom_inp_tuple[2])
-    assm_f2f = float(geom_inp_tuple[4])
+    act_core_h = float(geom_inp_dict['coreh'])
+    k_rad = float(geom_inp_dict['krad'])
+    assm_f2f = float(geom_inp_dict['f2f'])
     half_f2f = assm_f2f * 0.5
     block_hf2f = half_f2f - 0.1
     assm_side_w = (assm_f2f / math.sqrt(3.0))
@@ -481,14 +487,14 @@ def make_geom(geom_inp_tuple, partdist_fname, run_opts):
     
     
     
-def make_inp(make_inp_tuple, inp_fname, run_opts):
+def make_inp(make_inp_dict, inp_fname, run_opts):
     
     # Specify core power
-    core_pow = float(make_inp_tuple[5])*1e6
+    core_pow = float(make_inp_dict['power'])*1e6
     # core height
-    act_core_h = float(make_inp_tuple[0])
+    act_core_h = float(make_inp_dict['coreh'])
     # assembly position flat-to-float
-    assm_f2f = float(make_inp_tuple[4])
+    assm_f2f = float(make_inp_dict['f2f'])
     # Fuel irr pos volume [cm^3]
     irr_pos_vol = act_core_h*(np.sqrt(3.0)/2.0)*assm_f2f**2.0
     
