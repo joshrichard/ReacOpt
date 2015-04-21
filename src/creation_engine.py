@@ -14,7 +14,7 @@ import os
 import shutil
 import core_objects_v5 as core
 import subprocess
-#from collections import OrderedDict
+from collections import OrderedDict
 #from collections import Iterable
 import copy
 import numpy as np
@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-#import pdb
+import pdb
 
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
@@ -126,9 +126,13 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
+        pdb.set_trace()
         design_config_dict = core.make_design_dict(element, all_names, default_core)
-        dv_str_element = core.combo_nameval(dv_names, core.prep_val(element[0:len(dv_names)]))
-        str_element = core.combo_nameval(all_names, core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
+        new_dv_names = OrderedDict([(key, value) for key, value in design_config_dict.items() if key not in extra_names]).keys()
+        new_all_names = design_config_dict.keys()
+        element = design_config_dict.values()
+        dv_str_element = core.combo_nameval(new_dv_names, core.prep_val(element[0:len(new_dv_names)]))
+        str_element = core.combo_nameval(new_all_names, core.prep_val(element)) #Will need to redo this, not use case_matrix_dv_dict
         main_inp_fname = 'fhtr_opt_' + '_'.join(str_element) # Can make this filename a user input | TAG: Improve
         main_qsub_fname = 'fhtr_opt_' + '_'.join(str_element) +'.qsub'
         main_pdist_fname = 'partdist_coreh{coreh:.4f}_pf{pf:.4f}_krad{krad:.4f}'.format(**design_config_dict).replace(".","") + '.inp' # Should try to generalize this? | TAG: Improve
@@ -147,7 +151,7 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
             os.mkdir(pdist_path)
         if not os.path.isdir(dv_path):
             os.mkdir(dv_path)
-        for item in str_element[len(dv_names):]:
+        for item in str_element[len(new_dv_names):]:
             item_path = '{0}'.format(item)
             combine_path = os.path.join(save_filepath, item_path)
             make_filepath = os.path.join(file_path, combine_path)
@@ -262,7 +266,7 @@ def make_mats(mats_inp_dict, run_opts):
     # First, calculate the core-average fuel temperature based on this dv config
     pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
                                      pin_peaking = np.ones(7))
-    pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_tuple) # Fix this to work with new dv dict approach!
+    pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_dict) # Fix this to work with new dv dict approach!
     fuel_temp = pow_obj.get_peak_triso_temp()
     if fuel_temp < 1200.0:
         fuel_temp = 1200.0
@@ -392,10 +396,10 @@ def make_geom(geom_inp_dict, partdist_fname, run_opts):
     # nominal enrichment
     core.Surface('matrix_inf_s', 'inf')
     core.Cell('matrix_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../../" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
+    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../../../" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
     # low enrichment
     core.Cell('matrix_lowE_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_lowE_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../../" + lowE_partdist_fname)
+    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../../../" + lowE_partdist_fname)
     
     # Assembly pin definitions
     

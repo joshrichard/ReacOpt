@@ -38,7 +38,9 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
     ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
-    ('power',[20.0, 30.0])])
+    ])
+
+# ('power',[20.0, 30.0])    
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
@@ -54,9 +56,10 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
+folder_set_name = 'lhs_50_nopowdv_test1'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -65,9 +68,9 @@ salt_file_dirname = run_opts['cool_mat']
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
 # 'run_dump_files', 'lhs_110_test1'
 # 'test_exec', 'test_search_progress', 'lhs_110_searchprogress_testdata'
-dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'], 'lhs_110_test1')
+dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'], folder_set_name)
                  
-doe_opts = {'doe_type':'O-LHS', 'num_LHS_samples':110, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'O-LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
 
                  
 doe_sets = {}
@@ -79,7 +82,7 @@ fit_dict = {}
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
-('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), \
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname, folder_set_name)), \
 ('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')), \
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')), \
@@ -127,8 +130,8 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
+outp_mode = 'interact' # either 'interact' or 'iterate'
+run_mode = 'reuse_doe' # either 'restart', 'normal', or 'reuse_doe'
 use_exist_data = 'off'
 submit_interval = 2
 
@@ -201,7 +204,7 @@ def main():
             with open(data_opts['doe_fname'], 'rb') as f:
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
-        case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info['extra_states'], case_info['dv_bounds'], 
+        case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info,
                                run_opts, data_opts, first_iter)
 
         
