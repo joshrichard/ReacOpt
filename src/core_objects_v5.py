@@ -1,4 +1,5 @@
 # Packages
+import os
 import logging
 from collections import OrderedDict
 import subprocess
@@ -1719,6 +1720,16 @@ def mod_partdist(new_universenum, orig_partdist_fname, new_partdist_fname):
     with codecs.open(new_partdist_fname, 'wb', 'utf-8') as f:
         f.write(file_str)
 
+# find folder depth from run folder to main dir, so can path to partdist_dir
+def find_maindir_depth(rundir_fullpath, maindir_fullpath):
+    maindir_singlepath = os.path.basename(maindir_fullpath)
+    rundir_partpath, rundir_lastpath = os.path.split(rundir_fullpath)
+    cntr = 0
+    while not maindir_singlepath == rundir_lastpath:
+        cntr += 1
+        rundir_partpath, rundir_lastpath = os.path.split(rundir_partpath)
+    return cntr
+    
 
 # Both this function and the next use generators to efficiently and cleanly evaluate the lists/tuples given to them as input
 # cleans the data values by converting from floats (or any other numerical type) to string, and removing the decimals

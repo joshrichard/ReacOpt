@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-import pdb
+#import pdb
 
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
@@ -119,14 +119,13 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
     
     # Starting filepath
     #root_path = data_opts['data_dirname']
+    main_path = data_opts['data_dirname']
     file_path = data_opts['input_dirname']
     pdist_path = data_opts['pdist_dirname']
     pdist_lastpath = os.path.basename(pdist_path)
-    
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
-        pdb.set_trace()
         design_config_dict = core.make_design_dict(element, all_names, default_core)
         new_dv_names = OrderedDict([(key, value) for key, value in design_config_dict.items() if key not in extra_names]).keys()
         new_all_names = design_config_dict.keys()
@@ -137,28 +136,35 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
         main_qsub_fname = 'fhtr_opt_' + '_'.join(str_element) +'.qsub'
         main_pdist_fname = 'partdist_coreh{coreh:.4f}_pf{pf:.4f}_krad{krad:.4f}'.format(**design_config_dict).replace(".","") + '.inp' # Should try to generalize this? | TAG: Improve
         lowE_pdist_fname = 'partdist_coreh{coreh:.4f}_pf{pf:.4f}_krad{krad:.4f}'.format(**design_config_dict).replace(".","") + '_lowE.inp'
-        pdist_fnames = {'nominal':os.path.join(pdist_lastpath, main_pdist_fname), 
-                        'lowE':os.path.join(pdist_lastpath, lowE_pdist_fname)}
-        make_std_inp(design_config_dict, main_inp_fname, pdist_fnames, run_opts)
-        make_qsub(main_inp_fname, main_qsub_fname)
 #        file_path = os.path.join(root_path, 'input_files')
 #        pdist_path = os.path.join(root_path, 'partdist_files') # os.path.join(*str_element[0:3]) 
         save_filepath = '_'.join(dv_str_element)
-        dv_path = os.path.join(file_path, save_filepath)
-        if not os.path.isdir(file_path):
-            os.mkdir(file_path)
+#        dv_path = os.path.join(file_path, save_filepath)
+#        if not os.path.isdir(dv_path):
+#            os.makedirs(dv_path)
         if not os.path.isdir(pdist_path):
-            os.mkdir(pdist_path)
-        if not os.path.isdir(dv_path):
-            os.mkdir(dv_path)
-        for item in str_element[len(new_dv_names):]:
-            item_path = '{0}'.format(item)
-            combine_path = os.path.join(save_filepath, item_path)
-            make_filepath = os.path.join(file_path, combine_path)
-            if not os.path.isdir(make_filepath):
-                os.mkdir(make_filepath)
-            save_filepath = combine_path
-        final_path = os.path.join( file_path, save_filepath)
+            os.makedirs(pdist_path)
+        save_filepath = os.path.join(save_filepath, *str_element[len(new_dv_names):])
+        final_path = os.path.join(file_path, save_filepath)
+        if not os.path.isdir(final_path):
+            os.makedirs(final_path)
+        # Determine distance from run_dir to main_dir (so can get to pdist_path)
+        pdist_depth = core.find_maindir_depth(final_path, main_path)
+        pdist_depth_path = "../" * pdist_depth
+        # Make input and qsub files
+        pdist_fnames = {'nominal':os.path.join(pdist_lastpath, main_pdist_fname), 
+                        'lowE':os.path.join(pdist_lastpath, lowE_pdist_fname),
+                        'depth':pdist_depth_path}
+        make_std_inp(design_config_dict, main_inp_fname, pdist_fnames, run_opts)
+        make_qsub(main_inp_fname, main_qsub_fname)
+#        for item in str_element[len(new_dv_names):]:
+#            item_path = '{0}'.format(item)
+#            combine_path = os.path.join(save_filepath, item_path)
+#            make_filepath = os.path.join(file_path, combine_path)
+#            if not os.path.isdir(make_filepath):
+#                os.makedirs(make_filepath)
+#            save_filepath = combine_path
+#        final_path = os.path.join( file_path, save_filepath)
         for the_file in [main_inp_fname, main_qsub_fname]: # os.listdir(final_path) Note that if there's a directory in here, will fail
             unique_file_path = os.path.join(final_path, the_file)
             try:
@@ -377,8 +383,8 @@ def make_geom(geom_inp_dict, partdist_fname, run_opts):
     core_width = assm_side_w * 9.0 # 9.0 based on number of rings in core | TAG: hardcode
     void_mat = core.Material('void', density='')
     outside_mat = core.Material('outside', density='')
-    nominalE_partdist_fname = partdist_fname['nominal']
-    lowE_partdist_fname = partdist_fname['lowE']
+    nominalE_partdist_fname = partdist_fname['depth'] + partdist_fname['nominal']
+    lowE_partdist_fname = partdist_fname['depth'] + partdist_fname['lowE']
     
     # Geometry specification section
     
@@ -396,10 +402,10 @@ def make_geom(geom_inp_dict, partdist_fname, run_opts):
     # nominal enrichment
     core.Surface('matrix_inf_s', 'inf')
     core.Cell('matrix_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = "../../../../../" + nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
+    core.PBed('triso_mtx_serp', fill = 'matrix_fill_u', universe = 'pbed_u', fname = nominalE_partdist_fname) # Can make the folder structure here a variable | TAG: Improve
     # low enrichment
     core.Cell('matrix_lowE_inf_c', surfs = '-{0}'.format(core.surf_dict.intdict['matrix_inf_s'].id), universe = 'matrix_lowE_fill_u', material = core.mat_dict.intdict['matrix'])
-    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = "../../../../../" + lowE_partdist_fname)
+    core.PBed('triso_lowE_mtx_serp', fill = 'matrix_lowE_fill_u', universe = 'pbed_lowE_u', fname = lowE_partdist_fname)
     
     # Assembly pin definitions
     

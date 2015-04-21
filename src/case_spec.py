@@ -38,9 +38,9 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
     ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
-    ])
+    ('power',[20.0, 30.0])])
 
-# ('power',[20.0, 30.0])    
+# 
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
@@ -59,7 +59,7 @@ run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pi
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
-folder_set_name = 'lhs_50_nopowdv_test1'
+folder_set_name = 'lhs_50_test1'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -130,10 +130,10 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
                  'converge_type':'rel'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'reuse_doe' # either 'restart', 'normal', or 'reuse_doe'
 use_exist_data = 'off'
-submit_interval = 2
+submit_interval = 8
 
 
 
@@ -163,13 +163,11 @@ if outp_mode == 'iterate':
         pass
 
 # Make run dump file directories if they don't exist| TAG: Toggle
-#dump_fulldir = os.path.expanduser(dump_dir) # TAG: remove
-#if not os.path.isdir(dump_fulldir):
-#    dump_maindir = os.path.dirname(dump_fulldir)
-#    if not os.path.isdir(dump_maindir):
-#        os.mkdir(dump_maindir)
-#    os.mkdir(dump_fulldir)
-
+dump_fulldir = os.path.expanduser(dump_dir) # TAG: remove
+if not os.path.isdir(dump_fulldir):
+    os.makedirs(dump_fulldir)
+    
+    
 def main():
     
     # Set up command line parser
