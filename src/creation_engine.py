@@ -24,7 +24,6 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-#import pdb
 
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
@@ -196,11 +195,9 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
 
 def run_case_matrix(case_set_names, data_opts, interval):
     root_dir = data_opts['input_dirname']
-    job_set_names = []
-    all_job_set_names = []
-    completed_case_names = []
+    job_set_dict = {}
+    all_job_set_id = []
     job_interval = interval
-    job_cnt = 0
     for full_file_path in case_set_names:
         file_dir = os.path.dirname(full_file_path)
         file_name = os.path.basename(full_file_path)
@@ -216,22 +213,44 @@ def run_case_matrix(case_set_names, data_opts, interval):
             print 'Submitting case {}'.format(file_name)
             jobid = subprocess.check_output(["qsub", main_qsub_fname])
             jobid = jobid.split('.')[0]
-            job_set_names.append(jobid)
-            all_job_set_names.append(jobid)
-            completed_case_names.append(full_file_path)
-            job_cnt += 1
-        if job_cnt == 0:
-            pass
-        elif job_cnt % job_interval == 0:
-            wait_case_matrix(job_set_names, completed_case_names)
-            completed_case_names = [] # Could just have it check all jobids every time
-            job_set_names = []
+            job_set_dict.update({jobid:file_name})
+            all_job_set_id.append(jobid)
+        # Check to see how many jobs in queue/running, wait if "interval" are there:
+        job_set_dict = full_queue_check(job_set_dict, job_interval)
+
+
             
         
     with open(data_opts['jobs_fname'], 'wb') as outpf: # Will this work if file already exists? Will it overwrite correctly?
-        cPickle.dump(job_set_names, outpf, 2)
+        cPickle.dump(all_job_set_id, outpf, 2)
     
-    return all_job_set_names
+    return all_job_set_id
+
+
+def full_queue_check(submit_job_dict, interval, queue_job_dict={}, wait_time=350):
+    raw_queue_output = subprocess.check_output(['qstat'])
+    raw_queue_output = raw_queue_output.replace('.', ' ').split()
+    for jobid in submit_job_dict:
+        if jobid in raw_queue_output:
+            queue_job_dict.update({jobid:submit_job_dict[jobid]})
+        else:
+            print 'Job {}, case {} no longer in queue'.format(jobid, 
+                    submit_job_dict[jobid])
+            if jobid in queue_job_dict:
+                queue_job_dict.pop(jobid)
+#    if queue_jobs == 0:
+#        print 'No jobs in queue, moving to next case'
+    queue_jobs = len(queue_job_dict)
+    if queue_jobs < interval:
+        # Submit new job!
+        print '{} jobs in queue, less than desired {} jobs, submitting a new job'.format(
+               queue_jobs, interval)
+    else:
+        print 'Full queue - {} jobs! Waiting for queue to clear'.format(interval)
+        time.sleep(wait_time)
+        queue_job_dict = full_queue_check(submit_job_dict, interval, queue_job_dict)
+    return copy.deepcopy(queue_job_dict)
+
 
 
 def wait_case_matrix(jobid_set, case_set, wait_time=350):

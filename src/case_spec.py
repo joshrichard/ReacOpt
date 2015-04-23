@@ -56,7 +56,7 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
@@ -133,7 +133,7 @@ euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'reuse_doe' # either 'restart', 'normal', or 'reuse_doe'
 use_exist_data = 'off'
-submit_interval = 8
+submit_interval = 6
 
 
 
@@ -207,7 +207,7 @@ def main():
 
         
     if args.run == 'on':
-        print 'Running case set'
+        print 'Running initial case set'
         with open(data_opts['res_cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
         case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)

@@ -15,12 +15,13 @@ from scipy.spatial.distance import cdist, pdist, squareform, euclidean
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
-salt_type ='flibe'
+salt_type ='nafzrf4'
+basename = 'lhs_50'
 
 data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
-    'optimization_results','pow_iterations', salt_type, 'lhs_110'))
+    'optimization_results','pow_iterations', salt_type, basename))
 
-maker_output_basename = salt_type + '_lhs_110_'
+maker_output_basename = salt_type + '_' + basename + '_'
 table_filename = os.path.join(data_dir, maker_output_basename + 'locations.out')
     
 all_data_fname = os.path.join(data_dir, 'opt_run_dump_iter.out') # 'run_files', 
