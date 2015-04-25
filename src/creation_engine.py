@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-import pdb
+#import pdb
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
     if kwargs['doe_type'] == 'FF':
@@ -194,7 +194,6 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
 
 
 def run_case_matrix(case_set_names, data_opts, interval):
-    pdb.set_trace()
     root_dir = data_opts['input_dirname']
     job_set_dict = {}
     all_job_set_id = []

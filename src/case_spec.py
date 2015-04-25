@@ -183,14 +183,14 @@ def main():
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='off')
     parser.add_argument("-m","--make", default='off')
-    parser.add_argument("-r","--run", default='iter') # 'off', 'init', or 'iter'
+    parser.add_argument("-r","--run", default='off') # 'off', 'init', or 'iter'
     parser.add_argument("-e","--extract", default='off') #test
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off') #Test
     parser.add_argument("-o","--opt", default='off') #test
     parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='off')
+    parser.add_argument("-i", "--iterate", default='on')
     
     args = parser.parse_args()
     
@@ -310,7 +310,7 @@ def iter_loop():
     converged_temp = False
     #search_duplicate = False
     first_iter = True
-    save_initial_case = False
+    save_initial_case = True
     iter_cntr = 0
 
 
