@@ -13,6 +13,7 @@ import opt_search as opt_module
 import argparse
 from collections import OrderedDict
 import os
+import shutil
 import copy
 #import inspect
 import cPickle
@@ -131,7 +132,8 @@ converge_opts = {'converge_tol':1e-3, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'reuse_doe' # either 'restart', 'normal', or 'reuse_doe'
+run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
+extract_data = 'on'
 use_exist_data = 'off'
 submit_interval = 6
 
@@ -155,6 +157,12 @@ elif run_mode == 'restart' or run_mode == 'reuse_doe':
         #os.remove(data_opts['iter_fname'])
     except OSError:
         pass
+elif run_mode == 'continue':
+    if use_exist_data == 'off':
+        raise Exception("If running in continue mode, must have use_exist_data set to 'on'")
+    namestring = data_opts['data_fname'][:-4] + '_continue_' + timestring + '.out'
+    shutil.copy(data_opts['data_fname'], namestring)
+
 if outp_mode == 'iterate':
     try:
         namestring = data_opts['log_fname'][:-4] + timestring + '.out'
@@ -175,14 +183,14 @@ def main():
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
     parser.add_argument("-d","--doe", default='off')
     parser.add_argument("-m","--make", default='off')
-    parser.add_argument("-r","--run", default='off')
+    parser.add_argument("-r","--run", default='iter') # 'off', 'init', or 'iter'
     parser.add_argument("-e","--extract", default='off') #test
     parser.add_argument("-p","--plot", default='off')
     parser.add_argument("-l","--learn", default='off') #Test
     parser.add_argument("-o","--opt", default='off') #test
     parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
-    parser.add_argument("-i", "--iterate", default='on')
+    parser.add_argument("-i", "--iterate", default='off')
     
     args = parser.parse_args()
     
@@ -206,9 +214,15 @@ def main():
                                run_opts, data_opts, first_iter)
 
         
-    if args.run == 'on':
+    if args.run == 'init':
         print 'Running initial case set'
         with open(data_opts['res_cases_fname'], 'rb') as outpf:
+            case_info['case_set'] = cPickle.load(outpf)
+        case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)
+        c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
+    elif args.run == 'iter':
+        print 'Running most recent case set'
+        with open(data_opts['cases_fname'], 'rb') as outpf:
             case_info['case_set'] = cPickle.load(outpf)
         case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)
         c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
@@ -296,6 +310,7 @@ def iter_loop():
     converged_temp = False
     #search_duplicate = False
     first_iter = True
+    save_initial_case = False
     iter_cntr = 0
 
 
@@ -311,13 +326,19 @@ def iter_loop():
                         case_info['dv_bounds'], data_opts['doe_fname'], 
                         data_opts['init_doe_fname'], **doe_opts)
             elif run_mode == 'restart' or run_mode == 'reuse_doe':
-                print 'run_mode = {}: Using preexisting DoE'.format(run_mode)
+                print 'run_mode = {}: Using preexisting initial DoE'.format(run_mode)
                 with open(data_opts['init_doe_fname'], 'rb') as f:
                     doe_sets['doe'] = cPickle.load(f)
                     doe_sets['doe_scaled'] = cPickle.load(f)
                 with open(data_opts['doe_fname'], 'wb') as f:
                     cPickle.dump(doe_sets['doe'], f, 2)
                     cPickle.dump(doe_sets['doe_scaled'], f, 2)
+            elif run_mode == 'continue':
+                print 'run_mode = {}: Using last search point'.format(run_mode)
+                with open(data_opts['doe_fname'], 'rb') as f:
+                    doe_sets['doe'] = cPickle.load(f)
+                    doe_sets['doe_scaled'] = cPickle.load(f)
+                save_initial_case = False
             else:
                 raise Exception('{} not a valid run_mode'.format(run_mode))
         print 'Current DoE:'
@@ -341,7 +362,7 @@ def iter_loop():
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
             case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info,
-                                   run_opts, data_opts, first_iter)
+                                   run_opts, data_opts, save_initial_case)
             print 'Current case set:'
             print case_info['case_set']
             ####
@@ -363,7 +384,7 @@ def iter_loop():
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
         # Read data into objects:
-        if first_iter and use_exist_data == 'on':
+        if first_iter and extract_data == 'off':
             print 'not extracting new data...for now'
         else:
             print 'extracting new output data'
@@ -506,6 +527,7 @@ def iter_loop():
         else:
             print 'Iteration {} not converged'.format(iter_cntr)
             first_iter = False
+            save_initial_case = False
             doe_sets['doe'] = search_res['new_doe']
             doe_sets['doe_scaled'] = search_res['new_doe_scaled'] 
             with open(data_opts['doe_fname'], 'wb') as outpf:

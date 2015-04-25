@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-
+import pdb
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
     if kwargs['doe_type'] == 'FF':
@@ -99,7 +99,7 @@ def calc_extra_states(extra_states):
 #   - Return the names and store into a data_names dict
 
 def make_case_matrix(case_set, case_info, run_opts, data_opts, 
-                     first_iter): # change from case_matrix... to a case_set that can be updated?
+                     save_init_case): # change from case_matrix... to a case_set that can be updated?
     
     #extra_states, dv_bounds
     extra_states = case_info['extra_states']
@@ -184,7 +184,7 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
 
     with open(data_opts['cases_fname'], 'wb') as outpf:
         cPickle.dump(created_filepaths, outpf, 2)
-    if first_iter:
+    if save_init_case:
         with open(data_opts['res_cases_fname'], 'wb') as outpf:
             cPickle.dump(created_filepaths, outpf, 2)
 
@@ -194,6 +194,7 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
 
 
 def run_case_matrix(case_set_names, data_opts, interval):
+    pdb.set_trace()
     root_dir = data_opts['input_dirname']
     job_set_dict = {}
     all_job_set_id = []
@@ -227,7 +228,9 @@ def run_case_matrix(case_set_names, data_opts, interval):
     return all_job_set_id
 
 
-def full_queue_check(submit_job_dict, interval, queue_job_dict={}, wait_time=350):
+def full_queue_check(submit_job_dict, interval, queue_job_dict=None, wait_time=350):
+    if queue_job_dict == None:
+        queue_job_dict = {}
     raw_queue_output = subprocess.check_output(['qstat'])
     raw_queue_output = raw_queue_output.replace('.', ' ').split()
     for jobid in submit_job_dict:
@@ -245,10 +248,13 @@ def full_queue_check(submit_job_dict, interval, queue_job_dict={}, wait_time=350
         # Submit new job!
         print '{} jobs in queue, less than desired {} jobs, submitting a new job'.format(
                queue_jobs, interval)
-    else:
+    elif queue_jobs == interval:
         print 'Full queue - {} jobs! Waiting for queue to clear'.format(interval)
         time.sleep(wait_time)
         queue_job_dict = full_queue_check(submit_job_dict, interval, queue_job_dict)
+    else:
+        raise Exception('queue jobs is {}, larger than interval {}, error in code'.format(
+                         queue_jobs, interval))
     return copy.deepcopy(queue_job_dict)
 
 

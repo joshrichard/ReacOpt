@@ -15,8 +15,8 @@ from scipy.spatial.distance import cdist, pdist, squareform, euclidean
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
-salt_type ='nafzrf4'
-basename = 'lhs_50'
+salt_type ='flibe'
+basename = 'lhs_110'
 
 data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
     'optimization_results','pow_iterations', salt_type, basename))
@@ -87,12 +87,16 @@ def main():
     opt_loc_orig_dists = cdist(opt_val_loc, opt_val_loc[0, np.newaxis])[:,0]
     opt_orig_dist_axis = {'y_axis':'Distance from each opt point to orig'}
     iter_val_plot(opt_loc_orig_dists, opt_orig_dist_axis, 'opt_orig_dist')
-    # plots dists from optimal val location to search point
+    # plots dists from optimal val location to surrent search point
     opt_search_dists = cdist(opt_val_loc, doe_scaled)
-    opt_search_dists = np.diagonal(opt_search_dists).copy()
-    opt_search_axis = {'y_axis':'Distance from optimum to search location'}
-    iter_val_plot(opt_search_dists, opt_search_axis, 'opt_search_dist')
+    opt_search_current_dists = np.diagonal(opt_search_dists).copy()
+    opt_search_current_axis = {'y_axis':'Distance from optimum to current search location'}
+    iter_val_plot(opt_search_current_dists, opt_search_current_axis, 'opt_search_current_dist')
+    # plots dists from opt val loc to previous search point
     # Write out table of optimal value locations
+    opt_search_prev_dists = np.diagonal(opt_search_dists, offset=-1).copy()
+    opt_search_prev_axis = {'y_axis':'Distance from optimum to prev search location'}
+    iter_val_plot(opt_search_prev_dists, opt_search_prev_axis, 'opt_search_prev_dist')
     with open(table_filename, 'a') as f:
         f.write(os.linesep)
         f.write('Optimal Value locations:' + os.linesep)
