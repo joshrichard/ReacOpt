@@ -583,8 +583,9 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
 #        converged = False
 #    return converged
     
-def converge_check(prev_obs_vals, converge_opts):
-    
+def converge_check(prev_obs_vals, opt_res, converge_opts):
+
+    active_span = opt_res.active_span #opt_res.active_span -1.0 * math.log(opt_res.active_span)
     converge_tol = converge_opts['converge_tol']
     converge_points = converge_opts['converge_points']
     converge_type = converge_opts['converge_type']
@@ -598,9 +599,14 @@ def converge_check(prev_obs_vals, converge_opts):
         pos_delta_set = np.abs(delta_set)
         converged = np.all(np.less(pos_delta_set[-converge_points:], stop_criterion))
     elif converge_type == 'rel':
-        rel_delta_set = delta_set / obs_obj_vals[:-1]
+        rel_delta_set = delta_set / obs_obj_vals[:-1] # Is this correct? why not [-1] ?
         pos_rel_delta_set = np.abs(rel_delta_set)
         converged = np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol))
+    elif converge_type == 'rel_span':
+        last_obj_val = math.exp(obs_obj_vals[-1] * -1.0) # math.exp(obs_obj_vals[-1] * -1.0) ,  obs_obj_vals[-1]
+        rel_span = last_obj_val / active_span
+        converged = rel_span < converge_tol
+        
     #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
 
     # Code to do relative diff converge check | TAG: outtest
@@ -699,6 +705,12 @@ class BestObsOptVal(object):
         loc_min_rGPM_obj_val = X_t[constr_opt_val_mask.argmin()]
         self.fun = min_rGPM_obj_val
         self.x = loc_min_rGPM_obj_val
+        # Find 'active span' of observed responses, used later in checking for convergence
+        max_rGPM_obj_val = constr_opt_val_mask.max()
+        active_span_rGPM_obj_val = max_rGPM_obj_val - min_rGPM_obj_val
+        if active_span_rGPM_obj_val < 0.0:
+            active_span_rGPM_obj_val = active_span_rGPM_obj_val * -1.0
+        self.active_span = active_span_rGPM_obj_val
 
 
 class RandGlobal(object):

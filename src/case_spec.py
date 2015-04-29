@@ -23,7 +23,7 @@ import logging
 import numpy as np
 import time
 #from scipy.spatial.distance import euclidean
-#import pdb
+import pdb
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
@@ -127,11 +127,11 @@ fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_
             'theta_bounds':{'up':1e2, 'low':1e-3, 'guess':1e-1}}
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 # either 'range' or 'rel'
-converge_opts = {'converge_tol':1e-3, 'converge_points':3, 
-                 'converge_type':'rel'}
+converge_opts = {'converge_tol':1e-5, 'converge_points':3, 
+                 'converge_type':'rel_span'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
+outp_mode = 'interact' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
 extract_data = 'on'
 use_exist_data = 'off'
@@ -421,6 +421,7 @@ def iter_loop():
                 last_opt = last_opt[-1]
             except (IOError, EOFError):
                 last_opt = None
+        pdb.set_trace()
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
 #        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
@@ -490,7 +491,8 @@ def iter_loop():
         ####
         # Check expect val convergence
         ####
-        if len(all_search_res) <= converge_opts['converge_points']:
+        pdb.set_trace()
+        if converge_opts['converge_type'] != 'rel_span' and len(all_search_res) <= converge_opts['converge_points']:
             print 'Only have {} search results, need at least 4 or more'.format(
                    len(all_search_res))
             print 'not checking for expect val convergence'
@@ -499,7 +501,7 @@ def iter_loop():
             if search_type == 'exploit':
                 converged_temp = opt_module.converge_check(all_opt_res, converge_opts)
             elif search_type == 'hybrid':
-                converged_temp = opt_module.converge_check(all_search_res, converge_opts)
+                converged_temp = opt_module.converge_check(all_search_res, opt_res, converge_opts)
         ####
         #
         ####
