@@ -676,7 +676,31 @@ class MyConstr(object):
         print 'Peak fuel temp constr is {}'.format(self.fuel_temp_eval(x))
         print 'Peak power per particle constr is {}'.format(self.triso_pow_eval(x))
         
+
+# Class to find minimum currently observed rGPM obj fun val, store
+class BestObsOptVal(object):
+    def __init__(self, X_t, obj_vals, constr_list, converge_tol=1E-3):
+        self.find_constr_opt(X_t, obj_vals, constr_list, converge_tol)
         
+    def find_constr_opt(self, X_t, obj_vals, constr_list, converge_tol):
+        constr_res_list = []
+        constr_bound_arr = np.ones(X_t.shape) * converge_tol
+        # Eval constr functions at all X
+        for constr_fun in constr_list:
+            constr_res_list.append(np.less(constr_fun(X_t), constr_bound_arr))
+        # Add boolean arrays to get boolean array that satisfies all constr
+        final_bool_array = constr_res_list[0]
+        for bool_array in constr_res_list[1:]:
+            final_bool_array = np.logical_and(final_bool_array, bool_array)
+        # Created masked array of constr opt vals using final bool array
+        constr_opt_val_mask = np.ma.array(obj_vals, mask=final_bool_array)
+        # Find minimum of the observed rGPM obj vals
+        min_rGPM_obj_val = constr_opt_val_mask.min()
+        loc_min_rGPM_obj_val = X_t[constr_opt_val_mask.argmin()]
+        self.fun = min_rGPM_obj_val
+        self.x = loc_min_rGPM_obj_val
+
+
 class RandGlobal(object):
     def __init__(self):
         self.num_success = 0

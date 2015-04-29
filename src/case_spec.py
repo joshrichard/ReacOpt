@@ -423,8 +423,13 @@ def iter_loop():
                 last_opt = None
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
-        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
-                                              outp_name = data_opts['opt_fname'])
+#        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
+#                                              outp_name = data_opts['opt_fname'])
+        opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
+                                           fit_dict['obj_val']['rgpm_fit_data'], 
+                                           optimization_options['search_constr_gpm'])
+        with open(data_opts['opt_fname'], 'wb') as optf:
+            cPickle.dump(opt_res, optf, 2)
         print 'Results of optimization:'
         print opt_res # Make this work with new data struc from opt
         optimization_options['accept_test'].print_result(opt_res.x)

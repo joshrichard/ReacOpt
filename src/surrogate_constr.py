@@ -177,12 +177,12 @@ def make_meta(data_dict, doe_set, data_opts, fit_opts):
             if key_name == 'max_cycle':
                 fit_dict[key_name].update({'igpm_surro_obj':fit_dict[key_name]['surro_obj']})
             else:
-                # Start by getting the rGPM data at each DOE location
-                igpm_data = fit_dict[key_name]['surro_obj'].predict(X_t) # np.apply_along_axis(fit_dict['obj_val']['surro_obj'].predict, 1, X_t).sum(1), or fit_dict['obj_val']['surro_obj'].predict(X_t)
+                # Start by getting the rGPM data at each DOE location, store
+                fit_dict[key_name].update({'rgpm_fit_data':fit_dict[key_name]['surro_obj'].predict(X_t)}) # np.apply_along_axis(fit_dict['obj_val']['surro_obj'].predict, 1, X_t).sum(1), or fit_dict['obj_val']['surro_obj'].predict(X_t)
                 # Now, use this as the data to fit with a new interpolating GPM (iGPM)
                 # that uses the same hyperparameters as the rGPM
                 fit_dict[key_name].update({'igpm_surro_obj':gaussian_process.GaussianProcess(theta0=fit_dict[key_name]['surro_obj'].theta_)}) # theta0=fit_dict['obj_val']['surro_obj'].theta_ or theta0=theta_guess, thetaL = theta_lowb, thetaU = theta_upb
-                fit_dict[key_name]['igpm_surro_obj'].fit(X_t, igpm_data)
+                fit_dict[key_name]['igpm_surro_obj'].fit(X_t, fit_dict[key_name]['rgpm_fit_data'])
                 
     
 
