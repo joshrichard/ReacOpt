@@ -11,6 +11,7 @@ from __future__ import division
 
 import numpy as np
 import math
+from uncertainties import unumpy
 #import operator as op
 #import itertools
 #from collections import OrderedDict
@@ -27,7 +28,7 @@ from scipy.spatial.distance import euclidean
 import core_objects_v5 as core
 
 
-#import pdb
+import pdb
 
 # Decorator to make a function return the negative of it's usual value
 def make_neg(func):
@@ -182,8 +183,9 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
                                     bounds=dvbounds, default_core=defaultcore)
         pow_max_constr_eval = pow_max_constr - pow_obj.get_peak_triso_pow()
-        val_pow_max_constr = pow_max_constr_eval.nominal_value
-        mse_pow_max_constr = (float(pow_max_constr_eval.std_dev))**2.0
+        val_pow_max_constr = unumpy.nominal_values(pow_max_constr_eval).sum(1)
+        mse_pow_max_constr = unumpy.std_devs(pow_max_constr_eval).sum(1)**2.0
+        #mse_pow_max_constr = (float(pow_max_constr_eval.std_dev))**2.0
         if eval_MSE:
             return val_pow_max_constr, mse_pow_max_constr
         else:
@@ -215,8 +217,9 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
                                     bounds=dvbounds, default_core=defaultcore)
         t_max_constr_eval = t_max_constr - pow_obj.get_peak_triso_temp()
-        val_t_max_constr = t_max_constr_eval.nominal_value
-        mse_t_max_constr = (float(t_max_constr_eval.std_dev))**2.0
+        val_t_max_constr = unumpy.nominal_values(t_max_constr_eval).sum(1)
+        mse_t_max_constr = unumpy.std_devs(t_max_constr_eval).sum(1)**2.0
+        #mse_t_max_constr = (float(t_max_constr_eval.std_dev))**2.0
         if eval_MSE:
             return val_t_max_constr, mse_t_max_constr
         else:
@@ -688,16 +691,24 @@ class BestObsOptVal(object):
     def __init__(self, X_t, obj_vals, constr_list, converge_tol=1E-3):
         self.find_constr_opt(X_t, obj_vals, constr_list, converge_tol)
         
+    def __repr__(self):
+        return 'obj val optimum obj: opt val of {} at {}'.format(self.fun, self.x)
+        
     def find_constr_opt(self, X_t, obj_vals, constr_list, converge_tol):
+        if obj_vals[0] > 0.0:
+            obj_vals = obj_vals * -1.0
         constr_res_list = []
-        constr_bound_arr = np.ones(X_t.shape) * converge_tol
+        constr_bound_arr = np.ones(obj_vals.shape) * converge_tol
         # Eval constr functions at all X
         for constr_fun in constr_list:
             constr_res_list.append(np.less(constr_fun(X_t), constr_bound_arr))
-        # Add boolean arrays to get boolean array that satisfies all constr
-        final_bool_array = constr_res_list[0]
-        for bool_array in constr_res_list[1:]:
-            final_bool_array = np.logical_and(final_bool_array, bool_array)
+            # Add boolean arrays to get boolean array that satisfies all constr
+            if len(constr_res_list) == 1:
+                final_bool_array = constr_res_list[0]
+            final_bool_array = np.logical_or(final_bool_array, constr_res_list[-1])
+#        final_bool_array = constr_res_list[0]
+#        for bool_array in constr_res_list[1:]:
+#            final_bool_array = np.logical_and(final_bool_array, bool_array)
         # Created masked array of constr opt vals using final bool array
         constr_opt_val_mask = np.ma.array(obj_vals, mask=final_bool_array)
         # Find minimum of the observed rGPM obj vals

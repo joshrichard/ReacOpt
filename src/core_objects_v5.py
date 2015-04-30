@@ -14,8 +14,8 @@ from scipy.spatial.distance import pdist
 import codecs
 from bisect import bisect_right
 from sklearn import gaussian_process
-from uncertainties import ufloat
-#import pdb
+from uncertainties import ufloat, unumpy
+import pdb
 
 
 #import weakref
@@ -1373,21 +1373,25 @@ class AssemblyPowerPeak(object):
     def set_core_conditions(self, dv_type, **kwargs):
         if dv_type == 'real':
             self.dv_dict = kwargs['dv_real']
-            #self.dv_vec_scaled = dv_scaler(kwargs['dv_real'], dv_bounds=kwargs['bounds'], scal_type='scaled').sum(0)
+            #self.dv_vec_scaled = dv_scaler(kwargs['dv_real'], dv_bounds=kwargs['bounds'], scal_type='scaled')
         elif dv_type == 'scaled':
             self.dv_vec_scaled = kwargs['dv_scaled']
-            dv_vec = dv_scaler(kwargs['dv_scaled'], dv_bounds=kwargs['bounds'], scal_type='real').sum(0)
+            dv_vec = dv_scaler(self.dv_vec_scaled, dv_bounds=kwargs['bounds'], scal_type='real')
             self.dv_dict = make_design_dict(dv_vec, kwargs['bounds'].keys(), kwargs['default_core'])
         else:
             raise Exception("first positional argument must be either 'real' or 'scaled', not {}".format(dv_type))
-        self.core_h = float(self.dv_dict['coreh'])*1e-2 # core height [input: cm, output: m]
-        self.pf = float(self.dv_dict['pf'])
-        self.krad = float(self.dv_dict['krad'])*1e-2 # kernel radius [input: cm, output: m]
-        self.core_power = float(self.dv_dict['power'])*1e6 # Input in [MW], store in [W]
+        self.core_h = self.dv_dict['coreh']*1e-2 # core height [input: cm, output: m]
+        self.pf = self.dv_dict['pf']
+        self.krad = self.dv_dict['krad']*1e-2 # kernel radius [input: cm, output: m]
+        self.core_power = self.dv_dict['power']*1e6 # Input in [MW], store in [W]
         if isinstance(self.radial_peak, gaussian_process.GaussianProcess): #type(self.radial_peak).__module__ is sklearn.__name__:
             self.calc_radial_peak()
+        else:
+            self.radial_peak = np.array([self.radial_peak])[:,np.newaxis]
         if isinstance(self.axial_peak, gaussian_process.GaussianProcess): #type(self.axial_peak).__module__ is sklearn.__name__:
             self.calc_axial_peak()
+        else:
+            self.axial_peak = np.array([self.axial_peak])[:,np.newaxis]
         self.calc_volumes()
         self.calc_core_powers()
         self.calc_fuel_temps()
@@ -1395,9 +1399,11 @@ class AssemblyPowerPeak(object):
         
     def calc_volumes(self):
         self.layerrad = self.krad + self.tot_lay_thick
+        if len(self.layerrad.shape) < 2:
+            self.layerrad = self.layerrad[np.newaxis,:]
         self.single_pin_vol = np.pi*self.pin_rad**2.0*self.core_h
         self.all_triso_pin_vol = self.single_pin_vol * self.pf
-        self.single_triso_vol = 4.0/3.0 * np.pi * self.layerrad[-1]**3.0
+        self.single_triso_vol = 4.0/3.0 * np.pi * self.layerrad[:,-1, np.newaxis]**3.0
         self.num_triso_pin = self.all_triso_pin_vol / self.single_triso_vol
         
         
@@ -1419,20 +1425,20 @@ class AssemblyPowerPeak(object):
 
     def calc_fuel_temps(self):
         self.calc_peak_bulk_fuel_temp()
-        self.t_max = self.peak_bulk_fuel_temp + self.peak_ax_triso_power_hot_pin /(6.0*self.layer_k[0]*self.layerrad[0])
+        self.t_max = self.peak_bulk_fuel_temp + self.peak_ax_triso_power_hot_pin /(6.0*self.layer_k[0]*self.layerrad[:,0,np.newaxis])
         for idx in xrange(1,len(self.layer_k)):
-            self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
-                                      - 1.0/(self.layer_k[idx]*self.layerrad[idx - 1]))
+            self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[:,idx,np.newaxis]) \
+                                      - 1.0/(self.layer_k[idx]*self.layerrad[:,idx - 1,np.newaxis]))
                                       
     def calc_radial_peak(self):
         self.radial_peak_surrogate = copy.deepcopy(self.radial_peak)
         radpeak_val, radpeak_MSE = self.radial_peak_surrogate.predict(self.dv_vec_scaled, eval_MSE=True)
-        self.radial_peak = ufloat(radpeak_val, (radpeak_MSE)**0.5)
+        self.radial_peak = unumpy.uarray(radpeak_val, (radpeak_MSE)**0.5)[:,np.newaxis] #ufloat(radpeak_val, (radpeak_MSE)**0.5)
 
     def calc_axial_peak(self):
         self.axial_peak_surrogate = copy.deepcopy(self.axial_peak)
         axpeak_val, axpeak_MSE = self.axial_peak_surrogate.predict(self.dv_vec_scaled, eval_MSE=True)
-        self.axial_peak = ufloat(axpeak_val, (axpeak_MSE)**0.5)
+        self.axial_peak = unumpy.uarray(axpeak_val, (axpeak_MSE)**0.5)[:,np.newaxis] #ufloat(axpeak_val, (axpeak_MSE)**0.5)
         
     def get_peak_triso_pow(self):
         return self.peak_ax_triso_power_peak_pin
@@ -1444,7 +1450,11 @@ class AssemblyPowerPeak(object):
         try:
             self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power.nominal_value))
         except AttributeError:
-            self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power))
+            if type(self.peak_ax_vol_power) is float:
+                self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power))
+            else:
+                vec_peak_fuel_temp_regress = np.vectorize(self.peak_fuel_temp_regress.predict)
+                self.peak_bulk_fuel_temp = vec_peak_fuel_temp_regress(unumpy.nominal_values(self.peak_ax_vol_power))
 
 
     def print_all_powers(self):
@@ -1774,9 +1784,18 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
     return dv_new
     
 def make_design_dict(feature_vals, feature_names, default_features):
-    # where feature_vals and feature_names are lists (or tuples)
+    # where feature_vals and feature_names are lists/tuples or arrays
     # of the variable features
     # and default_features is a dict of the default feature names and vales
+    # if feature_vals is a 2D array, prep it for use here
+    if type(feature_vals) is list or type(feature_vals) is tuple:
+        pass
+    else:
+        # Assume array
+        feature_vals = np.split(feature_vals, feature_vals.shape[-1], axis=1)
+#        for idx, item in enumerate(copy.deepcopy(feature_vals)):
+#            feature_vals[idx] = item.sum(1)
+    #Now, pair the names with the values
     feature_dict = OrderedDict(zip(feature_names, feature_vals))
     ## See if a feature is variable or is constant
     all_feature_set = OrderedDict()

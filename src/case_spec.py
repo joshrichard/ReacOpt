@@ -26,7 +26,8 @@ import time
 import pdb
 
 
-np.set_printoptions(precision=5, linewidth=90, suppress=True)
+#np.set_printoptions(precision=5, linewidth=90, suppress=True)
+
 #np.seterr(all='raise')
 
 # Global access variables
@@ -57,7 +58,7 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
@@ -131,7 +132,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
                  'converge_type':'rel_span'}
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
 extract_data = 'on'
 use_exist_data = 'off'
@@ -152,7 +153,7 @@ if run_mode == 'normal':
         pass
 elif run_mode == 'restart' or run_mode == 'reuse_doe':
     try:
-        if use_exist_data == 'off': # careful with this!
+        if use_exist_data == 'off' and extract_data == 'on': # careful with this!
             os.remove(data_opts['data_fname'])
         #os.remove(data_opts['iter_fname'])
     except OSError:
@@ -421,7 +422,6 @@ def iter_loop():
                 last_opt = last_opt[-1]
             except (IOError, EOFError):
                 last_opt = None
-        pdb.set_trace()
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
 #        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
@@ -443,6 +443,7 @@ def iter_loop():
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, last_opt,
                                                 case_info, data_opts, fit_opts)
+        pdb.set_trace()
         new_search_dv = search_res['new_doe_scaled']
         print 'Search result:'
         print search_res
