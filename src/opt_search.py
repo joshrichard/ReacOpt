@@ -28,7 +28,7 @@ from scipy.spatial.distance import euclidean
 import core_objects_v5 as core
 
 
-import pdb
+#import pdb
 
 # Decorator to make a function return the negative of it's usual value
 def make_neg(func):

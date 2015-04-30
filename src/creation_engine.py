@@ -297,7 +297,7 @@ def make_mats(mats_inp_dict, run_opts):
     pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
                                      pin_peaking = np.ones(7))
     pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_dict) # Fix this to work with new dv dict approach!
-    fuel_temp = pow_obj.get_peak_triso_temp()
+    fuel_temp = float(pow_obj.get_peak_triso_temp())
     if fuel_temp < 1200.0:
         fuel_temp = 1200.0
     # Find the xs and sab extension for this temp:

@@ -15,7 +15,7 @@ import codecs
 from bisect import bisect_right
 from sklearn import gaussian_process
 from uncertainties import ufloat, unumpy
-import pdb
+#import pdb
 
 
 #import weakref
@@ -1792,7 +1792,10 @@ def make_design_dict(feature_vals, feature_names, default_features):
         pass
     else:
         # Assume array
-        feature_vals = np.split(feature_vals, feature_vals.shape[-1], axis=1)
+        try:
+            feature_vals = np.split(feature_vals, feature_vals.shape[-1], axis=1)
+        except IndexError:
+            pass
 #        for idx, item in enumerate(copy.deepcopy(feature_vals)):
 #            feature_vals[idx] = item.sum(1)
     #Now, pair the names with the values

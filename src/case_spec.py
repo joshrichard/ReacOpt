@@ -23,7 +23,7 @@ import logging
 import numpy as np
 import time
 #from scipy.spatial.distance import euclidean
-import pdb
+#import pdb
 
 
 #np.set_printoptions(precision=5, linewidth=90, suppress=True)
@@ -133,7 +133,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal', or 'reuse_doe'
+run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue'
 extract_data = 'on'
 use_exist_data = 'off'
 submit_interval = 6
@@ -443,7 +443,6 @@ def iter_loop():
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, last_opt,
                                                 case_info, data_opts, fit_opts)
-        pdb.set_trace()
         new_search_dv = search_res['new_doe_scaled']
         print 'Search result:'
         print search_res
@@ -492,7 +491,6 @@ def iter_loop():
         ####
         # Check expect val convergence
         ####
-        pdb.set_trace()
         if converge_opts['converge_type'] != 'rel_span' and len(all_search_res) <= converge_opts['converge_points']:
             print 'Only have {} search results, need at least 4 or more'.format(
                    len(all_search_res))
