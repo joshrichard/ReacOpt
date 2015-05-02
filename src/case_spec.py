@@ -26,7 +26,7 @@ import time
 #import pdb
 
 
-#np.set_printoptions(precision=5, linewidth=90, suppress=True)
+np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
 #np.seterr(all='raise')
 
@@ -61,7 +61,7 @@ run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pi
                  ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
-folder_set_name = 'lhs_50_test1'
+folder_set_name = 'lhs_110_test1'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -83,22 +83,22 @@ fit_dict = {}
 
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
-data_opts = dict([('data_dirname', os.path.expanduser(data_dir)), \
-('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname, folder_set_name)), \
-('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')), \
-('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')), \
-('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')), \
-('init_doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_initdoe.out')), \
-('cases_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_cases.out')), \
-('res_cases_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_rescases.out')), \
-('jobs_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_jobids.out')), \
-('data_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_data.out')), \
-('fit_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_fit.out')), \
-('xval_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_xval.out')), \
-('opt_inp_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_inp_settings.out')), \
-('opt_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_results.out')), \
-('search_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_search.out')), \
-('iter_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_dump_iter.out')), \
+data_opts = dict([('data_dirname', os.path.expanduser(data_dir)),
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), # , salt_file_dirname , folder_set_name | Remove both for nafzrf4, or just folder_set for flibe
+('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')),
+('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')),
+('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')),
+('init_doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_initdoe.out')),
+('cases_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_cases.out')),
+('res_cases_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_rescases.out')),
+('jobs_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_jobids.out')),
+('data_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_data.out')),
+('fit_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_fit.out')),
+('xval_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_xval.out')),
+('opt_inp_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_inp_settings.out')),
+('opt_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_results.out')),
+('search_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_search.out')),
+('iter_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_dump_iter.out')),
 ('final_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_final.out')) ])
 
 detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002'), 
@@ -133,7 +133,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue'
+run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 extract_data = 'on'
 use_exist_data = 'off'
 submit_interval = 6
@@ -158,9 +158,9 @@ elif run_mode == 'restart' or run_mode == 'reuse_doe':
         #os.remove(data_opts['iter_fname'])
     except OSError:
         pass
-elif run_mode == 'continue':
+elif run_mode == 'continue_iter':
     if use_exist_data == 'off':
-        raise Exception("If running in continue mode, must have use_exist_data set to 'on'")
+        raise Exception("If running in continue_iter mode, must have use_exist_data set to 'on'")
     namestring = data_opts['data_fname'][:-4] + '_continue_' + timestring + '.out'
     shutil.copy(data_opts['data_fname'], namestring)
 
@@ -202,6 +202,7 @@ def main():
     if args.make == 'on':
         print 'Making input files'
         first_iter = True
+        save_initial_case = False
         if first_iter and run_mode == 'reuse_doe':
             print 'first iter in reuse_doe mode: Extracting preexisting doe data'
             with open(data_opts['init_doe_fname'], 'rb') as f: # could get rid of this?
@@ -212,7 +213,7 @@ def main():
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
         case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info,
-                               run_opts, data_opts, first_iter)
+                               run_opts, data_opts, save_initial_case)
 
         
     if args.run == 'init':
@@ -334,7 +335,7 @@ def iter_loop():
                 with open(data_opts['doe_fname'], 'wb') as f:
                     cPickle.dump(doe_sets['doe'], f, 2)
                     cPickle.dump(doe_sets['doe_scaled'], f, 2)
-            elif run_mode == 'continue':
+            elif run_mode == 'continue_iter':
                 print 'run_mode = {}: Using last search point'.format(run_mode)
                 with open(data_opts['doe_fname'], 'rb') as f:
                     doe_sets['doe'] = cPickle.load(f)
@@ -491,7 +492,7 @@ def iter_loop():
         ####
         # Check expect val convergence
         ####
-        if converge_opts['converge_type'] != 'rel_span' and len(all_search_res) <= converge_opts['converge_points']:
+        if  len(all_search_res) <= converge_opts['converge_points']:
             print 'Only have {} search results, need at least 4 or more'.format(
                    len(all_search_res))
             print 'not checking for expect val convergence'

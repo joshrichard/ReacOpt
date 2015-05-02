@@ -588,7 +588,7 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
     
 def converge_check(prev_obs_vals, opt_res, converge_opts):
 
-    active_span = opt_res.active_span #opt_res.active_span -1.0 * math.log(opt_res.active_span)
+    active_span = opt_res.active_span #opt_res.active_span,  -1.0 * math.log(opt_res.active_span)
     converge_tol = converge_opts['converge_tol']
     converge_points = converge_opts['converge_points']
     converge_type = converge_opts['converge_type']
@@ -606,9 +606,9 @@ def converge_check(prev_obs_vals, opt_res, converge_opts):
         pos_rel_delta_set = np.abs(rel_delta_set)
         converged = np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol))
     elif converge_type == 'rel_span':
-        last_obj_val = math.exp(obs_obj_vals[-1] * -1.0) # math.exp(obs_obj_vals[-1] * -1.0) ,  obs_obj_vals[-1]
-        rel_span = last_obj_val / active_span
-        converged = rel_span < converge_tol
+        actual_obj_val = np.exp(obs_obj_vals * -1.0) # math.exp(obs_obj_vals[-1] * -1.0) ,  obs_obj_vals[-1]
+        rel_span = actual_obj_val / active_span
+        converged = np.all(np.less(rel_span[-converge_points:], converge_tol))
         
     #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
 

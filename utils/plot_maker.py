@@ -11,12 +11,12 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import os
 import cPickle
 from scipy.spatial.distance import cdist, pdist, squareform, euclidean
-#import core_objects_v5 as core
+import core_objects_v5 as core
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
-salt_type ='flibe'
-basename = 'lhs_110'
+salt_type ='nafzrf4'
+basename = 'lhs_50'
 
 data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
     'optimization_results','pow_iterations', salt_type, basename))
