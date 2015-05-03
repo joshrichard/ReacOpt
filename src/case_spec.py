@@ -134,8 +134,11 @@ thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
 run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
-extract_data = 'on'
-use_exist_data = 'off'
+# **** Be careful with this! If the existing data already has been extracted, 
+# will do so again if extract_data == 'on', causing an error!
+extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
+use_exist_data = 'off' # 'off' if doing clean restart after initial DoE
+use_last_iter = 'on' # 'on' unless continue_run
 submit_interval = 6
 
 
@@ -161,8 +164,10 @@ elif run_mode == 'restart' or run_mode == 'reuse_doe':
 elif run_mode == 'continue_iter':
     if use_exist_data == 'off':
         raise Exception("If running in continue_iter mode, must have use_exist_data set to 'on'")
-    namestring = data_opts['data_fname'][:-4] + '_continue_' + timestring + '.out'
-    shutil.copy(data_opts['data_fname'], namestring)
+    if extract_data == 'on':
+        raise Exception("If running in continue_iter mode, must have extract_data set to 'off'")
+#        namestring = data_opts['data_fname'][:-4] + '_continue_' + timestring + '.out'
+#        shutil.copy(data_opts['data_fname'], namestring)
 
 if outp_mode == 'iterate':
     try:
@@ -386,6 +391,7 @@ def iter_loop():
                 doe_sets['doe'] = cPickle.load(f)
                 doe_sets['doe_scaled'] = cPickle.load(f)
         # Read data into objects:
+        #pdb.set_trace()
         if first_iter and extract_data == 'off':
             print 'not extracting new data...for now'
         else:
@@ -420,7 +426,13 @@ def iter_loop():
             try:
                 with open(data_opts['iter_fname'], 'rb') as it_f:
                     last_opt = cPickle.load(it_f)
-                last_opt = last_opt[-1]
+                if first_iter and use_last_iter == 'off':
+                    iter_idx = -2
+                    iter_range_idx = iter_idx + 1
+                else:
+                    iter_idx = -1
+                    iter_range_idx = None
+                last_opt = last_opt[iter_idx]
             except (IOError, EOFError):
                 last_opt = None
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
@@ -474,8 +486,9 @@ def iter_loop():
                 global all_search_res
                 with open(data_opts['iter_fname'], 'rb') as it_f:
                     run_dump_data_list = cPickle.load(it_f)
-                all_opt_res = run_dump_data_list[-1]['all_opt_res']
-                all_search_res = run_dump_data_list[-1]['all_search_res']
+                run_dump_data_list = run_dump_data_list[:iter_range_idx]
+                all_opt_res = copy.deepcopy(run_dump_data_list[-1]['all_opt_res'])
+                all_search_res = copy.deepcopy(run_dump_data_list[-1]['all_search_res'])
                 iter_cntr = len(run_dump_data_list)
             except (IOError, EOFError):
                 print "Couldn't find input file, dumping new data out"
@@ -535,11 +548,11 @@ def iter_loop():
             print 'Iteration {} not converged'.format(iter_cntr)
             first_iter = False
             save_initial_case = False
-            doe_sets['doe'] = search_res['new_doe']
-            doe_sets['doe_scaled'] = search_res['new_doe_scaled'] 
-            with open(data_opts['doe_fname'], 'wb') as outpf:
-                cPickle.dump(doe_sets['doe'], outpf, 2)
-                cPickle.dump(doe_sets['doe_scaled'], outpf, 2)
+        doe_sets['doe'] = search_res['new_doe']
+        doe_sets['doe_scaled'] = search_res['new_doe_scaled'] 
+        with open(data_opts['doe_fname'], 'wb') as outpf:
+            cPickle.dump(doe_sets['doe'], outpf, 2)
+            cPickle.dump(doe_sets['doe_scaled'], outpf, 2)
             # Need to reset anyting else?
 
         
