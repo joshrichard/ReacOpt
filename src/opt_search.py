@@ -14,12 +14,13 @@ import math
 from uncertainties import unumpy
 #import operator as op
 #import itertools
-#from collections import OrderedDict
+from collections import OrderedDict
 import cPickle
 
 
 from scipy.optimize import minimize
 from scipy.optimize import basinhopping
+from scipy.optimize import differential_evolution
 from scipy.spatial.distance import euclidean
 #from scipy.misc import factorial2
 #from sklearn.linear_model import LinearRegression
@@ -113,6 +114,9 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
     #pdb.set_trace()
     sur_type = fit_opts['sur_type']
     dv_bounds = case_info['dv_bounds']
+    dv_bounds_scaled = OrderedDict()
+    for bound in dv_bounds:
+        dv_bounds_scaled.update({bound:(0.0, 1.0)})
     default_core = case_info['default_core']
     if sur_type == 'regress':
         igpm_obj_eval = make_neg(fit_dict['obj_val']['igpm_surro_obj'].predict)
@@ -271,11 +275,12 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
     cobyla_opts = {'catol':1E-3}
     basinhopping_opts = {'interval':15, 'disp':False}
     randomized_opts = {'niter':100} # , 'repeat_stop':15
-    min_kwargs = {"method":"COBYLA", "options":cobyla_opts}
+    min_kwargs = {"method":"L-BFGS-B", "bounds":dv_bounds_scaled.values()} # "bounds":dv_bounds_scaled.values() or "method":"COBYLA", "options":cobyla_opts
     min_kwargs_obj_fun = merge_dict(min_kwargs, {'constraints':cobyla_constr_obj_fun})
-    min_kwargs_search =  merge_dict(min_kwargs, {'constraints':cobyla_constr_search}) # replace with cobyla_constr_search |TAG: DEBUG
+    # Only use constraints here if SLSQP or COBYLA | TAG: toggle
+    min_kwargs_search = min_kwargs # merge_dict(min_kwargs, {'constraints':cobyla_constr_search}) # replace with cobyla_constr_search |TAG: DEBUG
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, fuel_temp_eval, triso_pow_eval, num_feat)
-    global_type = 'random'
+    global_type = 'evolve' # 'random', 'evolve', or basin?
     optim_options = {'fmin_opts_obj_fun':min_kwargs_obj_fun, 'fmin_opts_search':min_kwargs_search ,'accept_test':myaccept,
                      'x_guess':x_guess, 'obj_eval':obj_eval, 'search_constr_gpm':gpm_constr,
                      'basin_opts':basinhopping_opts, 'global_type':global_type,
@@ -478,7 +483,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         opt_fun = neg_expect_improve
     
 #    pdb.set_trace()
-#    dv_test = np.array([ 0.44616,  1.     ,  1.     ,  0.9531 ,  0.14932,  1.     ])
+#    dv_test = np.array([0.00865, 0.98704, 0.79148, 0.96384, 0.30697, 1.0])
 #    test1 = opt_fun(dv_test) # | TAG: debug
 #    myaccept.print_result(dv_test)
 #    test2 = opt_fun(np.array([ 0.37025,  0.97972,  0.99783,  0.9968 ,  0.4031 ,  0.99588]))
@@ -506,6 +511,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
     elif global_type == 'random':
         global_obj = RandGlobal()
         if opt_purpose == 'search_opt':
+            #pdb.set_trace()
             x_guess = opt_results.x
             try:
                 local_res = minimize(opt_fun, x_guess, **min_kwargs)
@@ -514,6 +520,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
                 random_iter = random_iter - 1
             except ValueError:
                 pass
+        #pdb.set_trace()
         pseudo_rand = np.random.RandomState(iter_num + 5)
         for local_iter in xrange(random_iter):
             exec_minimizer(pseudo_rand, len(x_guess), global_obj, opt_fun, min_kwargs)
@@ -528,6 +535,13 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
 #                break                
         global_obj.finish_step()
         global_res = global_obj
+        #pdb.set_trace()
+        
+    elif global_type == 'evolve':
+        #pdb.set_trace()
+        global_res = differential_evolution(opt_fun, min_kwargs['bounds'],
+                                            seed=iter_num + 5, disp=True)
+                                            
     else:
         msg = """
 {} is not a recognized global opt type,
@@ -553,7 +567,7 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
                       'new_doe':core.dv_scaler(opt_result.x, dv_bounds, 'real'),
                       }
     elif search_type == 'hybrid':
-        if global_opt_type == 'random':
+        if global_opt_type == 'random' or global_opt_type == 'evolve':
             search_point = optimize_wrapper(optim_options, exist_opt, opt_purpose = 'search_opt',
                                             opt_results = opt_result, fit_opts = fit_op)
         elif global_opt_type == 'basin':

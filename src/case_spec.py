@@ -58,10 +58,11 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_110_test1'
+opt_algo_name = 'evolve'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -70,7 +71,7 @@ folder_set_name = 'lhs_110_test1'
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
 # 'run_dump_files', 'lhs_110_test1'
 # 'test_exec', 'test_search_progress', 'lhs_110_searchprogress_testdata'
-dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'], folder_set_name)
+dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'], folder_set_name, opt_algo_name)
                  
 doe_opts = {'doe_type':'O-LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'LHS', 'num_LHS_samples':20, 'LHS_type':'maximin'}
 
@@ -84,7 +85,7 @@ fit_dict = {}
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)),
-('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files')), # , salt_file_dirname , folder_set_name | Remove both for nafzrf4, or just folder_set for flibe
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), # , salt_file_dirname , folder_set_name | Remove both for nafzrf4, or just folder_set for flibe (LHS=110 only)
 ('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')),
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')),
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')),
@@ -292,10 +293,10 @@ def main():
 #        opt_res = run_dump_data_list[dump_list_idx]['opt_res']
         
         last_opt = None
-        iter_cntr = 19
+        #last_opt = {'search_res':{'new_doe_scaled':np.array([0.00865, 0.98704, 0.79148, 0.96384, 0.30697, 1.0])}}
+        iter_cntr = 1
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
-        print 'Searching for new evaluation location'
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, last_opt,
                                                 case_info, data_opts, fit_opts)
