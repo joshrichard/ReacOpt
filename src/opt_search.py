@@ -702,17 +702,17 @@ class MyConstr(object):
 
 # Class to find minimum currently observed rGPM obj fun val, store
 class BestObsOptVal(object):
-    def __init__(self, X_t, obj_vals, constr_list, converge_tol=1E-3):
-        self.find_constr_opt(X_t, obj_vals, constr_list, converge_tol)
+    def __init__(self, X_t, obj_vals, constr_list, constr_tol=1E-3):
+        self.find_constr_opt(X_t, obj_vals, constr_list, constr_tol)
         
     def __repr__(self):
         return 'obj val optimum obj: opt val of {} at {}'.format(self.fun, self.x)
         
-    def find_constr_opt(self, X_t, obj_vals, constr_list, converge_tol):
+    def find_constr_opt(self, X_t, obj_vals, constr_list, constr_tol):
         if obj_vals[0] > 0.0:
             obj_vals = obj_vals * -1.0
         constr_res_list = []
-        constr_bound_arr = np.ones(obj_vals.shape) * converge_tol
+        constr_bound_arr = np.ones(obj_vals.shape) * constr_tol
         # Eval constr functions at all X
         for constr_fun in constr_list:
             constr_res_list.append(np.less(constr_fun(X_t), constr_bound_arr))
@@ -723,8 +723,12 @@ class BestObsOptVal(object):
 #        final_bool_array = constr_res_list[0]
 #        for bool_array in constr_res_list[1:]:
 #            final_bool_array = np.logical_and(final_bool_array, bool_array)
-        # Created masked array of constr opt vals using final bool array
+        # Store the constr_res_list
+        self.constr_res_list = constr_res_list
+        # Create masked array of constr opt vals using final bool array
         constr_opt_val_mask = np.ma.array(obj_vals, mask=final_bool_array)
+        # Store the masked array
+        self.constr_opt_val_mask = constr_opt_val_mask
         # Find minimum of the observed rGPM obj vals
         min_rGPM_obj_val = constr_opt_val_mask.min()
         loc_min_rGPM_obj_val = X_t[constr_opt_val_mask.argmin()]

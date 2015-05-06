@@ -61,8 +61,8 @@ run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pi
                  ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
-folder_set_name = 'lhs_110_test1'
-opt_algo_name = 'evolve'
+folder_set_name = 'lhs_50_test1'
+opt_algo_name = 'evolve' # evolve or L_BFGS_B
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -85,7 +85,7 @@ fit_dict = {}
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)),
-('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname)), # , salt_file_dirname , folder_set_name | Remove both for nafzrf4, or just folder_set for flibe (LHS=110 only)
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname, folder_set_name)), # , salt_file_dirname , folder_set_name | Remove both for nafzrf4, or just folder_set for flibe (LHS=110 only)
 ('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')),
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')),
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')),
@@ -259,18 +259,25 @@ def main():
         fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
         
     if args.opt == 'on':
-        with open(data_opts['data_fname'], 'rb') as f:
-            data_dict = cPickle.load(f)
-            doe_sets = cPickle.load(f)
-        with open(data_opts['fit_fname'], 'rb') as f:
-            fit_dict = cPickle.load(f)
+#        with open(data_opts['data_fname'], 'rb') as f:
+#            data_dict = cPickle.load(f)
+#            doe_sets = cPickle.load(f)
+#        with open(data_opts['fit_fname'], 'rb') as f:
+#            fit_dict = cPickle.load(f)
+        with open(data_opts['iter_fname'], 'rb') as f:
+            run_data_list = cPickle.load(f)
+        case_idx = 1
+        run_data = run_data_list[case_idx]
+        fit_dict = run_data['fit_dict']
+        doe_sets = run_data['doe_sets']
+        X_t = doe_sets['doe_scaled']
+        obj_val_data = fit_dict['obj_val']['rgpm_fit_data']
         last_opt = None
-        iter_cntr = 19
-        #pdb.set_trace()
+        iter_cntr = 1
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
                                                          fit_opts, case_info, iter_cntr)
-        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
-                                              outp_name = data_opts['opt_fname'])
+        opt_res = opt_module.BestObsOptVal(X_t, obj_val_data, 
+                                           optimization_options['search_constr_gpm'])
         print 'Results of optimization:'
         print opt_res # Make this work with new data struc from opt
         optimization_options['accept_test'].print_result(opt_res.x)

@@ -15,11 +15,12 @@ import core_objects_v5 as core
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
-salt_type ='nafzrf4'
+salt_type ='flibe'
 basename = 'lhs_50'
+opt_type = 'L_BFGS_B' # 'evolve' or 'L_BFGS_B'
 
 data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
-    'optimization_results','pow_iterations', salt_type, basename))
+    'optimization_results','pow_iterations', salt_type, basename, opt_type))
 
 maker_output_basename = salt_type + '_' + basename + '_'
 table_filename = os.path.join(data_dir, maker_output_basename + 'locations.out')
