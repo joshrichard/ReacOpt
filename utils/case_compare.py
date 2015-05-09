@@ -10,9 +10,10 @@ import os
 import cPickle
 from scipy.spatial.distance import euclidean
 
-salt_casetypes = ['flibe'] # ['flibe','nafzrf4']
+salt_casetypes = ['nafzrf4'] # ['flibe','nafzrf4']
 doe_casetypes = ['lhs_50', 'lhs_110']
-opt_casetypes = ['L_BFGS_B'] # 'evolve','L_BFGS_B'
+opt_casetypes = ['evolve'] # 'evolve','L_BFGS_B'
+analysis_casetypes = ['']
 
 data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
     'optimization_results','pow_iterations'))
