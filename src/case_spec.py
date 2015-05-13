@@ -5,25 +5,26 @@ Created on Fri Apr 11 12:58:27 2014
 @author: jgr42_000
 """
 
+
 #from core_objects_v5 import dv_scaler
-from core_objects_v5 import StreamToLogger
+from core_objects_v5 import StreamToLogger, ActOptRes
 import creation_engine as c_eng
 import surrogate_constr as sur_constr
 import opt_search as opt_module
 import argparse
 from collections import OrderedDict
 import os
-import shutil
+# import shutil
 import copy
-#import inspect
+# import inspect
 import cPickle
-#import itertools
+# import itertools
 import sys
 import logging
 import numpy as np
 import time
-#from scipy.spatial.distance import euclidean
-#import pdb
+# from scipy.spatial.distance import euclidean
+# import pdb
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
@@ -61,7 +62,7 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
@@ -139,7 +140,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'interact' # either 'interact' or 'iterate'
-run_mode = 'test' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+run_mode = 'reuse_doe' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
@@ -455,8 +456,10 @@ def iter_loop():
         opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
                                            fit_dict['obj_val']['rgpm_fit_data'], 
                                            optimization_options['search_constr_gpm'])
+        actual_opt_res = ActOptRes(opt_res.x, opt_res.fun, case_info['dv_bounds'])
         with open(data_opts['opt_fname'], 'wb') as optf:
             cPickle.dump(opt_res, optf, 2)
+            cPickle.dump(actual_opt_res, 2)
         print 'Results of optimization:'
         print opt_res # Make this work with new data struc from opt
         optimization_options['accept_test'].print_result(opt_res.x)
@@ -534,7 +537,8 @@ def iter_loop():
         iter_dump_data = {'doe_sets':doe_sets, 
                           'search_res':search_res, 'all_search_res':all_search_res,
                           'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
-                          'opt_res':opt_res, 'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
+                          'opt_res':opt_res, 'actual_opt_res':actual_opt_res,
+                          'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
         ####
         # Save data from each step into a single dump file for this iteration
         ####

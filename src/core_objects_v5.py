@@ -1684,8 +1684,12 @@ class OptimizedLHS(object):
         return result
             
 
-            
-
+# scaled opt res object
+class ActOptRes(object):
+    def __init__(self, x, fun, bounds):
+        self.bounds = bounds
+        self.x = dv_scaler(x, bounds, scal_type='real')
+        self.fun = fun
 
 # Functions for use in building input file
 
