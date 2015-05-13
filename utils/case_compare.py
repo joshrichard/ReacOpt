@@ -14,7 +14,7 @@ import core_objects_v5 as core
 from collections import OrderedDict
 import fnmatch
 
-import pdb
+#import pdb
 
 salt_casetypes = ['flibe', 'nafzrf4'] # ['flibe','nafzrf4']
 doe_casetypes = ['lhs_50'] # 'lhs_50', 'lhs_110'
@@ -61,7 +61,7 @@ def compare_cases(input_cases):
     cases = []
     for case in (input_cases):
         case_fullname = os.path.join(case, data_fname) 
-        if 'flibe_fixed_f2f' in case:
+        if 'fixed_f2f' in case:
             dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), 
                     ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('power',[20.0, 30.0])])
         else:
@@ -244,7 +244,6 @@ class CaseCompare(object):
         self.do_all_comps()
         
     def do_all_comps(self):
-        pdb.set_trace()
         for case_pair in itertools.combinations(self.cases, 2):
             self.compared_cases.append(CasePair(*case_pair))
 
