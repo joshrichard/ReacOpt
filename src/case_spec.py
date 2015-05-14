@@ -140,7 +140,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'reuse_doe' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
@@ -335,6 +335,7 @@ def iter_loop():
     first_iter = True
     save_initial_case = True
     iter_cntr = 0
+    use_dumped_data = False
 
 
     while not converged:
@@ -433,10 +434,11 @@ def iter_loop():
         ####
         # Optimize the objective function using the surrogate
         ####
+        #pdb.set_trace()
         print 'Optimizing on objective function of surrogate'
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
-        if first_iter and use_exist_data=='off':
+        if not use_dumped_data and use_exist_data=='off': # TAG: DEBUG
             last_opt = None
         else:
             try:
@@ -458,10 +460,26 @@ def iter_loop():
         opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
                                            fit_dict['obj_val']['rgpm_fit_data'], 
                                            optimization_options['search_constr_gpm'])
+        if hasattr(opt_res, 'success'):
+            if not opt_res.success: 
+                # Need some way here to know if there's no answer, period | TAG: DEBUG
+                obj_val_opt =  False
+                # Set a flag to tell the search/infill to do a constrained opt
+                # on the obj fun directly, use this point as the next search point
+                # This constrained opt can still be with P(sat) constr
+                opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
+                                              outp_name = data_opts['opt_fname'])
+                if not opt_res.success:
+                    opt_err_msg = """No constraint-satisfying solution could be found!
+Try loosening the constraints or widening the search space"""
+                    raise Exception(opt_err_msg)
+        else:
+            obj_val_opt = True
+        # Store opt results, use for search/infill 
         actual_opt_res = ActOptRes(opt_res.x, opt_res.fun, case_info['dv_bounds'])
         with open(data_opts['opt_fname'], 'wb') as optf:
             cPickle.dump(opt_res, optf, 2)
-            cPickle.dump(actual_opt_res, 2)
+            cPickle.dump(actual_opt_res, optf, 2)
         print 'Results of optimization:'
         print opt_res # Make this work with new data struc from opt
         optimization_options['accept_test'].print_result(opt_res.x)
@@ -471,7 +489,15 @@ def iter_loop():
         print 'Searching for new evaluation location'
         with open(data_opts['opt_fname'], 'rb') as optf:
             opt_res = cPickle.load(optf)
-        optimization_options['search_type'] = search_type
+        # Determine which sort of infill criteria to apply:
+        if not obj_val_opt:
+            # if the obj fun optimization failed to find a satisfying optimium,
+            # force the next high-fidelity evaluation to be at a predicted satisfying 
+            # location
+            optimization_options['search_type'] = 'exploit'
+        else:
+            # Otherwise, use the normal infill criterion
+            optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, last_opt,
                                                 case_info, data_opts, fit_opts)
         new_search_dv = search_res['new_doe_scaled']
@@ -481,92 +507,94 @@ def iter_loop():
         ####
         # Check for proximity convergence | commented out for testing | TAG: outtest
         ####
-        #print 'checking for duplicate search result'
-        #converged_temp = opt_module.prox_check(doe_sets, new_search_dv, euclid_tol)
-#        for dv_set in doe_sets['doe_scaled']:
-#            new_point_distance = euclidean(dv_set, new_search_dv)
-#            if new_point_distance < euclid_tol:
-#                print 'new point {} is {} away from previous point {}, within tol {}'.format(
-#                       new_search_dv, new_point_distance, dv_set, euclid_tol)
-#                print 'thus counting as converged!'
-#                converged_temp = True
-#                #search_duplicate = True
-#                break
-        # Cleanup step
-        # Load data from previous iterations if it exists
-        # and in restart mode using existing data
-        if first_iter and use_exist_data == 'off':
-            print 'Not using prexisting opt and search res data'
-        else:
-            try:
-                global run_dump_data_list
-                global all_opt_res
-                global all_search_res
-                with open(data_opts['iter_fname'], 'rb') as it_f:
-                    run_dump_data_list = cPickle.load(it_f)
-                run_dump_data_list = run_dump_data_list[:iter_range_idx]
-                all_opt_res = copy.deepcopy(run_dump_data_list[-1]['all_opt_res'])
-                all_search_res = copy.deepcopy(run_dump_data_list[-1]['all_search_res'])
-                iter_cntr = len(run_dump_data_list)
-            except (IOError, EOFError):
-                print "Couldn't find input file, dumping new data out"
-                pass
-        iter_cntr += 1
-        #iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
-        all_opt_res.append(opt_res.fun) # TAG: Improve?
-        #if not search_duplicate:
-        all_search_res.append(search_res['search_val'])
-        print 'Currently observed best obj fun values:'
-        print all_opt_res
-        print 'Currently identified expected improvements:'
-        print all_search_res
-        ####
-        # Check expect val convergence
-        ####
-        if  len(all_search_res) <= converge_opts['converge_points']:
-            print 'Only have {} search results, need at least 4 or more'.format(
-                   len(all_search_res))
-            print 'not checking for expect val convergence'
-        else:
-            print 'Checking for convergence'
-            if search_type == 'exploit':
-                converged_temp = opt_module.converge_check(all_opt_res, converge_opts)
-            elif search_type == 'hybrid':
-                converged_temp = opt_module.converge_check(all_search_res, opt_res, converge_opts)
-        ####
-        #
-        ####
-        iter_dump_data = {'doe_sets':doe_sets, 
-                          'search_res':search_res, 'all_search_res':all_search_res,
-                          'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
-                          'opt_res':opt_res, 'actual_opt_res':actual_opt_res,
-                          'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
-        ####
-        # Save data from each step into a single dump file for this iteration
-        ####
-        print 'Saving iteration {} data'.format(iter_cntr)
-        run_dump_data_list.append(iter_dump_data)
-        # Add current iteration data
-        with open(data_opts['iter_fname'], 'wb') as it_f:
-            cPickle.dump(run_dump_data_list, it_f, 2)
-#            cPickle.dump(doe_sets, it_f, 2)
-#            cPickle.dump(doe_sets_iter, it_f, 2)
-#            cPickle.dump(search_res, it_f, 2)
-#            cPickle.dump(case_info['case_set'], it_f, 2)
-#            cPickle.dump(data_dict, it_f, 2)
-#            cPickle.dump(fit_dict, it_f, 2)
-#            cPickle.dump(opt_res, it_f, 2)
-#            cPickle.dump(all_opt_res, it_f, 2)
-        ####
-        # End or prepare for next loop
-        ####
-        if converged_temp:
-            print 'Converged on iteration {}'.format(iter_cntr)
-            converged = True
-        else:
-            print 'Iteration {} not converged'.format(iter_cntr)
-            first_iter = False
-            save_initial_case = False
+            #print 'checking for duplicate search result'
+            #converged_temp = opt_module.prox_check(doe_sets, new_search_dv, euclid_tol)
+    #        for dv_set in doe_sets['doe_scaled']:
+    #            new_point_distance = euclidean(dv_set, new_search_dv)
+    #            if new_point_distance < euclid_tol:
+    #                print 'new point {} is {} away from previous point {}, within tol {}'.format(
+    #                       new_search_dv, new_point_distance, dv_set, euclid_tol)
+    #                print 'thus counting as converged!'
+    #                converged_temp = True
+    #                #search_duplicate = True
+    #                break
+            # Cleanup step
+            # Load data from previous iterations if it exists
+            # and in restart mode using existing data
+        if obj_val_opt: # TAG: DEBUG
+            if not use_dumped_data and use_exist_data == 'off':
+                print 'Not using prexisting opt and search res data'
+            else:
+                try:
+                    global run_dump_data_list
+                    global all_opt_res
+                    global all_search_res
+                    with open(data_opts['iter_fname'], 'rb') as it_f:
+                        run_dump_data_list = cPickle.load(it_f)
+                    run_dump_data_list = run_dump_data_list[:iter_range_idx]
+                    all_opt_res = copy.deepcopy(run_dump_data_list[-1]['all_opt_res'])
+                    all_search_res = copy.deepcopy(run_dump_data_list[-1]['all_search_res'])
+                    iter_cntr = len(run_dump_data_list)
+                except (IOError, EOFError):
+                    print "Couldn't find input file, dumping new data out"
+                    pass
+            iter_cntr += 1
+            #iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
+            all_opt_res.append(opt_res.fun) # TAG: Improve?
+            #if not search_duplicate:
+            all_search_res.append(search_res['search_val'])
+            print 'Currently observed best obj fun values:'
+            print all_opt_res
+            print 'Currently identified expected improvements:'
+            print all_search_res
+            ####
+            # Check expect val convergence
+            ####
+            if  len(all_search_res) <= converge_opts['converge_points']:
+                print 'Only have {} search results, need at least 4 or more'.format(
+                       len(all_search_res))
+                print 'not checking for expect val convergence'
+            else:
+                print 'Checking for convergence'
+                if search_type == 'exploit':
+                    converged_temp = opt_module.converge_check(all_opt_res, converge_opts)
+                elif search_type == 'hybrid':
+                    converged_temp = opt_module.converge_check(all_search_res, opt_res, converge_opts)
+            ####
+            #
+            ####
+            iter_dump_data = {'doe_sets':doe_sets, 
+                              'search_res':search_res, 'all_search_res':all_search_res,
+                              'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
+                              'opt_res':opt_res, 'actual_opt_res':actual_opt_res,
+                              'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
+            ####
+            # Save data from each step into a single dump file for this iteration
+            ####
+            print 'Saving iteration {} data'.format(iter_cntr)
+            run_dump_data_list.append(iter_dump_data)
+            # Add current iteration data
+            with open(data_opts['iter_fname'], 'wb') as it_f:
+                cPickle.dump(run_dump_data_list, it_f, 2)
+    #            cPickle.dump(doe_sets, it_f, 2)
+    #            cPickle.dump(doe_sets_iter, it_f, 2)
+    #            cPickle.dump(search_res, it_f, 2)
+    #            cPickle.dump(case_info['case_set'], it_f, 2)
+    #            cPickle.dump(data_dict, it_f, 2)
+    #            cPickle.dump(fit_dict, it_f, 2)
+    #            cPickle.dump(opt_res, it_f, 2)
+    #            cPickle.dump(all_opt_res, it_f, 2)
+            ####
+            # End or prepare for next loop
+            ####
+            if converged_temp:
+                print 'Converged on iteration {}'.format(iter_cntr)
+                converged = True
+            else:
+                print 'Iteration {} not converged'.format(iter_cntr)
+            use_dumped_data = True
+        first_iter = False
+        save_initial_case = False
         doe_sets['doe'] = search_res['new_doe']
         doe_sets['doe_scaled'] = search_res['new_doe_scaled'] 
         with open(data_opts['doe_fname'], 'wb') as outpf:

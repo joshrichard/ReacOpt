@@ -418,6 +418,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
     iter_num = optim_options['iter_num']
     obj_eval = optim_options['obj_eval']
     myaccept = optim_options['accept_test']
+    gpm_constr_list = optim_options['search_constr_gpm']
     global_type = optim_options['global_type']
     outp_fname = outp_name
     if global_type == 'basin':
@@ -427,11 +428,28 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         random_iter = optim_options['random_opts']['niter']
         #random_repeat_stop = optim_options['random_opts']['repeat_stop'] # |TAG: outtest
     if opt_purpose == 'dv_opt':
-        opt_fun = obj_eval
         min_kwargs = optim_options['fmin_opts_obj_fun']
+        # opt_fun = obj_eval
+        def constr_obj_eval(x, obj_eval_func=obj_eval, constr_info=gpm_constr_list):
+            c_min = 0.0
+            prob_f_list = []
+            for constr_gpm in constr_info:
+                gpm_eval, gpm_MSE = constr_gpm(x, eval_MSE=True)
+                gpm_eval = float(gpm_eval)
+                gpm_MSE = float(gpm_MSE)
+                if gpm_MSE < np.finfo(np.array([5.0]).dtype).eps:
+                    gpm_MSE = 10.0*np.finfo(np.array([5.0]).dtype).eps
+                p_f_single = 0.5 + 0.5*math.erf((gpm_eval - c_min)/(math.sqrt(2.0*gpm_MSE)))
+                prob_f_list.append(p_f_single)
+            # Now find product of all P[F(x)] and multiply by obj val
+            tot_prob_f = 1.0 # float(np.array(prob_f_list).prod()) # 1.0 | TAG: Debug
+            for prob_f in prob_f_list:
+                tot_prob_f *= prob_f
+            constr_obj_result = obj_eval_func(x) * tot_prob_f
+            return constr_obj_result
+        opt_fun = constr_obj_eval
     elif opt_purpose == 'search_opt':
         min_kwargs = optim_options['fmin_opts_search']
-        gpm_constr_list = optim_options['search_constr_gpm']
         sur_type = fit_opts['sur_type']
         if sur_type == 'regress':
             obj_eval = optim_options['igpm_obj_eval']
@@ -565,7 +583,7 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
     if search_type == 'exploit':
         search_res = {'new_doe_scaled':opt_result.x, 'search_val':opt_result.fun,
                       'new_doe':core.dv_scaler(opt_result.x, dv_bounds, 'real'),
-                      }
+                      'search_res_obj':opt_result}
     elif search_type == 'hybrid':
         if global_opt_type == 'random' or global_opt_type == 'evolve':
             search_point = optimize_wrapper(optim_options, exist_opt, opt_purpose = 'search_opt',
@@ -723,23 +741,28 @@ class BestObsOptVal(object):
 #        final_bool_array = constr_res_list[0]
 #        for bool_array in constr_res_list[1:]:
 #            final_bool_array = np.logical_and(final_bool_array, bool_array)
-        # Store the constr_res_list
-        self.constr_res_list = constr_res_list
-        # Create masked array of constr opt vals using final bool array
-        constr_opt_val_mask = np.ma.array(obj_vals, mask=final_bool_array)
-        # Store the masked array
-        self.constr_opt_val_mask = constr_opt_val_mask
-        # Find minimum of the observed rGPM obj vals
-        min_rGPM_obj_val = constr_opt_val_mask.min()
-        loc_min_rGPM_obj_val = X_t[constr_opt_val_mask.argmin()]
-        self.fun = min_rGPM_obj_val
-        self.x = loc_min_rGPM_obj_val
-        # Find 'active span' of observed responses, used later in checking for convergence
-        max_rGPM_obj_val = constr_opt_val_mask.max()
-        active_span_rGPM_obj_val = max_rGPM_obj_val - min_rGPM_obj_val
-        if active_span_rGPM_obj_val < 0.0:
-            active_span_rGPM_obj_val = active_span_rGPM_obj_val * -1.0
-        self.active_span = active_span_rGPM_obj_val
+        # Check and see if no point satisfies all constr (all=true)
+        if np.all(final_bool_array):
+            self.success = False
+        else:
+            self.success = True
+            # Store the constr_res_list
+            self.constr_res_list = constr_res_list
+            # Create masked array of constr opt vals using final bool array
+            constr_opt_val_mask = np.ma.array(obj_vals, mask=final_bool_array)
+            # Store the masked array
+            self.constr_opt_val_mask = constr_opt_val_mask
+            # Find minimum of the observed rGPM obj vals
+            min_rGPM_obj_val = constr_opt_val_mask.min()
+            loc_min_rGPM_obj_val = X_t[constr_opt_val_mask.argmin()]
+            self.fun = min_rGPM_obj_val
+            self.x = loc_min_rGPM_obj_val
+            # Find 'active span' of observed responses, used later in checking for convergence
+            max_rGPM_obj_val = constr_opt_val_mask.max()
+            active_span_rGPM_obj_val = max_rGPM_obj_val - min_rGPM_obj_val
+            if active_span_rGPM_obj_val < 0.0:
+                active_span_rGPM_obj_val = active_span_rGPM_obj_val * -1.0
+            self.active_span = active_span_rGPM_obj_val
 
 
 class RandGlobal(object):
