@@ -6,8 +6,7 @@ Created on Fri Apr 11 12:58:27 2014
 """
 
 
-#from core_objects_v5 import dv_scaler
-from core_objects_v5 import StreamToLogger, ActOptRes
+from core_objects_v5 import StreamToLogger, dv_scaler
 import creation_engine as c_eng
 import surrogate_constr as sur_constr
 import opt_search as opt_module
@@ -468,18 +467,22 @@ def iter_loop():
                 # on the obj fun directly, use this point as the next search point
                 # This constrained opt can still be with P(sat) constr
                 opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
-                                              outp_name = data_opts['opt_fname'])
+                                              outp_name = None)
                 if not opt_res.success:
                     opt_err_msg = """No constraint-satisfying solution could be found!
 Try loosening the constraints or widening the search space"""
                     raise Exception(opt_err_msg)
+            else:
+                obj_val_opt = True
         else:
             obj_val_opt = True
         # Store opt results, use for search/infill 
-        actual_opt_res = ActOptRes(opt_res.x, opt_res.fun, case_info['dv_bounds'])
+        actual_opt_res_loc = dv_scaler(opt_res.x, case_info['dv_bounds'], scal_type='real')
+        #actual_opt_res = ActOptRes(opt_res.x, opt_res.fun, case_info['dv_bounds'])
         with open(data_opts['opt_fname'], 'wb') as optf:
             cPickle.dump(opt_res, optf, 2)
-            cPickle.dump(actual_opt_res, optf, 2)
+            cPickle.dump(actual_opt_res_loc, optf, 2)
+            cPickle.dump(case_info['dv_bounds'], optf, 2)
         print 'Results of optimization:'
         print opt_res # Make this work with new data struc from opt
         optimization_options['accept_test'].print_result(opt_res.x)
@@ -566,7 +569,7 @@ Try loosening the constraints or widening the search space"""
             iter_dump_data = {'doe_sets':doe_sets, 
                               'search_res':search_res, 'all_search_res':all_search_res,
                               'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
-                              'opt_res':opt_res, 'actual_opt_res':actual_opt_res,
+                              'opt_res':opt_res, 'actual_opt_res_loc':actual_opt_res_loc,
                               'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
             ####
             # Save data from each step into a single dump file for this iteration
