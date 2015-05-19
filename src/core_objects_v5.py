@@ -10,7 +10,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn import preprocessing
 import pyDOE
-from scipy.spatial.distance import pdist
+from scipy.spatial.distance import pdist, squareform
 import codecs
 from bisect import bisect_right
 from sklearn import gaussian_process
@@ -1854,6 +1854,12 @@ def get_coolant_temp_delta(coolant_name):
                          coolant_name))
     return delta # units of [K]
     
+    
+def calc_rel_dist(point_array):
+    rel_dists = pdist(point_array)
+    rel_dists = squareform(rel_dists)
+    rel_dists = np.diagonal(rel_dists, offset=1).copy()
+    return rel_dists
     
 # Logging streamer functionality courtesy of Ferry Boender
 # http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/

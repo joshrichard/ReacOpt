@@ -618,12 +618,15 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
 #        converged = False
 #    return converged
     
-def converge_check(prev_obs_vals, opt_res, converge_opts):
+def converge_check(prev_obs_vals, opt_res, opt_res_loc, converge_opts):
 
     active_span = opt_res.active_span #opt_res.active_span,  -1.0 * math.log(opt_res.active_span)
     converge_tol = converge_opts['converge_tol']
     converge_points = converge_opts['converge_points']
     converge_type = converge_opts['converge_type']
+    station_num = converge_opts['stationary_points']
+    station_tol = converge_opts['stationarity_thresh']
+    opt_res_loc_arr = np.array(opt_res_loc)
     
     obs_obj_vals = np.array(prev_obs_vals)
     delta_set = np.diff(obs_obj_vals)
@@ -637,10 +640,33 @@ def converge_check(prev_obs_vals, opt_res, converge_opts):
         rel_delta_set = delta_set / obs_obj_vals[:-1] # Is this correct? why not [-1] ?
         pos_rel_delta_set = np.abs(rel_delta_set)
         converged = np.all(np.less(pos_rel_delta_set[-converge_points:], converge_tol))
-    elif converge_type == 'rel_span':
+    else:
+#    elif converge_type == 'rel_span':
+        # Check if the rel_span criterion is satisfied:
         actual_obj_val = np.exp(obs_obj_vals * -1.0) # math.exp(obs_obj_vals[-1] * -1.0) ,  obs_obj_vals[-1]
         rel_span = actual_obj_val / active_span
-        converged = np.all(np.less(rel_span[-converge_points:], converge_tol))
+        converged_span = np.all(np.less(rel_span[-converge_points:], converge_tol))
+        # Check if stationarity criterion is satisfied:
+        #     Will pass in list of opt locations
+        #     The distance between the last X locations and the previous location is computed
+        #     If the distances are all below the specified tol criterion, considered converged
+        # return relevant converged status
+        if len(opt_res_loc) < station_num:
+            # Can't be stationarity converged yet
+            converged_station = False
+        else:
+            converge_dists = core.calc_rel_dist(opt_res_loc_arr)
+            converged_station = np.all(np.less(converge_dists[-station_num:], station_tol))
+        if converge_type == 'rel_span':
+            converged = converged_span
+        elif converge_type == 'stationary':
+            converged = converged_station
+        elif converge_type == 'span_station':
+            converged = bool(converged_span + converged_station)
+        else:
+            raise Exception('You specifed converge_type as {}, not a valid type'.format(
+                            converge_type))
+        
         
     #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
 

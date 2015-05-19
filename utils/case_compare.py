@@ -61,14 +61,17 @@ def compare_cases(input_cases):
     cases = []
     for case in (input_cases):
         case_fullname = os.path.join(case, data_fname) 
-        if 'fixed_f2f' in case:
-            dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), 
-                    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('power',[20.0, 30.0])])
-        else:
-            dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
-                    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
-                    ('power',[20.0, 30.0])])
-        cases.append(Case(case_fullname, dv_bounds))
+        try:
+            cases.append(Case(case_fullname))
+        except KeyError:
+            if 'fixed_f2f' in case:
+                dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), 
+                        ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('power',[20.0, 30.0])])
+            else:
+                dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
+                        ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
+                        ('power',[20.0, 30.0])])
+            cases.append(Case(case_fullname, dv_bounds))
     CaseCompare(cases)
 
 def walk_all_cases():
@@ -189,7 +192,7 @@ class Case(object):
             self.real_opt_loc = core.dv_scaler(self.scal_opt_loc, self.bounds,
                                                scal_type='real')
         else:
-            self.real_opt_loc = run_data['actual_opt_res'].x
+            self.real_opt_loc = run_data['actual_opt_res_loc']
 
 
 class CasePair(object):

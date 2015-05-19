@@ -23,7 +23,7 @@ import logging
 import numpy as np
 import time
 # from scipy.spatial.distance import euclidean
-#import pdb
+import pdb
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
@@ -42,16 +42,15 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 #    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
 #    ('power',[20.0, 30.0])])
 
-dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), 
-    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('power',[20.0, 30.0])])
+dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5])])
 
-# 
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
-                            ('enr', 19.5), ('f2f', 23.35),('power', 20.0),
+                            ('enr', 19.5), ('f2f', 25.0),('power', 20.0),
                             ('cdens', 1.0)])
 
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
@@ -61,12 +60,12 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
 opt_algo_name = 'evolve' # evolve or L_BFGS_B
-analysis_name = 'nafzrf4_fixed_f2f' # 'nafzrf4_fixed_f2f' , 'all_dv'
+analysis_name = 'flibe_fixed_f2f_pow_20' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -128,6 +127,7 @@ case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_s
 #obj_fun = []
 all_opt_res = []
 all_search_res = []
+all_opt_res_loc = []
 run_dump_data_list = []
 # 'regress' or 'interp', 'default' or 'custom', 'single' or 'all', 'reac' or 'fuel_flux' or 'mat_flux'
 fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_k_folds':5, 'obj_spec':'fuel_flux',
@@ -135,11 +135,12 @@ fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 # either 'range' or 'rel'
 converge_opts = {'converge_tol':1e-5, 'converge_points':3, 
-                 'converge_type':'rel_span'}
+                 'converge_type':'span_station', 'stationary_points':10,
+                 'stationarity_thresh':1e-2} #converge_types: 'rel_span', 'stationary', 'or 'span_station'
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+run_mode = 'reuse_doe' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
@@ -320,7 +321,21 @@ def main():
         optimization_options['accept_test'].print_result(new_search_dv)
                                                 
     if args.check == 'on':
-        conv_res = opt_module.converge_check()
+        # test data
+        test_loc = np.array([0.06883816, 0.87457826, 0.4993765, 1.0, 0.33481614, 0.98499523])
+        class dummy(object):
+            def __init__(self):
+                self.x  = test_loc
+                self.fun = 40.0
+                self.active_span = 10.0
+        all_search_res = []
+        all_opt_res_loc = []
+        for idx in xrange(15):
+            all_search_res.append(-30.0)
+            all_opt_res_loc.append(test_loc) #np.random.random(len(test_loc))
+        opt_res = dummy()
+        pdb.set_trace()
+        converged_temp = opt_module.converge_check(all_search_res, opt_res, all_opt_res_loc, converge_opts)
     
     if args.iterate == 'on':
         iter_loop()
@@ -537,6 +552,7 @@ Try loosening the constraints or widening the search space"""
                     run_dump_data_list = run_dump_data_list[:iter_range_idx]
                     all_opt_res = copy.deepcopy(run_dump_data_list[-1]['all_opt_res'])
                     all_search_res = copy.deepcopy(run_dump_data_list[-1]['all_search_res'])
+                    all_opt_res_loc = copy.deepcopy(run_dump_data_list[-1]['all_opt_res_loc'])
                     iter_cntr = len(run_dump_data_list)
                 except (IOError, EOFError):
                     print "Couldn't find input file, dumping new data out"
@@ -544,12 +560,15 @@ Try loosening the constraints or widening the search space"""
             iter_cntr += 1
             #iter_fname = data_opts['iter_fname'] + '_{}'.format(iter_cntr)
             all_opt_res.append(opt_res.fun) # TAG: Improve?
+            all_opt_res_loc.append(opt_res.x)
             #if not search_duplicate:
             all_search_res.append(search_res['search_val'])
             print 'Currently observed best obj fun values:'
             print all_opt_res
             print 'Currently identified expected improvements:'
             print all_search_res
+            print 'Currently identified best obj fun locations:'
+            print np.array(all_opt_res_loc)
             ####
             # Check expect val convergence
             ####
@@ -560,9 +579,10 @@ Try loosening the constraints or widening the search space"""
             else:
                 print 'Checking for convergence'
                 if search_type == 'exploit':
+                    # TAG: FIX!
                     converged_temp = opt_module.converge_check(all_opt_res, converge_opts)
                 elif search_type == 'hybrid':
-                    converged_temp = opt_module.converge_check(all_search_res, opt_res, converge_opts)
+                    converged_temp = opt_module.converge_check(all_search_res, opt_res, all_opt_res_loc, converge_opts)
             ####
             #
             ####
@@ -570,7 +590,8 @@ Try loosening the constraints or widening the search space"""
                               'search_res':search_res, 'all_search_res':all_search_res,
                               'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
                               'opt_res':opt_res, 'actual_opt_res_loc':actual_opt_res_loc,
-                              'all_opt_res':all_opt_res, 'xval_scores_dict':xval_scores_dict}
+                              'all_opt_res':all_opt_res, 'all_opt_res_loc':all_opt_res_loc,
+                              'xval_scores_dict':xval_scores_dict}
             ####
             # Save data from each step into a single dump file for this iteration
             ####
