@@ -23,7 +23,7 @@ import logging
 import numpy as np
 import time
 # from scipy.spatial.distance import euclidean
-import pdb
+#import pdb
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
@@ -140,7 +140,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'reuse_doe' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
@@ -322,7 +322,7 @@ def main():
                                                 
     if args.check == 'on':
         # test data
-        test_loc = np.array([0.06883816, 0.87457826, 0.4993765, 1.0, 0.33481614, 0.98499523])
+        test_loc = [0.06883816, 0.87457826, 0.4993765, 1.0, 0.33481614, 0.98499523]
         class dummy(object):
             def __init__(self):
                 self.x  = test_loc
@@ -334,7 +334,7 @@ def main():
             all_search_res.append(-30.0)
             all_opt_res_loc.append(test_loc) #np.random.random(len(test_loc))
         opt_res = dummy()
-        pdb.set_trace()
+        #pdb.set_trace()
         converged_temp = opt_module.converge_check(all_search_res, opt_res, all_opt_res_loc, converge_opts)
     
     if args.iterate == 'on':
@@ -539,6 +539,7 @@ Try loosening the constraints or widening the search space"""
             # Cleanup step
             # Load data from previous iterations if it exists
             # and in restart mode using existing data
+        #pdb.set_trace()
         if obj_val_opt: # TAG: DEBUG
             if not use_dumped_data and use_exist_data == 'off':
                 print 'Not using prexisting opt and search res data'
@@ -546,6 +547,7 @@ Try loosening the constraints or widening the search space"""
                 try:
                     global run_dump_data_list
                     global all_opt_res
+                    global all_opt_res_loc
                     global all_search_res
                     with open(data_opts['iter_fname'], 'rb') as it_f:
                         run_dump_data_list = cPickle.load(it_f)
