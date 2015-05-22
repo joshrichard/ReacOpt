@@ -43,15 +43,14 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 #    ('power',[20.0, 30.0])])
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]),
-    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]),
-    ('power',[20.0, 30.0])])
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('power',[20.0, 30.0])])
 
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
-                            ('enr', 19.5), ('f2f', 23.2),('power', 20.0),
+                            ('enr', 19.5), ('f2f', 24.248),('power', 20.0),
                             ('cdens', 1.0)])
 
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
@@ -66,7 +65,7 @@ run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pi
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
 opt_algo_name = 'evolve' # evolve or L_BFGS_B
-analysis_name = 'all_dv' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
+analysis_name = 'fixed_f2f' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -90,7 +89,7 @@ fit_dict = {}
 # Rename this at some point | TAG: Improve
 #TAG: Remove data_dir2 after testing is complete
 data_opts = dict([('data_dirname', os.path.expanduser(data_dir)),
-('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname, folder_set_name)), # , salt_file_dirname , folder_set_name, analysis_name | Remove both for nafzrf4, or just folder_set for flibe (LHS=110 only), remove analysis_name for all_dv lhs=50
+('input_dirname', os.path.join(os.path.expanduser(data_dir), 'input_files', salt_file_dirname, folder_set_name, analysis_name)), # , salt_file_dirname , folder_set_name, analysis_name | Remove both for nafzrf4, or just folder_set for flibe (LHS=110 only), remove analysis_name for all_dv lhs=50
 ('pdist_dirname', os.path.join(os.path.expanduser(data_dir), 'partdist_files')),
 ('log_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_log.out')),
 ('doe_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_doe.out')),
@@ -141,7 +140,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+run_mode = 'reuse_doe' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise

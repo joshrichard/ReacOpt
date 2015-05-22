@@ -10,10 +10,10 @@ import core_objects_v5 as core
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
-salt_type ='flibe'
+salt_type ='nafzrf4'
 basename = 'lhs_50'
 opt_type = 'evolve' # 'evolve' or 'L_BFGS_B'
-case_type = 'flibe_fixed_f2f_pow_20'
+case_type = 'all_dv' # 'all_dv'
 
 #data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
 #    'optimization_results','pow_iterations', salt_type, basename, opt_type))
