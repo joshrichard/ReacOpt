@@ -13,7 +13,7 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 salt_type ='flibe'
 basename = 'lhs_50'
 opt_type = 'evolve' # 'evolve' or 'L_BFGS_B'
-case_type = 'flibe_fixed_pow_20'
+case_type = 'flibe_fixed_f2f_pow_20'
 
 #data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
 #    'optimization_results','pow_iterations', salt_type, basename, opt_type))

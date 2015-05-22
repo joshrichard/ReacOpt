@@ -214,7 +214,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
 #        for idx in xrange(1,len(layer_k)):
 #            t_max = t_max - pow_triso_peak*(1.0/(layer_k[idx]*layerrad[idx]) \
 #                                      - 1.0/(layer_k[idx]*layerrad[idx - 1]))
-        t_max_constr = 1610.0 # TAG: Constraint
+        t_max_constr = 1510.0 # TAG: Constraint
         # pow_obj = core.AssemblyPowerPeak()
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow, axial_peak=axial_pow)
