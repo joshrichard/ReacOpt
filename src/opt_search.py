@@ -275,7 +275,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
     cobyla_opts = {'catol':1E-3}
     basinhopping_opts = {'interval':15, 'disp':False}
     randomized_opts = {'niter':100} # , 'repeat_stop':15
-    min_kwargs = {"method":"L-BFGS-B", "bounds":dv_bounds_scaled.values()} # "bounds":dv_bounds_scaled.values() or "method":"COBYLA", "options":cobyla_opts
+    min_kwargs = {"method":"L-BFGS-B", "bounds":dv_bounds_scaled.values()} # "method":"L-BFGS-B", "bounds":dv_bounds_scaled.values() or "method":"COBYLA", "options":cobyla_opts
     min_kwargs_obj_fun = merge_dict(min_kwargs, {'constraints':cobyla_constr_obj_fun})
     # Only use constraints here if SLSQP or COBYLA | TAG: toggle
     min_kwargs_search = min_kwargs # merge_dict(min_kwargs, {'constraints':cobyla_constr_search}) # replace with cobyla_constr_search |TAG: DEBUG

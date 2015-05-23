@@ -23,7 +23,7 @@ import logging
 import numpy as np
 import time
 # from scipy.spatial.distance import euclidean
-#import pdb
+import pdb
 
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
@@ -50,7 +50,7 @@ extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 1
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
-                            ('enr', 19.5), ('f2f', 24.248),('power', 20.0),
+                            ('enr', 19.5), ('f2f', 22.38),('power', 20.0), # 24.248
                             ('cdens', 1.0)])
 
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
@@ -60,7 +60,7 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
@@ -139,8 +139,8 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
                  'stationarity_thresh':1e-2} #converge_types: 'rel_span', 'stationary', 'or 'span_station'
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'reuse_doe' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+outp_mode = 'interact' # either 'interact' or 'iterate'
+run_mode = 'restart' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
@@ -449,7 +449,7 @@ def iter_loop():
         # Optimize the objective function using the surrogate
         ####
         #pdb.set_trace()
-        print 'Optimizing on objective function of surrogate'
+        print 'Optimizing on objective function data'
         with open(data_opts['fit_fname'], 'rb') as f:
             fit_dict = cPickle.load(f)
         if not use_dumped_data and use_exist_data=='off': # TAG: DEBUG
@@ -474,16 +474,21 @@ def iter_loop():
         opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
                                            fit_dict['obj_val']['rgpm_fit_data'], 
                                            optimization_options['search_constr_gpm'])
+        pdb.set_trace()
         if hasattr(opt_res, 'success'):
             if not opt_res.success: 
+                print 'No constraint-satisfying solution present in current data'
+                print 'Applying global obtimization to the obj fun surrogate to find potential satisfying solution'
                 # Need some way here to know if there's no answer, period | TAG: DEBUG
                 obj_val_opt =  False
                 # Set a flag to tell the search/infill to do a constrained opt
                 # on the obj fun directly, use this point as the next search point
                 # This constrained opt can still be with P(sat) constr
+                #optimization_options['global_type'] = 'random'
                 opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
                                               outp_name = None)
-                if not opt_res.success:
+                #optimization_options['global_type'] = 'evolve'
+                if not opt_res.success or opt_res.fun == 0.0:
                     opt_err_msg = """No constraint-satisfying solution could be found!
 Try loosening the constraints or widening the search space"""
                     raise Exception(opt_err_msg)
