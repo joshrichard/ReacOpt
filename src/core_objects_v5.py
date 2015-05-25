@@ -1460,11 +1460,12 @@ class AssemblyPowerPeak(object):
     def print_all_powers(self):
         print 'Input params: power = {:.3e}, height = {:.3e}'.format(self.core_power, self.core_h)
         print 'Avg assm power is {:.3e}'.format(self.avg_assm_power)
+        print 'Avg volumetric power is {:.3e}'.format(self.avg_vol_power)
         print 'Peak assm power is {:.3e}, using a peaking factor of {:.3e}'.format(
-               self.peak_assm_power, self.radial_peak)
-        print 'Peak assm volumetric power is {:.3e}'.format(self.peak_vol_power)
+               float(self.peak_assm_power), float(self.radial_peak))
+        print 'Peak assm volumetric power is {:.3e}'.format(float(self.peak_vol_power))
         print 'Peak assm and axial volumetric power is {:.3e}'.format(
-               self.peak_ax_vol_power)
+               float(self.peak_ax_vol_power))
         print 'Peaked pin powers are:'
         print self.peaked_pin_powers
 

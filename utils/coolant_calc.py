@@ -8,6 +8,7 @@ import scipy.io
 import numpy as np
 import cPickle
 import core_objects_v5 as core
+from collections import OrderedDict
 
 
 
@@ -21,7 +22,7 @@ def main():
     pump_eff = 0.85
     power = 20E6
     global core_del_t 
-    core_del_t = 7.0 # add 5 K for each 10 MW added to core power to preserve ~same htc
+    core_del_t = 7.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
     active_core_h = 1.35 # [m]
     fric_form_loss = (0.5, 1.0)
     n_assm = 54.0 # 30 for 2 ring, 54 for 3 ring
@@ -37,6 +38,11 @@ def main():
     r_tube_lg = 0.021 # [m]
     a_flow_sm = np.pi*r_tube_sm**2.0*n_pins
     a_flow_lg = np.pi*r_tube_lg**2.0
+    
+    # dict for calculating power peaking values with AssemPowPeak obj
+    default_core = OrderedDict([('coreh', active_core_h*100),('pf',0.35), ('krad', 0.0350),
+                                ('enr', 19.5), ('f2f', 24.8),('power', power/1E6), # 24.248 #22.38
+                                ('cdens', 1.0)])
 
 #    # Start by loading power data from matlab
 #    mat_data = scipy.io.loadmat('detector_output_nafzrf4.mat')
@@ -79,7 +85,8 @@ def main():
         else:
             break
 
-    print 'Converged total assembly mass flow rate is {}'.format(mflow)
+    print 'Converged total assembly mass flow rate is {} kg/s'.format(mflow)
+    print 'Total core mass flow rate is {} kg/s'.format(mflow*n_assm)
     temp_arr = np.array(temp)
     mflow_sm_frac = 0.5
     mflow_sm = mflow_sm_frac * mflow
@@ -154,9 +161,9 @@ def main():
     print 'samesize pressure drop in feet is {}'.format(dp_samesize_head_feet)
     print 'samesize pressure drop in pa is {:.6e}'.format(dp_tot)
     
-    # Calc assembly powers
+    # Calc assembly powers | Need to rework to use new dict dv input | TAG: fix
     assem_powers = core.AssemblyPowerPeak()
-    assem_powers.set_core_conditions(power/1e6,active_core_h*1e2)
+    assem_powers.set_core_conditions(dv_type='real', dv_real=default_core)
     assem_powers.print_all_powers()
         
         
