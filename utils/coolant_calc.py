@@ -4,7 +4,7 @@ Created on Fri Feb 20 15:23:03 2015
 
 @author: jgr42_000
 """
-import scipy.io
+#import scipy.io
 import numpy as np
 import cPickle
 import core_objects_v5 as core
@@ -164,6 +164,7 @@ def main():
     # Calc assembly powers | Need to rework to use new dict dv input | TAG: fix
     assem_powers = core.AssemblyPowerPeak()
     assem_powers.set_core_conditions(dv_type='real', dv_real=default_core)
+    print 'peak TRISO temp is {} K'.format(assem_powers.t_max)
     assem_powers.print_all_powers()
         
         

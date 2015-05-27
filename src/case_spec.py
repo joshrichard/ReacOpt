@@ -50,7 +50,7 @@ extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 1
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
-                            ('enr', 19.5), ('f2f', 23.08),('power', 20.0), # 24.248 #22.38
+                            ('enr', 19.5), ('f2f', 24.78),('power', 20.0), # 24.248 #22.38
                             ('cdens', 1.0)])
 
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
@@ -60,12 +60,12 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), ('pin_rad','0.7'), \
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), ('total_coreh','175')])
                  
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
 opt_algo_name = 'evolve' # evolve or L_BFGS_B
-analysis_name = 'nafzrf4_fixed_f2f_pow_20' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
+analysis_name = 'flibe_fixed_f2f_pow_20' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -140,7 +140,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'reuse_doe' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+run_mode = 'normal' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
