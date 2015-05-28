@@ -608,6 +608,8 @@ def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
     root_dir = data_opts['input_dirname']
     doe_set = data_sets
     cool_typ = run_opts['cool_mat']
+    case_configs = core.make_design_dict(doe_set['doe'], case_info['dv_bounds'].keys(), case_info['default_core'])
+    case_powers = case_configs['power'][:,0]
 
     
     data_dict = dict([ ('reac', core.CaseMatrix('1d')), ('fuel_flux', core.MultCaseMat('1d')),
@@ -617,11 +619,12 @@ def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
     
 
     for case in case_set:
+#        pow_flag = False
         res_fname = case + '_res.m'
         res_filepath = os.path.join(root_dir, res_fname)
         with open(res_filepath, 'rb') as rf:
             for file_line in rf:
-                try: 
+                try:
                     if file_line.split()[0] == 'COL_KEFF':
                         reac_tmp = float(file_line.split()[6:7][0])
                         err_tmp = float(file_line.split()[7:8][0]) # Note that this is relative error all the way through
@@ -632,8 +635,11 @@ def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
 #                        reac_uncert = ( 1.0 -  1.0 / reac_uncert ) * 1.0E5
                         reac_tmp = reac_uncert.nominal_value
                         err_tmp = abs(reac_uncert.std_dev / reac_uncert.nominal_value) # Relative error
-
                         data_dict['reac'].add_vals(reac_tmp, err_tmp)
+#                    elif file_line.split()[0] == 'TOT_POWER' and not pow_flag:
+#                        case_power = float(file_line.split()[6])
+#                        pow_flag = True
+                        
                 except IndexError:
                     pass
 
@@ -746,6 +752,9 @@ def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
     
     # Calc max cycle lengths using reac data
     data_dict['reac'].make_bu_fit(case_info['bu_steps'][1:], estate_end_idx) # Must specify here | TAG: Hardcode
+    
+    # Calc mat flux divided by power
+    data_dict.update({'powflux':data_dict['fuel_flux'].divide(case_powers)})
     
     # Could combine output data and doe data sets into single dict... | TAG: Improve
     # If preexisting data exists, add to it

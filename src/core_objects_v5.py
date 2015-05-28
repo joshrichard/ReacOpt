@@ -1213,6 +1213,14 @@ class CaseMatrix(object):
         return new # Can redo this to put name of each attribute for addition into a dict
                    # then loop through dict
         
+    def divide(self, other):
+        new = copy.deepcopy(self)
+        new.data = None
+        new.error = None
+        if hasattr(new, 'data_fit'):
+            new.data_fit = new.data_fit / other
+        return new
+        
     def add_vals(self, val, error):
         self.data.append(float(val)) # = np.append(self.data, float(val))
         self.error.append(float(error)) # = np.append(self.error, float(error))
@@ -1314,6 +1322,12 @@ class MultCaseMat(object):
         new = copy.deepcopy(self)
         for key in new.__dict__.keys():
             new.__dict__[key] = self.__dict__[key] + other.__dict__[key]
+        return new
+        
+    def divide(self, other):
+        new = copy.deepcopy(self)
+        for key in new.__dict__.keys():
+            new.__dict__[key] = new.__dict__[key].divide(other)
         return new
         
     def cast_data_asarray(self):
