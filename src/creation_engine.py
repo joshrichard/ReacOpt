@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-#import pdb
+import pdb
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
     if kwargs['doe_type'] == 'FF':
@@ -121,7 +121,8 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
     main_path = data_opts['data_dirname']
     file_path = data_opts['input_dirname']
     pdist_path = data_opts['pdist_dirname']
-    pdist_lastpath = os.path.basename(pdist_path)
+#    pdist_lastpath = os.path.basename(pdist_path)
+    pdist_lastpath = os.path.relpath(pdist_path, main_path)
 
     # Now make input files (and folders, where necessary) for Serpent
     for element in full_case_set:
@@ -154,6 +155,7 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
         pdist_fnames = {'nominal':os.path.join(pdist_lastpath, main_pdist_fname), 
                         'lowE':os.path.join(pdist_lastpath, lowE_pdist_fname),
                         'depth':pdist_depth_path}
+        pdb.set_trace()
         make_std_inp(design_config_dict, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
 #        for item in str_element[len(new_dv_names):]:
@@ -396,6 +398,17 @@ def make_mats(mats_inp_dict, run_opts):
     
 def make_geom(geom_inp_dict, partdist_fname, run_opts):
 
+    if run_opts['assm_type'] == 'largepins':
+        assm_type = 'ip'
+        pin_hexbox = '9.0'
+    elif run_opts['assm_type'] == 'smallpins':
+        assm_type = 'sm_ip'
+        pin_hexbox = '9.0'
+    elif run_opts['assm_type'] == 'smallpins_plus1':
+        assm_type = 'sm_ip_plus1'
+        pin_hexbox = '10.5'
+    ip_rad = run_opts['ip_rad']
+    #pin_pitch = run_opts['pin_pitch']
     core_h = float(run_opts['total_coreh'])
     act_core_h = float(geom_inp_dict['coreh'])
     k_rad = float(geom_inp_dict['krad'])
@@ -458,21 +471,21 @@ def make_geom(geom_inp_dict, partdist_fname, run_opts):
     
     # Surface for bounding assemblies
     core.Surface('fuel_assm_edge_s', 'hexyc', coeffs = '0.0 0.0 {blockhf2f:.5f}'.format(blockhf2f = block_hf2f))
-    core.Surface('fuel_assm_ip_s', 'cylz', coeffs = '0.0 0.0 2.1')
-    core.Surface('fuel_assm_ring_s', 'hexyc', coeffs = '0.0 0.0 9.0')
+    core.Surface('fuel_assm_ip_s', 'cylz', coeffs = '0.0 0.0 {}'.format(ip_rad))
+    core.Surface('fuel_assm_ring_s', 'hexyc', coeffs = '0.0 0.0 {}'.format(pin_hexbox))
     
     # Create fuel assembly lattice (active region) and surrounding cell
     # Nominal enrichment fuel assembly
-    core.LatFill(root_name='fuel_assm_act', core_key='fa', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    core.LatFill(root_name='fuel_assm_act', core_key='fa', lat_typ=assm_type, assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Low enrichment fuel assembly
-    core.LatFill(root_name='fuel_lowE_assm_act', core_key='le', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_lowE_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')    
+    core.LatFill(root_name='fuel_lowE_assm_act', core_key='le', lat_typ=assm_type, assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_lowE_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')    
     
     # Create irradiation position lattice (active region) and surrounding cell
-    core.LatFill(root_name='ip_assm_act', core_key='ip', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    core.LatFill(root_name='ip_assm_act', core_key='ip', lat_typ=assm_type, assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create control rod position lattice (active region) and surrounding cell
-    core.LatFill(root_name='cr_assm_act', core_key='cr', lat_typ='ip', assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    core.LatFill(root_name='cr_assm_act', core_key='cr', lat_typ=assm_type, assm_dict_spec=core.assm_dict, pin_dict_spec=core.active_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create solid salt 'assembly'
     core.SolidFill(root_name='salt_assm', core_key='st', solid_typ='solid', surf_key='fuel_assm_edge_s', solid_mat=run_opts['cool_mat'], outside_mat=run_opts['cool_mat'])
@@ -487,15 +500,15 @@ def make_geom(geom_inp_dict, partdist_fname, run_opts):
     # Assemblies for reflector-slice lattice
     
     # Standard fuel assembly lattice (reflector region) and surrounding cell
-    core.LatFill(root_name='fuel_assm_ref', core_key='fa', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    core.LatFill(root_name='fuel_assm_ref', core_key='fa', lat_typ=assm_type, assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     # low enrich positions (so don't need second core map)
-    core.LatFill(root_name='fuel_lowE_assm_ref', core_key='le', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    core.LatFill(root_name='fuel_lowE_assm_ref', core_key='le', lat_typ=assm_type, assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create irradiation position lattice (active region) and surrounding cell
-    core.LatFill(root_name='ip_assm_ref', core_key='ip', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    core.LatFill(root_name='ip_assm_ref', core_key='ip', lat_typ=assm_type, assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Create control rod position lattice (active region) and surrounding cell
-    core.LatFill(root_name='cr_assm_ref', core_key='cr', lat_typ='ip', assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
+    core.LatFill(root_name='cr_assm_ref', core_key='cr', lat_typ=assm_type, assm_dict_spec=core.ref_dict, pin_dict_spec=core.ref_pin_dict, surf_key='fuel_assm_edge_s', fill_mat=run_opts['cool_mat'], isurf_key='fuel_assm_ip_s', ip_mat=run_opts['cool_mat'], ring_key='fuel_assm_ring_s', ring_mat='block')
     
     # Reflector core lattice
     core.LatFill(root_name='ax_ref', core_key=None, lat_typ='core', width=assm_f2f, assm_dict_spec=None, pin_dict_spec=core.ref_dict, surf_key='core_edge_s', fill_mat=run_opts['cool_mat'])

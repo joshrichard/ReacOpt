@@ -616,19 +616,19 @@ class FhtrSmIPLat(Lattice):
 {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
  {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
   {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-   {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-    {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-     {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-      {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-       {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-        {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-         {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-          {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-           {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-            {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-             {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-              {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
-               {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+   {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+    {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+     {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+      {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+       {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+        {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+         {gr:>3} {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+          {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+           {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+            {gr:>3} {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+             {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+              {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+               {gr:>3} {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
                 {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
                  {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
                   {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
@@ -639,6 +639,48 @@ class FhtrSmIPLat(Lattice):
         # Get lattice dimension
         self.nx = dimension.split()[0]
         self.ny = dimension.split()[1]
+
+
+class FhtrP1SmIPLat(Lattice):    
+    def __init__(self, key, typ = '2', dimension = '21 21', ref_point = '0.0 0.0', width = '1.5', comment=None):
+        global n_lattices, n_universes
+        n_lattices += 1
+        n_universes += 1
+        self.id = n_universes
+        self.typ = typ
+        self.key = key
+        self.dimension = dimension
+        self.ref_point = ref_point
+        self.width = width
+        self.universes = \
+"""{gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+{gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+ {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+  {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3}
+   {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3}
+    {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3}
+     {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3}
+      {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3}
+       {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3}
+        {gr:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3}
+         {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3}
+          {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+           {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+            {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+             {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+              {gr:>3} {gr:>3} {gr:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+               {gr:>3} {gr:>3} {gr:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+                {gr:>3} {gr:>3} {gr:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {co:>3} {pi:>3} {pi:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+                 {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+                  {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}
+                   {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3} {gr:>3}"""
+        self.comment = comment
+        lat_dict.update(self)
+
+        # Get lattice dimension
+        self.nx = dimension.split()[0]
+        self.ny = dimension.split()[1]
+
 
 
 class FhtrCoreLat(Lattice):
@@ -705,22 +747,37 @@ class LatFill(object):
         self.make_assm()
         
     def make_assm(self):
-        if self.lat_typ == 'fuel':
-            FhtrInFuelLat(self.lat_name)
-        elif self.lat_typ == 'ip':
-            FhtrIPLat(self.lat_name)
-        elif self.lat_typ == 'core':
-            if self.width != None:
+        if self.width != None:
+            if self.lat_typ == 'fuel':
+                FhtrInFuelLat(self.lat_name, width=self.width)
+            elif self.lat_typ == 'ip':
+                FhtrIPLat(self.lat_name, width=self.width)
+            elif self.lat_typ == 'sm_ip':
+                FhtrSmIPLat(self.lat_name, width=self.width)
+            elif self.lat_typ == 'sm_ip_plus1':
+                FhtrP1SmIPLat(self.lat_name, width=self.width)
+            elif self.lat_typ == 'core':
                 FhtrCoreLat(self.lat_name, width=self.width)
             else:
-                FhtrCoreLat(self.lat_name)
+                raise Exception('Not a recognized lattice type!')
         else:
-            raise Exception('Not a recognized lattice type!')
+            if self.lat_typ == 'fuel':
+                FhtrInFuelLat(self.lat_name)
+            elif self.lat_typ == 'ip':
+                FhtrIPLat(self.lat_name)
+            elif self.lat_typ == 'sm_ip':
+                FhtrSmIPLat(self.lat_name)
+            elif self.lat_typ == 'sm_ip_plus1':
+                FhtrP1SmIPLat(self.lat_name)
+            elif self.lat_typ == 'core':
+                FhtrCoreLat(self.lat_name)
+            else:
+                raise Exception('Not a recognized lattice type!')
         lat_dict.intdict[self.lat_name].update_univs(self.pin_dict_spec)
         if (self.lat_typ == 'fuel') or (self.lat_typ == 'core'):
             Cell(self.latcell_name, surfs = '-{0}'.format(self.surface), universe = self.univ_name, fill = lat_dict.intdict[self.lat_name].id)
             Cell(self.outcell_name, surfs = '{0}'.format(self.surface), universe = self.univ_name, material = mat_dict.intdict[self.fill_mat])
-        elif self.lat_typ == 'ip':
+        elif self.lat_typ == 'ip' or self.lat_typ == 'sm_ip' or self.lat_typ == 'sm_ip_plus1':
             Cell(self.ipcell_name, surfs = '-{0}'.format(self.ip_surface), universe = self.univ_name, material = mat_dict.intdict[self.ip_mat])
             Cell(self.latcell_name, surfs = '{0} -{1}'.format(self.ip_surface, self.ring_surf), universe = self.univ_name, fill = lat_dict.intdict[self.lat_name].id)
             Cell(self.ringcell_name, surfs = '{0} -{1}'.format(self.ring_surf, self.surface), universe = self.univ_name, material = mat_dict.intdict[self.ring_mat])
@@ -1203,8 +1260,10 @@ class CaseMatrix(object):
 
     def __add__(self, other):
         new = copy.deepcopy(self) # Not very memory efficient, but less prone to error? | TAG: Improve
-        new.data = np.concatenate([self.data, other.data]) # 1-D so can just add
-        new.error = np.concatenate([self.error, other.error])
+        if self.data != None and other.data != None:
+            new.data = np.concatenate([self.data, other.data]) # 1-D so can just add
+        if self.error != None and other.error != None:
+            new.error = np.concatenate([self.error, other.error])
         if hasattr(self, 'data_fit') and hasattr(other, 'data_fit'):
             new.data_fit = np.concatenate([self.data_fit, other.data_fit])
             new.error_fit = np.concatenate([self.error_fit, other.error_fit])

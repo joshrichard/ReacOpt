@@ -22,12 +22,12 @@ def main():
     pump_eff = 0.85
     power = 20E6
     global core_del_t 
-    core_del_t = 14.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
+    core_del_t = 10.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
     active_core_h = 1.35 # [m]
     fric_form_loss = (0.5, 1.0)
     n_assm = 54.0 # 30 for 2 ring, 54 for 3 ring
-    n_pins = 36.0 # number of coolant channels (24, largepins), (36, smallpins)
-    n_fuel_pins = 84 # 60 for largepins, 84 for smallpins
+    n_pins = 48.0 # number of coolant channels (24, largepins), (36, smallpins), 48 smallpins_plus1
+    n_fuel_pins = 114 # 60 for largepins, 84 for smallpins, 114 for smallpins_plus1
     unheat_lengths = (1.65-active_core_h)/2.0 # [m]
     unheat_lengths = (unheat_lengths, unheat_lengths)
     radial_peak = 1.0 #1.5159
