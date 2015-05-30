@@ -42,7 +42,7 @@ def main():
     
     # Serpent pin peaking values
     #pin_peak_vals = np.array([1.31,1.26,1.23,1.16,1.14,1.10,1.05,1.03]) smallpins_reg
-    pin_peak_vals = pin_peak_vals = np.array([1.69,1.61,1.47,1.39,1.30,1.27,1.17,1.10,1.07,1.01])
+    pin_peak_vals = pin_peak_vals = np.array([1.69,1.61,1.47,1.39,1.30,1.27,1.17,1.10,1.07,1.01,0.958])
     ax_peak_val = 1.2859
     rad_peak_val = 1.196
     
