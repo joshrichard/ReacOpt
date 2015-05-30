@@ -22,11 +22,12 @@ def main():
     pump_eff = 0.85
     power = 20E6
     global core_del_t 
-    core_del_t = 7.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
+    core_del_t = 14.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
     active_core_h = 1.35 # [m]
     fric_form_loss = (0.5, 1.0)
     n_assm = 54.0 # 30 for 2 ring, 54 for 3 ring
-    n_pins = 24.0 # number of coolant channels (24)
+    n_pins = 36.0 # number of coolant channels (24, largepins), (36, smallpins)
+    n_fuel_pins = 84 # 60 for largepins, 84 for smallpins
     unheat_lengths = (1.65-active_core_h)/2.0 # [m]
     unheat_lengths = (unheat_lengths, unheat_lengths)
     radial_peak = 1.0 #1.5159
@@ -34,10 +35,15 @@ def main():
     t_out = 700.0 + 273.0
     t_in = t_out - core_del_t
     coolant = NaFZrF4() # FLiBe() or NaFZrF4()
-    r_tube_sm = 0.007 # [m]
-    r_tube_lg = 0.021 # [m]
+    r_tube_sm = 0.0055 # [m] 0.007 for largepins, 0.0055 for smallpins
+    r_tube_lg = 0.017 # [m] 0.017 for smallpins
     a_flow_sm = np.pi*r_tube_sm**2.0*n_pins
     a_flow_lg = np.pi*r_tube_lg**2.0
+    
+    # Serpent pin peaking values
+    pin_peak_vals = np.array([1.31,1.26,1.23,1.16,1.14,1.10,1.05,1.03])
+    ax_peak_val = 1.2859
+    rad_peak_val = 1.196
     
     # dict for calculating power peaking values with AssemPowPeak obj
     default_core = OrderedDict([('coreh', active_core_h*100),('pf',0.35), ('krad', 0.0350),
@@ -162,7 +168,9 @@ def main():
     print 'samesize pressure drop in pa is {:.6e}'.format(dp_tot)
     
     # Calc assembly powers | Need to rework to use new dict dv input | TAG: fix
-    assem_powers = core.AssemblyPowerPeak()
+    assem_powers = core.AssemblyPowerPeak(pin_peaking=pin_peak_vals, n_pins_per_assm=n_fuel_pins,
+                                          pin_rad=r_tube_sm*1e2)
+#    assem_powers = core.AssemblyPowerPeak()
     assem_powers.set_core_conditions(dv_type='real', dv_real=default_core)
     print 'peak TRISO temp is {} K'.format(assem_powers.t_max)
     assem_powers.print_all_powers()
