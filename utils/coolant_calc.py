@@ -20,14 +20,14 @@ def main():
     
     # inlet conditions
     pump_eff = 0.85
-    power = 20E6
+    power = 30E6
     global core_del_t 
-    core_del_t = 10.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
-    active_core_h = 1.35 # [m]
+    core_del_t = 17.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
+    active_core_h = 1.00 # [m] 1.35, 1.00
     fric_form_loss = (0.5, 1.0)
     n_assm = 54.0 # 30 for 2 ring, 54 for 3 ring
-    n_pins = 48.0 # number of coolant channels (24, largepins), (36, smallpins), 48 smallpins_plus1
-    n_fuel_pins = 114 # 60 for largepins, 84 for smallpins, 114 for smallpins_plus1
+    n_pins = 36.0 # number of coolant channels (24, largepins), (36, smallpins), 48 smallpins_plus1
+    n_fuel_pins = 84 # 60 for largepins, 84 for smallpins, 114 for smallpins_plus1
     unheat_lengths = (1.65-active_core_h)/2.0 # [m]
     unheat_lengths = (unheat_lengths, unheat_lengths)
     radial_peak = 1.0 #1.5159
@@ -36,13 +36,13 @@ def main():
     t_in = t_out - core_del_t
     coolant = NaFZrF4() # FLiBe() or NaFZrF4()
     r_tube_sm = 0.0055 # [m] 0.007 for largepins, 0.0055 for smallpins
-    r_tube_lg = 0.017 # [m] 0.017 for smallpins
+    r_tube_lg = 0.017 # [m] 0.021 for largepins, 0.017 for smallpins
     a_flow_sm = np.pi*r_tube_sm**2.0*n_pins
     a_flow_lg = np.pi*r_tube_lg**2.0
     
     # Serpent pin peaking values
-    #pin_peak_vals = np.array([1.31,1.26,1.23,1.16,1.14,1.10,1.05,1.03]) smallpins_reg
-    pin_peak_vals = pin_peak_vals = np.array([1.69,1.61,1.47,1.39,1.30,1.27,1.17,1.10,1.07,1.01,0.958])
+    pin_peak_vals = np.array([1.31,1.26,1.23,1.16,1.14,1.10,1.05,1.03]) # smallpins_reg
+    #pin_peak_vals = pin_peak_vals = np.array([1.69,1.61,1.47,1.39,1.30,1.27,1.17,1.10,1.07,1.01,0.958])
     ax_peak_val = 1.2859
     rad_peak_val = 1.196
     
@@ -108,7 +108,8 @@ def main():
     re_tot = rho*v_tot*2.0*r_tube_sm/visc
     nuss_tot = nusselt_calc(re_tot, prandtl)
     htc_tot = htc_calc(nuss_tot, thc, r_tube_sm)
-    dp_tot = calc_del_p(rho, v_tot, re_tot, dz, r_tube_sm, unheat_lengths, fric_form_loss)
+    dp_tot, dp_fric, dp_form, dp_grav = calc_del_p(rho, v_tot, re_tot, dz, r_tube_sm, unheat_lengths, fric_form_loss,
+                        all_dp=True)
 #    fric_tot = 0.316 * re_tot**(-0.25)
 #    dp_tot = (fric_form_loss + fric_tot * core_h/(2.0*r_tube_sm)) * rho*v_tot**2.0/(2.0)
 #    dp_tot = dp_tot.sum()
@@ -167,6 +168,9 @@ def main():
     print 'samesize pump hp is {}'.format(pump_pow_samesize_hp)
     print 'samesize pressure drop in feet is {}'.format(dp_samesize_head_feet)
     print 'samesize pressure drop in pa is {:.6e}'.format(dp_tot)
+    print 'samesize fric pressure drop in pa is {:.6e}'.format(dp_fric)
+    print 'samesize grav pressure drop in pa is {:.6e}'.format(dp_grav)
+    print 'samesize form pressure drop in pa is {:.6e}'.format(dp_form)
     
     # Calc assembly powers | Need to rework to use new dict dv input | TAG: fix
     assem_powers = core.AssemblyPowerPeak(pin_peaking=pin_peak_vals, n_pins_per_assm=n_fuel_pins,
@@ -195,7 +199,7 @@ def del_t_err_calc(inp_del_t, actual_del_t):
 
 # Assumes axial stepping?
 def calc_del_p(rho, velocity, reynold_num, dz, radius, nonheat_lengths, 
-               form_coeff):
+               form_coeff, all_dp=False):
     
     # fric_form_loss + fric_sm * core_h/(2.0*r_tube_sm)) * rho*v_sm**2.0/(2.0)
     # Start by getting form loss term:
@@ -214,6 +218,8 @@ def calc_del_p(rho, velocity, reynold_num, dz, radius, nonheat_lengths,
                        rho[0]*velocity[0]**2.0/2.0)
     dp_fric_exit = exit_fric_fac * nonheat_lengths[-1]/(2.0*radius) * (
                        rho[-1]*velocity[-1]**2.0/2.0)
+    # total friction pressure drop
+    dp_fric_tot = dp_fric_entrance + dp_fric_active + dp_fric_exit
                        
     # Gravitational pressure drop
     dp_grav_active = rho*9.81*dz
@@ -222,8 +228,11 @@ def calc_del_p(rho, velocity, reynold_num, dz, radius, nonheat_lengths,
     dp_grav = dp_grav_active.sum() + dp_grav_entrance + dp_grav_exit
     
     # Total pressure drop
-    dp_tot = dp_fric_entrance + dp_fric_active + dp_fric_exit + dp_form + dp_grav
-    return dp_tot
+    dp_tot = dp_fric_tot + dp_form + dp_grav
+    if all_dp:
+        return dp_tot, dp_fric_tot, dp_form, dp_grav
+    else:
+        return dp_tot
 
 class Salt(object):
     def __init__(self, visc, thc, rho, hcap):
