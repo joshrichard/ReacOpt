@@ -38,22 +38,24 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 #case_vars = ('cdens',)
 #extra_vars= ('bu',)
 
-#dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]), \
-#    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]), \
+#dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]),
+#    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]),
 #    ('power',[20.0, 30.0])])
 
-dv_bounds = OrderedDict([('power',[20.0, 30.0])])
+dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]),
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]),
+    ('power',[20.0, 30.0])])
 
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
-                            ('enr', 19.5), ('f2f', 28.0),('power', 20.0), # 24.78, 24.248 #22.38
+                            ('enr', 19.5), ('f2f', 25.0),('power', 20.0), # 24.78, 24.248 #22.38
                             ('cdens', 1.0)])
                             
-obj_fun = 'powflux' # 'fuel_flux', or 'powflux'
-pin_type = 'smallpins_plus1'
+obj_fun = 'fuel_flux' # 'fuel_flux', or 'powflux'
+pin_type = 'smallpins'
 
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
 #    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
@@ -63,7 +65,7 @@ pin_type = 'smallpins_plus1'
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), 
                  ('pin_rad','0.55'), ('ip_rad','1.7'),  # 0.7, 2.1, 1.8 or 0.55, 1.7, 1.5 ('pin_pitch','1.5'),
-                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), 
+                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), 
                  ('total_coreh','175'), ('assm_type', pin_type)])
                  
 salt_file_dirname = run_opts['cool_mat']
@@ -81,7 +83,7 @@ data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
 dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'], 
                         folder_set_name, opt_algo_name, pin_type, analysis_name, obj_fun)
                  
-doe_opts = {'doe_type':'FF', 'FF_num':3}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'O-LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}
+doe_opts = {'doe_type':'O-LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'O-LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}
 
                  
 doe_sets = {}
@@ -143,8 +145,8 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
                  'stationarity_thresh':1e-2} #converge_types: 'rel_span', 'stationary', 'or 'span_station'
 thresh_in = 1e-3
 euclid_tol = 1e-3
-outp_mode = 'interact' # either 'interact' or 'iterate'
-run_mode = 'normal' # either 'restart', 'normal','reuse_doe', or 'continue_iter'
+outp_mode = 'iterate' # either 'interact' or 'iterate'
+run_mode = 'reuse_doe' # either 'restart', 'normal', 'reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise

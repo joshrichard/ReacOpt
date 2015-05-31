@@ -24,7 +24,7 @@ import time
 import cPickle
 from uncertainties import ufloat, umath, unumpy
 
-import pdb
+#import pdb
         
 def make_doe(case_bounds, output_fname, first_output_fname, **kwargs):
     if kwargs['doe_type'] == 'FF':
@@ -155,7 +155,6 @@ def make_case_matrix(case_set, case_info, run_opts, data_opts,
         pdist_fnames = {'nominal':os.path.join(pdist_lastpath, main_pdist_fname), 
                         'lowE':os.path.join(pdist_lastpath, lowE_pdist_fname),
                         'depth':pdist_depth_path}
-        pdb.set_trace()
         make_std_inp(design_config_dict, main_inp_fname, pdist_fnames, run_opts)
         make_qsub(main_inp_fname, main_qsub_fname)
 #        for item in str_element[len(new_dv_names):]:
@@ -290,14 +289,16 @@ def make_mats(mats_inp_dict, run_opts):
     salt_dens_frac = float(mats_inp_dict['cdens'])
     #salt_dens = -2.96 * salt_dens_frac
     #salt_mat_name = run_opts['cool_mat']
+    pinrad = run_opts['pin_rad']
+    pintype = run_opts['assm_type']
     
     mod_xs_ext = run_opts['mod_xs']
     mod_sab_ext = run_opts['mod_sab_xs']
     cool_xs_ext = run_opts['cool_xs']
     
     # First, calculate the core-average fuel temperature based on this dv config
-    pow_obj = core.AssemblyPowerPeak(radial_peak=1.0, axial_peak=1.0,
-                                     pin_peaking = np.ones(7))
+    pow_obj = core.AssemblyPowerPeak(pin_rad = pinrad, pin_type = pintype,
+                                     radial_peak=1.0, axial_peak=1.0, flat_pin_peak = True)
     pow_obj.set_core_conditions(dv_type='real', dv_real=mats_inp_dict) # Fix this to work with new dv dict approach!
     fuel_temp = float(pow_obj.get_peak_triso_temp())
     if fuel_temp < 1200.0:

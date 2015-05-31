@@ -101,7 +101,10 @@ def all_bounds_constr(X):
             result = feature
     return result
 
-def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr):
+def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, 
+                   case_info, run_opts, iter_cntr):
+    pin_type = run_opts['assm_type']
+    pin_rad = run_opts['pin_rad']
     iter_num = iter_cntr
     num_feat = doe_sets['doe_scaled'].shape[-1]
     x_guess = np.array([0.8]*num_feat) # Improve guess spot? | TAG: Improve
@@ -160,7 +163,8 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         
     def triso_pow_eval(dv_vec_scaled, eval_MSE=False, 
                        dvbounds=dv_bounds, defaultcore=default_core,
-                       assm_pow=assm_peak_surro, axial_pow=axial_peak_surro):
+                       assm_pow=assm_peak_surro, axial_pow=axial_peak_surro,
+                       pintype = pin_type, pinrad = pin_rad):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=bounds, scal_type='real').sum(0)
 #        pf = dv_vec[1]
 #        coreh = dv_vec[0]*1e-2 # core height [input: cm, output: m]
@@ -183,7 +187,8 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         pow_max_constr = 0.340 # peak triso power, in W/particle | TAG: Constraint
         # pow_obj = core.AssemblyPowerPeak()
         # If want surrogate radial peak, use this:
-        pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow, axial_peak=axial_pow)
+        pow_obj = core.AssemblyPowerPeak(pin_type = pintype, pin_rad = pinrad,
+                                         radial_peak=assm_pow, axial_peak=axial_pow)
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
                                     bounds=dvbounds, default_core=defaultcore)
         pow_max_constr_eval = pow_max_constr - pow_obj.get_peak_triso_pow()
@@ -197,7 +202,8 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
 
     def fuel_temp_eval(dv_vec_scaled, eval_MSE = False, 
                        dvbounds=dv_bounds, defaultcore=default_core,
-                       assm_pow=assm_peak_surro, axial_pow=axial_peak_surro):
+                       assm_pow=assm_peak_surro, axial_pow=axial_peak_surro,
+                       pintype = pin_type, pinrad = pin_rad):
 #        dv_vec = core.dv_scaler(dv_vec_scaled, dv_bounds=dvbounds, scal_type='real').sum(0)
 #        krad = dv_vec[2]*1e-2 # kernel radius [input: cm, output: m]
 #        core_pow = dv_vec[5]
@@ -217,7 +223,8 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, case_info, iter_cntr
         t_max_constr = 1510.0 # TAG: Constraint
         # pow_obj = core.AssemblyPowerPeak()
         # If want surrogate radial peak, use this:
-        pow_obj = core.AssemblyPowerPeak(radial_peak=assm_pow, axial_peak=axial_pow)
+        pow_obj = core.AssemblyPowerPeak(pin_type = pintype, pin_rad = pinrad,
+                                         radial_peak=assm_pow, axial_peak=axial_pow)
         pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
                                     bounds=dvbounds, default_core=defaultcore)
         t_max_constr_eval = t_max_constr - pow_obj.get_peak_triso_temp()

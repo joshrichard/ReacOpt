@@ -1408,15 +1408,15 @@ class MultCaseMat(object):
 
 # Class for calculating power paramters given total core power and core height
 class AssemblyPowerPeak(object):
-    def __init__(self, radial_peak=1.088, axial_peak=1.309, pin_peaking=None,
-                 n_assm=54.0, n_pins_per_assm=60.0, pin_rad=0.7, 
-                 layer_thick = None, layer_k = None,
-                 peak_fuel_temps = None, vol_powdens = None):
+    def __init__(self, pin_rad, pin_type, n_assm=54.0,
+                 radial_peak=1.088, axial_peak=1.309,
+                 flat_pin_peak=False,
+                 layer_thick = None, layer_k = None):
         self.radial_peak = radial_peak
         self.axial_peak = axial_peak
+        self.flat_pin_peak = flat_pin_peak
         self.n_assm = n_assm
-        self.n_pins_per_assm = n_pins_per_assm
-        self.pin_rad = pin_rad*1e-2 # input in [cm], store in [m]
+        self.pin_rad = float(pin_rad)*1e-2 # input in [cm], store in [m]
         if layer_thick is None:
             self.layer_thick = np.array([0.0, 0.01, 0.004, 0.0035, 0.004])*1e-2 # [cm], convert to [m]
         else:
@@ -1426,20 +1426,12 @@ class AssemblyPowerPeak(object):
             self.layer_k = [3.5, 0.5, 4.0, 30.0, 4.0] # Thermal cond of layers [W/m-k], jianwei's thesis, pg. 18
         else:
             self.layer_k = layer_k
-        if pin_peaking is None: # peaking vals, starting from upper-left
-            self.pin_peaking = np.array([1.509, 1.356, 1.303, 1.227, 1.094, 1.060, 0.983])
-        else: 
-            self.pin_peaking = pin_peaking
-        if peak_fuel_temps is None and vol_powdens is None:
-            self.homog_peak_fuel_temps = np.array([1164.0, 1228.0, 1256.0, 1352.0])
-            self.vol_powdens = np.array([4.230E7, 5.711E7, 6.345E7, 8.566E7])[:,np.newaxis]
-        elif peak_fuel_temps is not None and vol_powdens is not None:
-            self.homog_peak_fuel_temps = peak_fuel_temps
-            self.vol_powdens = vol_powdens
+        if 'AssemParams' in str(type(pin_type)):
+            pass
+        elif type(pin_type) is str:
+            self.fuel_assm_obj = AssemParams(pin_type)
         else:
-            raise Exception('Must supply both peak_fuel_temps and vol_powdens, or leave both empty!')
-        self.peak_fuel_temp_regress = LinearRegression()
-        self.peak_fuel_temp_regress.fit(self.vol_powdens, self.homog_peak_fuel_temps)
+            raise Exception('pin_type input must be a FuelType obj or a string')
 
             
         
@@ -1483,7 +1475,7 @@ class AssemblyPowerPeak(object):
     
     def calc_core_powers(self):
         self.avg_assm_power = self.core_power/self.n_assm
-        self.avg_pin_power = self.avg_assm_power/self.n_pins_per_assm
+        self.avg_pin_power = self.avg_assm_power/self.fuel_assm_obj.n_pins_per_assm
         self.avg_vol_power = self.avg_pin_power/self.single_pin_vol
         self.avg_triso_power = self.avg_pin_power/self.num_triso_pin
         self.peak_assm_power = self.avg_assm_power * self.radial_peak
@@ -1491,9 +1483,14 @@ class AssemblyPowerPeak(object):
         self.peak_triso_power = self.avg_triso_power * self.radial_peak
         self.peak_ax_vol_power = self.peak_vol_power * self.axial_peak
         self.peak_ax_triso_power = self.peak_triso_power * self.axial_peak
-        self.peak_ax_triso_power_peak_pin = self.peak_ax_triso_power * self.pin_peaking.max()
-        self.peak_ax_triso_power_hot_pin = self.peak_ax_triso_power * self.pin_peaking[4]
-        self.peaked_pin_powers = self.peak_ax_vol_power * self.pin_peaking
+        if self.flat_pin_peak:
+            self.peak_ax_triso_power_peak_pin = self.peak_ax_triso_power
+            self.peak_ax_triso_power_hot_pin = self.peak_ax_triso_power
+            self.peaked_pin_powers = self.peak_ax_vol_power * np.ones([len(self.fuel_assm_obj.pin_peaking)])
+        else:
+            self.peak_ax_triso_power_peak_pin = self.peak_ax_triso_power * self.fuel_assm_obj.pin_peak_max
+            self.peak_ax_triso_power_hot_pin = self.peak_ax_triso_power * self.fuel_assm_obj.pin_peak_hotpin
+            self.peaked_pin_powers = self.peak_ax_vol_power * self.fuel_assm_obj.pin_peaking
         
 
     def calc_fuel_temps(self):
@@ -1521,13 +1518,12 @@ class AssemblyPowerPeak(object):
         
     def calc_peak_bulk_fuel_temp(self):
         try:
-            self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power.nominal_value))
+            self.peak_bulk_fuel_temp = float(self.fuel_assm_obj.fitfunc(self.peak_ax_vol_power.nominal_value))
         except AttributeError:
             if type(self.peak_ax_vol_power) is float:
-                self.peak_bulk_fuel_temp = float(self.peak_fuel_temp_regress.predict(self.peak_ax_vol_power))
+                self.peak_bulk_fuel_temp = float(self.fuel_assm_obj.fitfunc(self.peak_ax_vol_power))
             else:
-                vec_peak_fuel_temp_regress = np.vectorize(self.peak_fuel_temp_regress.predict)
-                self.peak_bulk_fuel_temp = vec_peak_fuel_temp_regress(unumpy.nominal_values(self.peak_ax_vol_power))
+                self.peak_bulk_fuel_temp = self.fuel_assm_obj.vecfitfunc(unumpy.nominal_values(self.peak_ax_vol_power))
 
 
     def print_all_powers(self):
@@ -1541,6 +1537,32 @@ class AssemblyPowerPeak(object):
                float(self.peak_ax_vol_power))
         print 'Peaked pin powers are:'
         print self.peaked_pin_powers
+
+
+class AssemParams(object):
+    def __init__(self, pintype):
+        self.pintype = pintype
+        if self.pintype == 'largepins':
+            self.n_pins_per_assm = 60.0
+            self.bulk_peak_fuel_temps = np.array([1164.0, 1228.0, 1256.0, 1352.0])
+            self.vol_powdens = np.array([4.230E7, 5.711E7, 6.345E7, 8.566E7])[:,np.newaxis]
+            self.pin_peaking = np.array([1.509, 1.356, 1.303, 1.227, 1.094, 1.060, 0.983])
+            self.high_temp_pin_idx = 4
+        elif self.pintype == 'smallpins':
+            self.n_pins_per_assm = 84.0
+            self.bulk_peak_fuel_temps = np.array([1113.0, 1161.0, 1182.0, 1253.0])
+            self.vol_powdens = np.array([4.895E7, 6.608E7, 7.342E7, 9.912E7])[:,np.newaxis]
+            self.pin_peaking = np.array([1.305,1.260,1.234,1.156,1.142,1.095,1.046,1.030])
+            self.high_temp_pin_idx = 0
+        else:
+            raise Exception('specified pintype for FuelTemp class not recognized')
+        self.pin_peak_max = self.pin_peaking.max()
+        self.pin_peak_hotpin = self.pin_peaking[self.high_temp_pin_idx]
+        self.peak_fuel_temp_regress = LinearRegression()
+        self.peak_fuel_temp_regress.fit(self.vol_powdens, self.bulk_peak_fuel_temps)
+        self.fitfunc = self.peak_fuel_temp_regress.predict
+        self.vecfitfunc = np.vectorize(self.fitfunc)
+    
 
 
 class DOEobj(object):
