@@ -287,7 +287,8 @@ def main():
         last_opt = None
         iter_cntr = 1
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
-                                                         fit_opts, case_info, iter_cntr)
+                                                         fit_opts, case_info, run_opts,
+                                                         iter_cntr)
         opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
                                            fit_dict['obj_val']['rgpm_fit_data'], 
                                            optimization_options['search_constr_gpm'])
@@ -317,7 +318,8 @@ def main():
         #last_opt = {'search_res':{'new_doe_scaled':np.array([0.00865, 0.98704, 0.79148, 0.96384, 0.30697, 1.0])}}
         iter_cntr = 1
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
-                                                         fit_opts, case_info, iter_cntr)
+                                                         fit_opts, case_info, run_opts,
+                                                         iter_cntr)
         optimization_options['search_type'] = search_type
         search_res = opt_module.search_infill(opt_res, optimization_options, last_opt,
                                                 case_info, data_opts, fit_opts)
@@ -474,7 +476,8 @@ def iter_loop():
             except (IOError, EOFError):
                 last_opt = None
         optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
-                                                         fit_opts, case_info, iter_cntr)
+                                                         fit_opts, case_info, run_opts,
+                                                         iter_cntr)
 #        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
 #                                              outp_name = data_opts['opt_fname'])
         opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
