@@ -43,8 +43,7 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 #    ('power',[20.0, 30.0])])
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]),
-    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]),
-    ('power',[20.0, 30.0])])
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0])])
 
     
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
@@ -55,7 +54,7 @@ default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
                             ('cdens', 1.0)])
                             
 obj_fun = 'fuel_flux' # 'fuel_flux', or 'powflux'
-pin_type = 'smallpins'
+pin_type = 'smallpins' # 'smallpins' or 'largepins'
 
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
 #    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
@@ -71,7 +70,7 @@ run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'),
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
 opt_algo_name = 'evolve' # evolve or L_BFGS_B
-analysis_name = 'all_dv' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
+analysis_name = 'nafzrf4_fixed_pow_20' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'

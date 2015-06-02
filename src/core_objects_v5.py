@@ -3,8 +3,8 @@ import os
 import logging
 from collections import OrderedDict
 import subprocess
-import operator
-import itertools
+#import operator
+#import itertools
 import copy
 import numpy as np
 from sklearn.linear_model import LinearRegression
