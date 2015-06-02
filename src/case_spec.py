@@ -145,7 +145,7 @@ converge_opts = {'converge_tol':1e-5, 'converge_points':3,
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'reuse_doe' # either 'restart', 'normal', 'reuse_doe', or 'continue_iter'
+run_mode = 'restart' # either 'restart', 'normal', 'reuse_doe', or 'continue_iter'
 # **** Be careful with this! If the existing data already has been extracted, 
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise

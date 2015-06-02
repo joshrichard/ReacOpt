@@ -623,7 +623,10 @@ def read_data(case_info, data_opts, detector_opts, data_sets, run_opts):
     doe_set = data_sets
     cool_typ = run_opts['cool_mat']
     case_configs = core.make_design_dict(doe_set['doe'], case_info['dv_bounds'].keys(), case_info['default_core'])
-    case_powers = case_configs['power'][:,0]
+    try:
+        case_powers = case_configs['power'][:,0]
+    except TypeError:
+        case_powers = case_configs['power']
 
     
     data_dict = dict([ ('reac', core.CaseMatrix('1d')), ('fuel_flux', core.MultCaseMat('1d')),
