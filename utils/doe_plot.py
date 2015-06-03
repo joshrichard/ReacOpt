@@ -89,7 +89,7 @@ def make_3d_ff_plot():
     ax.set_ylabel('f2')
     ax.set_zlabel('f3')
     fname = os.path.join(saveloc, 'ffpic_doe_3d.png')
-    fig.savefig(fname, dpi=600.0)
+    fig.savefig(fname, dpi=350.0, bbox_inches='tight')
     plt.close()
 
 

@@ -43,34 +43,35 @@ np.set_printoptions(precision=5, linewidth=90, suppress=True)
 #    ('power',[20.0, 30.0])])
 
 dv_bounds = OrderedDict([('coreh',[100.0, 145.0]), ('pf',[0.20, 0.35]),
-    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0])])
+    ('krad',[0.0212, 0.0300]), ('enr',[15.0, 19.5]), ('f2f',[20.0, 30.0]),
+    ('power',[20.0, 30.0])])
 
-    
+
 extra_states = OrderedDict([('cdens',[0.001, 1.0])]) # ('bu', [0.0, 5.0, 89.0, 183.0])
 bu_steps = (0.0, 5.0, 89.0, 183.0)
 
 default_core = OrderedDict([('coreh', 145.0),('pf',0.35), ('krad', 0.0300),
                             ('enr', 19.5), ('f2f', 25.0),('power', 20.0), # 24.78, 24.248 #22.38
                             ('cdens', 1.0)])
-                            
+
 obj_fun = 'fuel_flux' # 'fuel_flux', or 'powflux'
 pin_type = 'smallpins' # 'smallpins' or 'largepins'
 
 #tot_dv_dict = OrderedDict([('coreh',[70.0, 100.0, 135.0]), ('pf',[0.15, 0.25, 0.35]), \
 #    ('krad',[0.0212, 0.0270, 0.0300]), ('enr',[10.0, 15.0, 19.5]), ('cdens',[0.001, 0.75, 1.0, 1.25]), \
 #    ('bu', [0.0, 5.0, 89.0, 183.0]) ])
-    
 
 
-run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'), 
+
+run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'),
                  ('pin_rad','0.55'), ('ip_rad','1.7'),  # 0.7, 2.1, 1.8 or 0.55, 1.7, 1.5 ('pin_pitch','1.5'),
-                 ('cool_mat', 'nafzrf4'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'), 
+                 ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'),
                  ('total_coreh','175'), ('assm_type', pin_type)])
-                 
+
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
 opt_algo_name = 'evolve' # evolve or L_BFGS_B
-analysis_name = 'nafzrf4_fixed_pow_20' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
+analysis_name = 'all_dv' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_fixed_pow_20'
 
 # '~jgr42_000','Documents','Grad_Research','Salt_reactor','SERPENT_files','standard_core','optimization_analysis','opt_runs_v4'
 # '~jgr42_000','Documents','GitHub','ReacOpt','examples', 'new_file_build'
@@ -79,12 +80,12 @@ analysis_name = 'nafzrf4_fixed_pow_20' # 'nafzrf4_fixed_f2f' , 'all_dv', 'flibe_
 data_dir = os.path.join('~joshrich', 'SERPENT', 'new_core', 'opt_runs_pow')
 # 'run_dump_files', 'lhs_110_test1'
 # 'test_exec', 'test_search_progress', 'lhs_110_searchprogress_testdata'
-dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'], 
+dump_dir = os.path.join(data_dir, 'run_dump_files', run_opts['cool_mat'],
                         folder_set_name, opt_algo_name, pin_type, analysis_name, obj_fun)
-                 
+
 doe_opts = {'doe_type':'O-LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}  # {'doe_type':'FF', 'FF_num':3}, {'doe_type':'O-LHS', 'num_LHS_samples':50, 'LHS_type':'maximin'}
 
-                 
+
 doe_sets = {}
 
 data_names = {}
@@ -111,11 +112,11 @@ data_opts = dict([('data_dirname', os.path.expanduser(data_dir)),
 ('iter_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_dump_iter.out')),
 ('final_fname', os.path.join(os.path.expanduser(dump_dir), 'opt_run_final.out')) ])
 
-detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002'), 
+detector_opts = dict([('fuel_detname', 'DET1001'), ('mat_detname', 'DET1002'),
                       ('assm_pow_detname', 'DET1003'), ('axial_pow_detname','DET1004')])
 
 plot_opts = {'type':'2d_gpm', 'gpm_opt':1.0}
-    
+
 # Input prep
 
 case_info = {'dv_bounds':dv_bounds, 'extra_states':extra_states, 'bu_steps':bu_steps,
@@ -139,14 +140,14 @@ fit_opts = {'sur_type':'regress', 'theta_opt':'custom', 'num_theta':'all', 'num_
             'theta_bounds':{'up':1e2, 'low':1e-3, 'guess':1e-1}}
 search_type = 'hybrid' # either 'hybrid' or 'exploit'
 # either 'range' or 'rel'
-converge_opts = {'converge_tol':1e-5, 'converge_points':3, 
+converge_opts = {'converge_tol':1e-5, 'converge_points':3,
                  'converge_type':'span_station', 'stationary_points':10,
                  'stationarity_thresh':1e-2} #converge_types: 'rel_span', 'stationary', 'or 'span_station'
 thresh_in = 1e-3
 euclid_tol = 1e-3
 outp_mode = 'iterate' # either 'interact' or 'iterate'
-run_mode = 'restart' # either 'restart', 'normal', 'reuse_doe', or 'continue_iter'
-# **** Be careful with this! If the existing data already has been extracted, 
+run_mode = 'reuse_doe' # either 'restart', 'normal', 'reuse_doe', or 'continue_iter'
+# **** Be careful with this! If the existing data already has been extracted,
 # will do so again if extract_data == 'on', causing an error!
 extract_data = 'on'  # 'off' if continue_iter, 'on' otherwise
 use_exist_data = 'off' # 'off' if doing clean restart after initial DoE
@@ -192,10 +193,10 @@ if outp_mode == 'iterate':
 dump_fulldir = os.path.expanduser(dump_dir) # TAG: remove
 if not os.path.isdir(dump_fulldir):
     os.makedirs(dump_fulldir)
-    
-    
+
+
 def main():
-    
+
     # Set up command line parser
     # Create top-level parser
     parser = argparse.ArgumentParser(description = 'Make and/or run Serpent FHTR input files')
@@ -209,13 +210,13 @@ def main():
     parser.add_argument("-s","--search", default='off') #test
     parser.add_argument("-c","--check", default='off')
     parser.add_argument("-i", "--iterate", default='on')
-    
+
     args = parser.parse_args()
-    
+
     if args.doe == 'on':
         doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
         case_info['dv_bounds'], data_opts['doe_fname'], **doe_opts)
-    
+
     if args.make == 'on':
         print 'Making input files'
         first_iter = True
@@ -232,7 +233,7 @@ def main():
         case_info['case_set'] = c_eng.make_case_matrix(doe_sets['doe'], case_info,
                                run_opts, data_opts, save_initial_case)
 
-        
+
     if args.run == 'init':
         print 'Running initial case set'
         with open(data_opts['res_cases_fname'], 'rb') as outpf:
@@ -245,7 +246,7 @@ def main():
             case_info['case_set'] = cPickle.load(outpf)
         case_info['jobids']= c_eng.run_case_matrix(case_info['case_set'], data_opts, interval=submit_interval)
         c_eng.wait_case_matrix(case_info['jobids'], case_info['case_set'])
-    
+
     if args.extract == 'on':
         global doe_sets
         with open(data_opts['cases_fname'], 'rb') as outpf:
@@ -256,19 +257,19 @@ def main():
         # Read data into objects:
         data_dict, doe_sets = c_eng.read_data(case_info, data_opts, detector_opts, doe_sets)
 
-        
+
     if args.plot == 'on':
         #reac_pltname=('reac', 'reactivity [pcm]')
         #fflux_therm_pltname=('fuel_flux', 'Thermal irradiation position flux')
         sur_constr.make_plots(tot_dv_dict, data_opts, plot_opts)
         #ex_data.make_plots(tot_dv_dict, data_opts, fflux_therm_pltname)
-        
+
     if args.learn == 'on':
         with open(data_opts['data_fname'], 'rb') as f:
             data_dict = cPickle.load(f)
             doe_sets = cPickle.load(f)
         fit_dict = sur_constr.make_meta(data_dict, doe_sets, data_opts)
-        
+
     if args.opt == 'on':
 #        with open(data_opts['data_fname'], 'rb') as f:
 #            data_dict = cPickle.load(f)
@@ -285,11 +286,11 @@ def main():
         obj_val_data = fit_dict['obj_val']['rgpm_fit_data']
         last_opt = None
         iter_cntr = 1
-        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
+        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts,
                                                          fit_opts, case_info, run_opts,
                                                          iter_cntr)
-        opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
-                                           fit_dict['obj_val']['rgpm_fit_data'], 
+        opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'],
+                                           fit_dict['obj_val']['rgpm_fit_data'],
                                            optimization_options['search_constr_gpm'])
         actual_opt_res = ActOptRes(opt_res.x, opt_res.fun, case_info['dv_bounds'])
         print 'Results of optimization:'
@@ -312,11 +313,11 @@ def main():
 #        doe_sets = run_dump_data_list[dump_list_idx]['doe_sets']
 #        fit_dict = run_dump_data_list[dump_list_idx]['fit_dict']
 #        opt_res = run_dump_data_list[dump_list_idx]['opt_res']
-        
+
         last_opt = None
         #last_opt = {'search_res':{'new_doe_scaled':np.array([0.00865, 0.98704, 0.79148, 0.96384, 0.30697, 1.0])}}
         iter_cntr = 1
-        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
+        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts,
                                                          fit_opts, case_info, run_opts,
                                                          iter_cntr)
         optimization_options['search_type'] = search_type
@@ -326,7 +327,7 @@ def main():
         print 'Search result:'
         print search_res
         optimization_options['accept_test'].print_result(new_search_dv)
-                                                
+
     if args.check == 'on':
         # test data
         test_loc = [0.06883816, 0.87457826, 0.4993765, 1.0, 0.33481614, 0.98499523]
@@ -343,10 +344,10 @@ def main():
         opt_res = dummy()
         #pdb.set_trace()
         converged_temp = opt_module.converge_check(all_search_res, opt_res, all_opt_res_loc, converge_opts)
-    
+
     if args.iterate == 'on':
         iter_loop()
-    
+
 
 def iter_loop():
     # Run each element of the iteration loop to converge to optimal solution
@@ -368,7 +369,7 @@ def iter_loop():
             if run_mode == 'normal':
                 print 'run_type = normal: Making initial DoE'
                 doe_sets['doe'], doe_sets['doe_scaled'] = c_eng.make_doe(
-                        case_info['dv_bounds'], data_opts['doe_fname'], 
+                        case_info['dv_bounds'], data_opts['doe_fname'],
                         data_opts['init_doe_fname'], **doe_opts)
             elif run_mode == 'restart' or run_mode == 'reuse_doe':
                 print 'run_mode = {}: Using preexisting initial DoE'.format(run_mode)
@@ -474,16 +475,16 @@ def iter_loop():
                 last_opt = last_opt[iter_idx]
             except (IOError, EOFError):
                 last_opt = None
-        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts, 
+        optimization_options = opt_module.get_optim_opts(fit_dict, doe_sets, data_opts,
                                                          fit_opts, case_info, run_opts,
                                                          iter_cntr)
-#        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
+#        opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt',
 #                                              outp_name = data_opts['opt_fname'])
-        opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'], 
-                                           fit_dict['obj_val']['rgpm_fit_data'], 
+        opt_res = opt_module.BestObsOptVal(doe_sets['doe_scaled'],
+                                           fit_dict['obj_val']['rgpm_fit_data'],
                                            optimization_options['search_constr_gpm'])
         if hasattr(opt_res, 'success'):
-            if not opt_res.success: 
+            if not opt_res.success:
                 print 'No constraint-satisfying solution present in current data'
                 print 'Applying global obtimization to the obj fun surrogate to find potential satisfying solution'
                 # Need some way here to know if there's no answer, period | TAG: DEBUG
@@ -492,7 +493,7 @@ def iter_loop():
                 # on the obj fun directly, use this point as the next search point
                 # This constrained opt can still be with P(sat) constr
                 #optimization_options['global_type'] = 'random'
-                opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt', 
+                opt_res = opt_module.optimize_wrapper(optimization_options, last_opt, opt_purpose = 'dv_opt',
                                               outp_name = None)
                 #optimization_options['global_type'] = 'evolve'
                 if not opt_res.success or opt_res.fun == 0.0:
@@ -503,7 +504,7 @@ Try loosening the constraints or widening the search space"""
                 obj_val_opt = True
         else:
             obj_val_opt = True
-        # Store opt results, use for search/infill 
+        # Store opt results, use for search/infill
         actual_opt_res_loc = dv_scaler(opt_res.x, case_info['dv_bounds'], scal_type='real')
         #actual_opt_res = ActOptRes(opt_res.x, opt_res.fun, case_info['dv_bounds'])
         with open(data_opts['opt_fname'], 'wb') as optf:
@@ -522,7 +523,7 @@ Try loosening the constraints or widening the search space"""
         # Determine which sort of infill criteria to apply:
         if not obj_val_opt:
             # if the obj fun optimization failed to find a satisfying optimium,
-            # force the next high-fidelity evaluation to be at a predicted satisfying 
+            # force the next high-fidelity evaluation to be at a predicted satisfying
             # location
             optimization_options['search_type'] = 'exploit'
         else:
@@ -600,7 +601,7 @@ Try loosening the constraints or widening the search space"""
             ####
             #
             ####
-            iter_dump_data = {'doe_sets':doe_sets, 
+            iter_dump_data = {'doe_sets':doe_sets,
                               'search_res':search_res, 'all_search_res':all_search_res,
                               'case_set':case_info['case_set'], 'data_dict':data_dict, 'fit_dict':fit_dict,
                               'opt_res':opt_res, 'actual_opt_res_loc':actual_opt_res_loc,
@@ -634,16 +635,16 @@ Try loosening the constraints or widening the search space"""
         first_iter = False
         save_initial_case = False
         doe_sets['doe'] = search_res['new_doe']
-        doe_sets['doe_scaled'] = search_res['new_doe_scaled'] 
+        doe_sets['doe_scaled'] = search_res['new_doe_scaled']
         with open(data_opts['doe_fname'], 'wb') as outpf:
             cPickle.dump(doe_sets['doe'], outpf, 2)
             cPickle.dump(doe_sets['doe_scaled'], outpf, 2)
             # Need to reset anyting else?
 
-        
 
-    
-    
+
+
+
 #def define_case_matrix():
 #    if first_iter:
 #        case_matrix_dv_dict = copy.deepcopy(tot_dv_dict)
@@ -675,9 +676,9 @@ Try loosening the constraints or widening the search space"""
 #                    temp_dv_vals[0] = 0.0
 #            # Now store into dv_dict
 #            case_matrix_dv_dict[item] = copy.deepcopy(temp_dv_vals)
-#        
+#
 #    # After making dv_dict, create input files
-#    c_eng.make_case_matrix(case_matrix_dv_dict, run_opts)                    
+#    c_eng.make_case_matrix(case_matrix_dv_dict, run_opts)
 #
 #
 #def converge_check():
@@ -702,20 +703,20 @@ Try loosening the constraints or widening the search space"""
 #                cPickle.dump(obj_fun, finalf, 2) # Need to store run data for every iteration, not just dump and overwrite on every iteration
 
 
- 
+
 if outp_mode == 'iterate':
-    
+
     logging.basicConfig(
        level=logging.DEBUG,
        format='%(asctime)s:%(levelname)s:%(name)s:%(message)s',
        filename=data_opts['log_fname'],
        filemode='a'
     )
-    
+
     stdout_logger = logging.getLogger('STDOUT')
     sl = StreamToLogger(stdout_logger, logging.INFO)
     sys.stdout = sl
-     
+
     stderr_logger = logging.getLogger('STDERR')
     sl = StreamToLogger(stderr_logger, logging.ERROR)
     sys.stderr = sl
