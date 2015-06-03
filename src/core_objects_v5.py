@@ -14,7 +14,7 @@ from scipy.spatial.distance import pdist, squareform
 import codecs
 from bisect import bisect_right
 from sklearn import gaussian_process
-from uncertainties import ufloat, unumpy
+from uncertainties import unumpy # ufloat
 #import pdb
 
 
@@ -22,8 +22,8 @@ from uncertainties import ufloat, unumpy
 #from collections import *
 
 # Global Dictionaries
-#surf_dict = OrderedDict() 
-#cell_dict = OrderedDict() 
+#surf_dict = OrderedDict()
+#cell_dict = OrderedDict()
 #mat_dict = UniODict()
 #univ_dict = OrderedDict()
 #lat_dict = OrderedDict()
@@ -44,7 +44,7 @@ n_plots = 0
 class UniODict(object):
     def __init__(self):
         self.intdict=OrderedDict()
-        
+
     def update(self,Obj):
         if self.intdict.has_key(Obj.key):
             raise Exception('Unique list not finalized because of duplicate key - ' + Obj.key)
@@ -75,7 +75,7 @@ class Nuclide(object):
         self.name = name
         self.xs = xs
         self.value = float(value)
-        
+
     def __str__(self):
         nucl_str = 'Name: {0}\n XS: {1}\n Value: {2}'.format(self.name, self.xs, self.value)
         return nucl_str
@@ -84,7 +84,7 @@ class Nuclide(object):
         xml_str = ""
         xml_str += """    <nuclide name="{name}" xs="{xs}" ao="{value}" />\n""".format(name = self.name, xs = self.xs, value = self.value)
         return xml_str
-        
+
     def write_serp(self):
         serp_str = ""
         serp_str += """ {name:>6}{xs}  {value:.5E} \n""".format( name = self.name, xs = self.xs, value = self.value)
@@ -98,7 +98,7 @@ class Sab(object):
         self.nuclide = nuclide
         self.lib = lib
         sab_dict.update(self)
-    
+
     def __str__(self):
         sab_str = 'Sab Name (key): {0}\n Sab XS: {1}'.format(self.key, self.xs)
         return sab_str
@@ -107,7 +107,7 @@ class Sab(object):
         xml_str = ""
         xml_str += """    <sab name="{key}" xs="{xs}" />\n""".format(key = self.key, xs = self.xs)
         return xml_str
-        
+
     def write_serp(self):
         serp_str = ""
         serp_str += """therm {key:<8} {lib:>5}{xs:<3} \n""".format(key = self.key, lib = self.lib, xs = self.xs)
@@ -133,15 +133,15 @@ class Material(object):
         print 'Material ID: {id}'.format(id = self.id)
         if self.sab != None:
             print '{0}'.format(self.sab)
-        print         
+        print
         print 'Nuclides:'
         for item in self.nuclides:
             print item
         return ''
-    
+
     def rem(self):
         mat_dict.intdict.pop(self.key)
-        
+
     def add_nuclide(self, nucl):
         self.nuclides.append(nucl)
 
@@ -159,7 +159,7 @@ class Material(object):
             xml_str += self.sab.write_xml()
         xml_str += """  </material>\n"""
         return xml_str
-        
+
     def write_serp(self):
         serp_str = ""
         if self.comment != None:
@@ -169,7 +169,7 @@ class Material(object):
             serp_str += """ tmp {mat_temp} """.format(mat_temp = self.tmp)
         if self.sab != None:
             serp_str += """  moder {key} {nuclide}  """.format(key=self.sab.key, nuclide=self.sab.nuclide)
-        if self.color != None:        
+        if self.color != None:
             serp_str += """ rgb {color}""".format(color = self.color)
         serp_str += """\n"""
         for item in self.nuclides:
@@ -202,14 +202,14 @@ class Surface(object):
     def write_xml(self):
         xml_str = ""
         if self.bc == None:
-          xml_str += """  <surface id="{id:>6}" type="{typ:<17}" coeffs="{coeffs:>25}"/>""".format(id = self.id, typ = self.typ, coeffs = self.coeffs)
+            xml_str += """  <surface id="{id:>6}" type="{typ:<17}" coeffs="{coeffs:>25}"/>""".format(id = self.id, typ = self.typ, coeffs = self.coeffs)
         else:
-          xml_str += """  <surface id="{id:>6}" type="{typ:<17}" coeffs="{coeffs:>25}" boundary="{bc}"/>""".format(id = self.id, typ = self.typ, coeffs = self.coeffs, bc = self.bc)
+            xml_str += """  <surface id="{id:>6}" type="{typ:<17}" coeffs="{coeffs:>25}" boundary="{bc}"/>""".format(id = self.id, typ = self.typ, coeffs = self.coeffs, bc = self.bc)
         if self.comment != None:
             xml_str += """  <!--{0:^40}-->""".format(self.comment)
         xml_str += "\n"
         return xml_str
-    
+
     def write_serp(self):
         serp_str = ""
         serp_str += """surf {id:>4} {typ:<12} {coeffs:>25}""".format(id=self.id, typ=self.typ, coeffs=self.coeffs)
@@ -223,7 +223,7 @@ class Universe(object):
     def __init__(self, key, value=None):
         global n_universes
         if value != None:
-            self.id = value 
+            self.id = value
         else:
             n_universes += 1
             self.id = n_universes
@@ -234,7 +234,7 @@ class Universe(object):
         print '\nUniverse ID: {0}'.format(self.id)
         print 'Cells: {0}'.format(self.cells)
         return ''
-    
+
     def add_cell(self, key):
         self.cells.append(key)
 
@@ -245,7 +245,7 @@ class Cell(object):
         global n_cells
         n_cells += 1
         self.id = n_cells
-        self.key = key        
+        self.key = key
         self.fill = fill
         self.material = material
         self.surfs = surfs
@@ -278,7 +278,7 @@ class Cell(object):
         if self.comment != None:
             print 'Comment: {0}'.format(self.comment)
         return ''
-        
+
     def get_univ(self):
             # Get universe ID
         if self.universe == None:
@@ -298,14 +298,14 @@ class Cell(object):
     def write_xml(self):
         xml_str = ""
         if self.fill == None:
-          xml_str += """  <cell id="{id:>6}" universe="{univ:<6}" material="{mat:>6}" surfaces="{surfs:>12}"/>""".format(id = self.id, univ = self.universe, mat = self.material, surfs = self.surfaces)
+            xml_str += """  <cell id="{id:>6}" universe="{univ:<6}" material="{mat:>6}" surfaces="{surfs:>12}"/>""".format(id = self.id, univ = self.universe, mat = self.material, surfs = self.surfaces)
         else:
-          xml_str += """  <cell id="{id:>6}" universe="{univ:<6}" fill="{fill:>10}" surfaces="{surfs:>12}"/>""".format(id = self.id, univ = self.universe, fill = self.fill, surfs = self.surfaces)
+            xml_str += """  <cell id="{id:>6}" universe="{univ:<6}" fill="{fill:>10}" surfaces="{surfs:>12}"/>""".format(id = self.id, univ = self.universe, fill = self.fill, surfs = self.surfaces)
         if self.comment != None:
             xml_str += """  <!--{0:^40}-->""".format(self.comment)
         xml_str += "\n"
         return xml_str
-        
+
     def write_serp(self):
         serp_str = ""
         serp_str += """cell {id:>4} {univ:>4} """.format(id = self.id, univ = self.universe)
@@ -330,7 +330,7 @@ class Lattice(object):
         self.dimension = dimension
         self.ref_point = ref_point
         self.width = width
-        self.universes = universes 
+        self.universes = universes
         self.comment = comment
         lat_dict.update(self)
 
@@ -348,7 +348,7 @@ class Lattice(object):
         if self.comment != None:
             print 'Comment: {0}'.format(self.comment)
         return ''
-        
+
     def update_univs(self, input_dict):
         self.universes = self.universes.format(**input_dict)
 
@@ -356,13 +356,13 @@ class Lattice(object):
         xml_str = "\n"
         if self.comment != None:
             xml_str += """  <!--{0:^40}-->\n""".format(self.comment)
-        xml_str += """  <lattice id="{id:>6}" type="{typ}" dimension="{dim}">\n""".format(id = self.id, type = self.typ, dim = self.dimension)
+        xml_str += """  <lattice id="{id:>6}" type="{typ}" dimension="{dim}">\n""".format(id = self.id, typ = self.typ, dim = self.dimension)
         xml_str += """    <lower_left>{lleft}</lower_left>\n""".format(lleft = self.lower_left)
         xml_str += """    <width>{width}</width>\n""".format(width = self.width)
         xml_str += """    <universes>{univs}    </universes>\n""".format(univs = self.universes)
         xml_str += """  </lattice>\n"""
         return xml_str
-        
+
     def write_serp(self):
         serp_str = ""
         if self.comment != None:
@@ -375,17 +375,17 @@ class Lattice(object):
 
 class Assembly(object):
     def __init__(self, key, enr = '0.0', bp = '0', u = None, wid = '0'):
-        self.key = key        
+        self.key = key
         self.enr = enr
         if bp == None:
             bp = '0'
         self.bp = bp
         self.u = u
         self.wid = wid
-        self.density = '0.0' 
+        self.density = '0.0'
         self.fueltemp = '0.0'
         assm_dict.update(self)
-        
+
 
     def __str__(self):
         print '\nAssembly Name: {0}'.format(self.key)
@@ -394,7 +394,7 @@ class Assembly(object):
         print 'Universe: {0}'.format(self.u)
         print 'Width (Pitch): {0}'.format(self.wid)
         return ''
-    
+
     def add_universe(self, u):
         self.u = u
 
@@ -411,7 +411,7 @@ class Plot(object):
     def __init__(self, key, origin, width, basis, typ='slice', color='mat', pixels="1000 1000", background='255 255 255', filename=None, comment=None):
         global n_plots
         n_plots += 1
-        self.key = key        
+        self.key = key
         self.id = n_plots
         self.origin = origin
         self.width = width
@@ -459,7 +459,7 @@ class Plot(object):
 
 class AxialRegion(object):
     def __init__(self, key, bottom, top, dp, grid, water_idx, cool_rho):
-        self.key = key        
+        self.key = key
         self.bottom = bottom
         self.top = top
         self.dp = dp
@@ -483,7 +483,7 @@ class AxialRegion(object):
 # Can add later from make_2Dcore.py
 
 # Subclass of Lattice() for Serpent FHTR fuel assemblies
-class FhtrOutFuelLat(Lattice):    
+class FhtrOutFuelLat(Lattice):
     def __init__(self, key, typ = '2', dimension = '19 19', ref_point = '0.0 0.0', width = '1.8', comment=None):
         global n_lattices, n_universes
         n_lattices += 1
@@ -522,7 +522,7 @@ class FhtrOutFuelLat(Lattice):
         self.ny = dimension.split()[1]
 
 
-class FhtrInFuelLat(Lattice):    
+class FhtrInFuelLat(Lattice):
     def __init__(self, key, typ = '2', dimension = '19 19', ref_point = '0.0 0.0', width = '1.8', comment=None):
         global n_lattices, n_universes
         n_lattices += 1
@@ -600,7 +600,7 @@ class FhtrIPLat(Lattice):    # 1.8
         self.ny = dimension.split()[1]
 
 
-class FhtrSmIPLat(Lattice):    
+class FhtrSmIPLat(Lattice):
     def __init__(self, key, typ = '2', dimension = '21 21', ref_point = '0.0 0.0', width = '1.5', comment=None):
         global n_lattices, n_universes
         n_lattices += 1
@@ -641,7 +641,7 @@ class FhtrSmIPLat(Lattice):
         self.ny = dimension.split()[1]
 
 
-class FhtrP1SmIPLat(Lattice):    
+class FhtrP1SmIPLat(Lattice):
     def __init__(self, key, typ = '2', dimension = '21 21', ref_point = '0.0 0.0', width = '1.5', comment=None):
         global n_lattices, n_universes
         n_lattices += 1
@@ -714,7 +714,7 @@ class FhtrCoreLat(Lattice):
         # Get lattice dimension
         self.nx = dimension.split()[0]
         self.ny = dimension.split()[1]
-        
+
 
 # class that takes a lattice object and SerpPin objects and makes surrounding
 #  cells and associated universes
@@ -745,7 +745,7 @@ class LatFill(object):
         self.ipcell_name = self.root_name + '_ipcell_c'
         self.ringcell_name = self.root_name + '_ring_c'
         self.make_assm()
-        
+
     def make_assm(self):
         if self.width != None:
             if self.lat_typ == 'fuel':
@@ -806,7 +806,7 @@ class SolidFill(object):
         self.outcell_name = self.root_name + '_out_c'
         self.ipcell_name = self.root_name + '_ipcell_c'
         self.make_assm()
-        
+
     def make_assm(self):
         if self.solid_typ == ('solid'):
             Cell(self.latcell_name, surfs = '-{0}'.format(self.surface), universe = self.univ_name, material = mat_dict.intdict[self.solid_mat])
@@ -837,7 +837,7 @@ class FuelMat(Material):
         self.burn_div = burn_div
         mat_dict.update(self)
         self.calc_enrich()
-        
+
     def calc_enrich(self):
         #self.add_nuclide('8016','5.06064E-01')
         #self.n_c = 1.39196E-01
@@ -854,7 +854,7 @@ class FuelMat(Material):
             serp_str += """ tmp {mat_temp:.1f} """.format(mat_temp=self.tmp)
         if self.sab != None:
             serp_str += """  moder {key} {nuclide}  """.format(key=self.sab.key, nuclide=self.sab.nuclide)
-        if self.color != None:        
+        if self.color != None:
             serp_str += """ rgb {color}\n """.format(color = self.color)
         else:
             serp_str += """\n"""
@@ -868,13 +868,13 @@ class ParRing(object):
     def __init__(self, mat, rad):
         self.mat = mat
         self.rad = rad
-        
+
     def __str__(self):
         print 'ParRing specialized Serpent object'
         print 'Material: {0}'.format(self.mat.key)
         print 'Radius: {0}'.format(self.rad)
         return ''
-        
+
 
 class Particle(object):
     def __init__(self, key, krad, mats, universe, comment = None):
@@ -920,7 +920,7 @@ class SerpPin(object):
         self.pin_dict_key = pin_dict_key
         self.pinmat = pinmat
         self.outmat = outmat
-        if fill != None:        
+        if fill != None:
             self.fill = univ_dict.intdict[fill].id
         else:
             self.fill = fill
@@ -931,17 +931,17 @@ class SerpPin(object):
         serp_dict.update(self)
         #pin_dict.update({self.key:self.universe})
         self.comment = comment
-        self.checked = False        
+        self.checked = False
         self.checked = self.check_pin()
         if not self.checked:
             raise Exception('Pinmat needs fill or material!')
-        
-        
+
+
     def __str__(self):
         print 'SerpPin specialized Serpent object'
         if self.comment != None:
             print '{0}'.format(self.comment)
-        print 'Pin object serp_dict key: {0}'.format(self.key)        
+        print 'Pin object serp_dict key: {0}'.format(self.key)
         print 'Pin universe: {0}'.format(self.universe)
         if self.pinmat != None:
             print 'Pin material: {0}'.format(self.pinmat.key)
@@ -958,7 +958,7 @@ class SerpPin(object):
         if self.fill != None and self.pinmat != None:
             return False
         return True
-        
+
     def update_pin_dict(self, inp_dict):
         inp_dict.update({self.pin_dict_key:self.universe})
 
@@ -986,18 +986,18 @@ class PBed(object):
         univ_dict.update(Universe(self.universe))
         self.universe = univ_dict.intdict[self.universe].id
         serp_dict.update(self)
-       
-       
+
+
     def __str__(self):
         print 'PBed specialized Serpent object'
         if self.comment != None:
             print '{0}'.format(self.comment)
-        print 'PBed object serp_dict key: {0}'.format(self.key)        
+        print 'PBed object serp_dict key: {0}'.format(self.key)
         print 'PBed universe: {0}'.format(self.universe)
         print 'Universe filling PBed: {0}'.format(self.fill)
         print 'PBed distfile name: {0}'.format(self.fname)
         return ''
-    
+
     def write_serp(self):
         serp_str = ""
         if self.comment != None:
@@ -1010,8 +1010,8 @@ class Layer(object):
     def __init__(self, lbound, universe):
         self.lbound = lbound
         self.universe = universe
-    
-    
+
+
     def __str__(self):
         print 'Layer specialized Serpent object'
         print 'Lower bound: {0}'.format(self.lbound)
@@ -1020,7 +1020,7 @@ class Layer(object):
 
 
 class StackLat(object):
-    def __init__(self, key, dimension, ref_point, core_height=None, active_height=None, layer_list = None, universes = ['ax_salt_u','ax_ref_u','act_core_u','ax_ref_u','ax_salt_u'], comment = None):
+    def __init__(self, key, dimension, ref_point, core_height=None, active_height=None, layer_list = None, universes = ('ax_salt_u','ax_ref_u','act_core_u','ax_ref_u','ax_salt_u'), comment = None):
         global n_lattices, n_universes
         n_lattices += 1
         n_universes += 1
@@ -1041,19 +1041,19 @@ class StackLat(object):
         else:
             if core_height == None:
                 raise Exception('If specifying universes only, must provide a core height')
-            self.universes = [univ_dict.intdict[arg] for arg in universes]   
-            self.layer_list = []   
+            self.universes = [univ_dict.intdict[arg] for arg in universes]
+            self.layer_list = []
             self.lbounds = [self.lower_stack_bound, self.lower_ref_bound, 0.0, self.active_height, self.upper_ref_bound ]
-            for item in range(len(self.universes)):           
+            for item in range(len(self.universes)):
                 self.layer_list.append(Layer(self.lbounds[item],self.universes[item].id))
         self.comment = comment
         lat_dict.update(self)
-            
+
 
     def __str__(self):
         print 'Stacked Lattice object'
         if self.comment != None:
-            print 'Comment: {0}'.format(self.comment)        
+            print 'Comment: {0}'.format(self.comment)
         print '\nLattice ID (universe#): {0}'.format(self.id)
         print 'Type: {0}'.format(self.typ)
         print 'Dimension: {0}'.format(self.dimension)
@@ -1062,7 +1062,7 @@ class StackLat(object):
         for item in self.layer_list:
             print '{0}'.format(item)
         return ''
-        
+
     def write_serp(self):
         serp_str = ""
         if self.comment != None:
@@ -1117,10 +1117,10 @@ det 1002 de 803 dc {mat}
 det 1003 dl {active_core_lat} dr -8 void
 % Axial power distribution
 det 1004 du {fuel_u} dz {core_low_ref} {core_up_ref} {resolution} dr -8 void"""
-    
+
     def write_serp(self):
         serp_str = ""
-        serp_str += self.detstring.format(surf = self.fuel_ip_s, vol = self.fuel_ip_vol, mat = self.mat_ip_c, 
+        serp_str += self.detstring.format(surf = self.fuel_ip_s, vol = self.fuel_ip_vol, mat = self.mat_ip_c,
                                           active_core_lat=self.act_core_lat, fuel_u=self.fuel_assm_univ,
                                           core_low_ref=self.lower_ref_bound, core_up_ref=self.upper_ref_bound,
                                           resolution=self.axial_res)
@@ -1156,7 +1156,7 @@ set gcu 0
 set sym 0
 set nfg 2 1.0e-6
 % --- Total power for normalization:
-set power     {inp_pow}   
+set power     {inp_pow}
 set ures      1      %unresolved resonance tracking
 %
 % --- Neutron population and criticality cycles:
@@ -1165,9 +1165,9 @@ set pop {particles} {active} {inactive}
 %%% Plots
 plot 3 4000 4000 -7.0 -200.0 200.0 -200.0 200.0
 plot 3 4000 4000 50.0 -200.0 200.0 -200.0 200.0
-plot 1 500 337 0 
+plot 1 500 337 0
 """
-        self.optstring = self.optstring.format(inp_pow = self.power, particles = self.particles, active = self.active, inactive = self.inactive)        
+        self.optstring = self.optstring.format(inp_pow = self.power, particles = self.particles, active = self.active, inactive = self.inactive)
         if bumat != None:
             self.bumat = bumat # needs to be a list now (with enr frac in model)
             self.optstring += \
@@ -1216,7 +1216,7 @@ set inventory
 
     def write_serp(self):
         serp_str = ""
-        serp_str += self.optstring           
+        serp_str += self.optstring
         return serp_str
 
 class QSub(object):
@@ -1271,7 +1271,7 @@ class CaseMatrix(object):
             new.max_bu_data = np.concatenate([self.max_bu_data, other.max_bu_data])
         return new # Can redo this to put name of each attribute for addition into a dict
                    # then loop through dict
-        
+
     def divide(self, other):
         new = copy.deepcopy(self)
         new.data = None
@@ -1279,37 +1279,37 @@ class CaseMatrix(object):
         if hasattr(new, 'data_fit'):
             new.data_fit = new.data_fit / other
         return new
-        
+
     def add_vals(self, val, error):
         self.data.append(float(val)) # = np.append(self.data, float(val))
         self.error.append(float(error)) # = np.append(self.error, float(error))
-        
+
     def calc_length(self):
         self.mysizetot = len(self.data)
-        
+
     def get_abs_error(self):
         return self.error * self.data
-    
+
     def get_abs_error_fit(self):
         return self.error_fit * self.data_fit
-        
+
     def set_shape_extras(self, file_points, extra_states):
         self.file_points = file_points
         self.extra_states = extra_states
-        
+
     def cast_data_asarray(self):
         if type(self.data).__module__ != np.__name__:
             self.data = np.array(self.data)
         if type(self.error).__module__ != np.__name__:
             self.error = np.array(self.error)
-    
+
     # Note: Could only thin from cdens, then opt over a single bu or avg of all bu
     # TAG: Improve
     def final_shape(self, file_point_idx, extra_state_idx):
-        # First, reshape data array for easy plotting        
+        # First, reshape data array for easy plotting
         #self.data_shape = numpy.array(self.data).reshape(self.myshapetot)
         #self.error_shape = numpy.array(self.error).reshape(self.myshapetot)
-        # Then, make an array with data only from 2nd bu step (xe equil) and dens=1.0 for fitting purposes       
+        # Then, make an array with data only from 2nd bu step (xe equil) and dens=1.0 for fitting purposes
         self.data_fit = copy.deepcopy(self.data)
         self.error_fit = copy.deepcopy(self.error)
         if self.shape_typ == '1d':
@@ -1327,9 +1327,9 @@ class CaseMatrix(object):
                 self.error_fit = self.error_fit[extra_state_idx::self.extra_states,:] # narrow from cdens
         else:
             raise Exception("{} is not a recognized .shape_typ attribute. Specify (as a string) either '1d' or '2d'".format(self.shape_typ))
-            
+
     def make_bu_fit(self, bu_vals, extra_state_idx):
-        # only called for 'reac' CaseMatrix        
+        # only called for 'reac' CaseMatrix
         self.burnups = np.array(bu_vals)[:,np.newaxis]
         self.max_bu_data = []
         reac_vals = self.data.reshape([-1, self.file_points])[extra_state_idx::self.extra_states][:,1:4] # Need to not hardcode here | TAG: Improve, hardcode
@@ -1338,7 +1338,7 @@ class CaseMatrix(object):
             bu_fit.fit(self.burnups, reac_set)
             self.max_bu_data.append(float(-1.0 * bu_fit.intercept_ / bu_fit.coef_))
         self.max_bu_data = np.array(self.max_bu_data)
-        
+
     def get_surro_data(self):
         if self.shape_typ == '1d':
             return self.data_fit
@@ -1346,7 +1346,7 @@ class CaseMatrix(object):
             return self.data_fit.max(axis=1)
         else:
             raise Exception("{} is not a recognized .shape_typ attribute. Specify (as a string) either '1d' or '2d'".format(self.shape_typ))
-        
+
     def get_surro_err(self):
         if self.shape_typ == '1d':
             return self.error_fit
@@ -1356,18 +1356,18 @@ class CaseMatrix(object):
             return self.error_fit[row_indices, column_indices]
         else:
             raise Exception("{} is not a recognized .shape_typ attribute. Specify (as a string) either '1d' or '2d'".format(self.shape_typ))
-        
+
 
 
 #class CoeffCaseMat(CaseMatrix):
-#    
+#
 #    def final_shape(self, file_point_idx=1, extra_state_idx=2):
 #        self.data_fit = copy.deepcopy(self.data)
 #        self.error_fit = copy.deepcopy(self.error)
 #        if hasattr(self, 'file_points'):
 #            self.data_fit = self.data_fit.reshape([-1, self.file_points]) # narrow from BU
 #            self.error_fit = self.error_fit.reshape([-1, self.file_points])
-        
+
 
 # Object MultCaseMat() for creating multiple CaseMatrix() objects inside a single object
 # to store groupwise data
@@ -1376,31 +1376,31 @@ class MultCaseMat(object):
         self.fast = CaseMatrix(shape_typ)
         self.epi = CaseMatrix(shape_typ)
         self.therm = CaseMatrix(shape_typ)
-        
+
     def __add__(self, other):
         new = copy.deepcopy(self)
         for key in new.__dict__.keys():
             new.__dict__[key] = self.__dict__[key] + other.__dict__[key]
         return new
-        
+
     def divide(self, other):
         new = copy.deepcopy(self)
         for key in new.__dict__.keys():
             new.__dict__[key] = new.__dict__[key].divide(other)
         return new
-        
+
     def cast_data_asarray(self):
         [obj.cast_data_asarray() for obj in self.__dict__.values()]
-        
+
     def final_shape(self, file_point_idx=1, extra_state_idx=2):
         [obj.final_shape(file_point_idx, extra_state_idx) for obj in self.__dict__.values()]
-        
+
     def set_shape_extras(self, file_points, extra_states):
         [obj.set_shape_extras(file_points, extra_states) for obj in self.__dict__.values()]
 
     def get_surro_data(self, spec='therm'):
         return getattr(self, spec).get_surro_data()
-        
+
     def get_surro_err(self, spec='therm'):
         return getattr(self, spec).get_surro_err()
 
@@ -1433,8 +1433,8 @@ class AssemblyPowerPeak(object):
         else:
             raise Exception('pin_type input must be a FuelType obj or a string')
 
-            
-        
+
+
     def set_core_conditions(self, dv_type, **kwargs):
         if dv_type == 'real':
             self.dv_dict = kwargs['dv_real']
@@ -1460,8 +1460,8 @@ class AssemblyPowerPeak(object):
         self.calc_volumes()
         self.calc_core_powers()
         self.calc_fuel_temps()
-        
-        
+
+
     def calc_volumes(self):
         self.layerrad = self.krad + self.tot_lay_thick
         if len(self.layerrad.shape) < 2:
@@ -1470,9 +1470,9 @@ class AssemblyPowerPeak(object):
         self.all_triso_pin_vol = self.single_pin_vol * self.pf
         self.single_triso_vol = 4.0/3.0 * np.pi * self.layerrad[:,-1, np.newaxis]**3.0
         self.num_triso_pin = self.all_triso_pin_vol / self.single_triso_vol
-        
-        
-    
+
+
+
     def calc_core_powers(self):
         self.avg_assm_power = self.core_power/self.n_assm
         self.avg_pin_power = self.avg_assm_power/self.fuel_assm_obj.n_pins_per_assm
@@ -1491,7 +1491,7 @@ class AssemblyPowerPeak(object):
             self.peak_ax_triso_power_peak_pin = self.peak_ax_triso_power * self.fuel_assm_obj.pin_peak_max
             self.peak_ax_triso_power_hot_pin = self.peak_ax_triso_power * self.fuel_assm_obj.pin_peak_hotpin
             self.peaked_pin_powers = self.peak_ax_vol_power * self.fuel_assm_obj.pin_peaking
-        
+
 
     def calc_fuel_temps(self):
         self.calc_peak_bulk_fuel_temp()
@@ -1499,7 +1499,7 @@ class AssemblyPowerPeak(object):
         for idx in xrange(1,len(self.layer_k)):
             self.t_max = self.t_max - self.peak_ax_triso_power_hot_pin*(1.0/(self.layer_k[idx]*self.layerrad[:,idx,np.newaxis]) \
                                       - 1.0/(self.layer_k[idx]*self.layerrad[:,idx - 1,np.newaxis]))
-                                      
+
     def calc_radial_peak(self):
         self.radial_peak_surrogate = copy.deepcopy(self.radial_peak)
         radpeak_val, radpeak_MSE = self.radial_peak_surrogate.predict(self.dv_vec_scaled, eval_MSE=True)
@@ -1509,13 +1509,13 @@ class AssemblyPowerPeak(object):
         self.axial_peak_surrogate = copy.deepcopy(self.axial_peak)
         axpeak_val, axpeak_MSE = self.axial_peak_surrogate.predict(self.dv_vec_scaled, eval_MSE=True)
         self.axial_peak = unumpy.uarray(axpeak_val, (axpeak_MSE)**0.5)[:,np.newaxis] #ufloat(axpeak_val, (axpeak_MSE)**0.5)
-        
+
     def get_peak_triso_pow(self):
         return self.peak_ax_triso_power_peak_pin
-        
+
     def get_peak_triso_temp(self):
         return self.t_max
-        
+
     def calc_peak_bulk_fuel_temp(self):
         try:
             self.peak_bulk_fuel_temp = float(self.fuel_assm_obj.fitfunc(self.peak_ax_vol_power.nominal_value))
@@ -1562,7 +1562,7 @@ class AssemParams(object):
         self.peak_fuel_temp_regress.fit(self.vol_powdens, self.bulk_peak_fuel_temps)
         self.fitfunc = self.peak_fuel_temp_regress.predict
         self.vecfitfunc = np.vectorize(self.fitfunc)
-    
+
 
 
 class DOEobj(object):
@@ -1572,10 +1572,10 @@ class DOEobj(object):
         self.calc_dist()
         self.min_dist = self.dist[0]
 
-        
+
     def __repr__(self):
         return '{:.4f}'.format(self.min_dist)
-        
+
     def calc_dist(self):
         self.dist = pdist(self.doe, self.p_norm)
         self.dist.sort()
@@ -1591,7 +1591,7 @@ class OptimizedLHS(object):
         self.lhs_from_q_list = []
         self.genetic_iter = 500
         self.genetic_population = 10
-        
+
     def make_olhs(self):
         for q_val in self.q_val_list:
             new_lhs_from_q = self.optimize_q_lhs(q_val)
@@ -1614,8 +1614,8 @@ class OptimizedLHS(object):
         self.olhs = self.sorted_lhs_list[0]
         self.olhs_val = DOEobj(self.olhs, self.p_norm).min_dist
         return self.olhs
-        
-            
+
+
     def optimize_q_lhs(self, qval):
         x_best = copy.deepcopy(self.lhs_init)
         phi_best = self.calc_phi(x_best, qval)
@@ -1638,9 +1638,9 @@ class OptimizedLHS(object):
             if phi_improved < phi_best:
                 x_best = copy.deepcopy(x_improved)
                 phi_best = phi_improved
-        
+
         return x_best
-        
+
     def change_lhs(self, lhs, mutations):
         new_lhs = copy.deepcopy(lhs)
         for perturb in xrange(mutations):
@@ -1654,13 +1654,13 @@ class OptimizedLHS(object):
             new_lhs[mod_point1, mod_col] = lhs[mod_point2, mod_col]
             new_lhs[mod_point2, mod_col] = lhs_buf
         return new_lhs
-            
-        
+
+
     def calc_phi(self, lhs, qval):
         dist, J = self.calc_dist_j(lhs)
         phi = ((J*dist**(-qval)).sum())**(1.0/qval)
         return phi
-        
+
     def calc_dist_j(self, lhs):
         lhs_dist = pdist(lhs, self.p_norm)
         lhs_dist.sort()
@@ -1668,17 +1668,17 @@ class OptimizedLHS(object):
 #        J_set = np.bincount(inv)
         unique_dist, J_set = np.unique(lhs_dist, return_counts=True) # TAG: Test
         return unique_dist, J_set
-        
-    
+
+
     def morris_mitchell_sort(self): # Can we use a sort besides bubble? | TAG: Improve
         num_qval = len(self.q_val_list)
         self.mm_sort_indices = range(num_qval)
         swap_flag = True
         while swap_flag:
             swap_flag = False
-            idx = 1;
+            idx = 1
             while idx <= num_qval - 1:
-                if self.mm_compare(self.optimize_q_lhs[idx], 
+                if self.mm_compare(self.optimize_q_lhs[idx],
                                    self.optimize_q_lhs[idx + 1]) == 2:
                     indices_buf = self.mm_sort_indices[idx] # Make sure shallow copy here ok | TAG: test
                     self.mm_sort_indices[idx] = self.mm_sort_indices[idx + 1]
@@ -1686,21 +1686,21 @@ class OptimizedLHS(object):
                     swap_flag = True
                 idx += 1
         return
-        
+
     def mm_mergesort(self, lhs_list):
         #print 'splitting {}'.format([SeeDOE(doe) for doe in lhs_list])
         if len(lhs_list)>1:
             mid = len(lhs_list)/2 # DIFF
             lefthalf = lhs_list[:mid]
             righthalf = lhs_list[mid:]
-            
+
             self.mm_mergesort(lefthalf)
             self.mm_mergesort(righthalf)
-            
+
             left_idx = 0
             right_idx = 0
             tot_idx = 0
-            
+
             while left_idx < len(lefthalf) and right_idx < len(righthalf):
                 if self.mm_compare_1betterthan2(lefthalf[left_idx], righthalf[right_idx]):
                     lhs_list[tot_idx] = lefthalf[left_idx]
@@ -1709,20 +1709,20 @@ class OptimizedLHS(object):
                     lhs_list[tot_idx] = righthalf[right_idx]
                     right_idx += 1
                 tot_idx += 1
-                
+
             while left_idx < len(lefthalf):
                 lhs_list[tot_idx] = lefthalf[left_idx]
                 left_idx += 1
                 tot_idx += 1
-                
+
             while right_idx < len(righthalf):
                 lhs_list[tot_idx] = righthalf[right_idx]
                 right_idx += 1
                 tot_idx += 1
         #print 'Merging {}'.format([SeeDOE(doe) for doe in lhs_list])
 
-                
-        
+
+
 
     def mm_compare(self, lhs1, lhs2): # Can definitely improve this |TAG: Improve
         if np.array_equal(lhs1, lhs2):
@@ -1748,7 +1748,7 @@ class OptimizedLHS(object):
                     idx += 1
                 result = cval[idx]
         return result
-        
+
     def mm_compare_1betterthan2(self, lhs1, lhs2): # Can definitely improve this |TAG: Improve
         if np.array_equal(lhs1, lhs2):
             result = False
@@ -1778,7 +1778,7 @@ class OptimizedLHS(object):
                 else:
                     result = False
         return result
-            
+
 
 # scaled opt res object
 #class ActOptRes(object):
@@ -1816,10 +1816,10 @@ def make_partdist(inp_dict, cyl_rad, part_univ, fname):
     p.stdin.write('n\n')
     p.stdin.write('{0}\n'.format(fname))
     p.communicate()
-    
+
 
 def mod_partdist(new_universenum, orig_partdist_fname, new_partdist_fname):
-    new_uninum_str = str(new_universenum)    
+    new_uninum_str = str(new_universenum)
     file_str = ''
     with open(orig_partdist_fname, 'rb') as f:
         for line in f:
@@ -1827,7 +1827,7 @@ def mod_partdist(new_universenum, orig_partdist_fname, new_partdist_fname):
             line_mod[-1] = new_uninum_str + "\n"
             newline = '{:>12} {:>12} {:>12} {:>11} {:<}'.format(*line_mod)
             file_str += newline
-            
+
     with codecs.open(new_partdist_fname, 'wb', 'utf-8') as f:
         f.write(file_str)
 
@@ -1840,7 +1840,7 @@ def find_maindir_depth(rundir_fullpath, maindir_fullpath):
         cntr += 1
         rundir_partpath, rundir_lastpath = os.path.split(rundir_partpath)
     return cntr
-    
+
 
 # Both this function and the next use generators to efficiently and cleanly evaluate the lists/tuples given to them as input
 # cleans the data values by converting from floats (or any other numerical type) to string, and removing the decimals
@@ -1852,8 +1852,8 @@ def prep_val(inp):
 def combo_nameval(names, values):
     inner_tuple = tuple( ('{}{}'.format(*combo) for combo in zip(names, values)) )
     return inner_tuple
-    
-    
+
+
 # Function that takes a new dv set and either un-scales it (to real interval) or
 # or scales it (to the interval 0-1)
 def dv_scaler(dv_set, dv_bounds, scal_type):
@@ -1882,7 +1882,7 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
         msg = "scal_type must be either 'real' or 'scaled', not {}".format(scal_type)
         raise TypeError(msg)
     return dv_new
-    
+
 def make_design_dict(feature_vals, feature_names, default_features):
     # where feature_vals and feature_names are lists/tuples or arrays
     # of the variable features
@@ -1910,26 +1910,26 @@ def make_design_dict(feature_vals, feature_names, default_features):
             all_feature_set.update({feature:default_features[feature]})
     return all_feature_set
 
-def find_xs_lib(mat_temp, lib_temp_vals=[300.0, 600.0, 900.0, 1200.0, 1500.0, 1800.0], 
-                lib_temp_ext=['.03c', '.06c', '09c', '.12c', '.15c', '.18c']):
+def find_xs_lib(mat_temp, lib_temp_vals=(300.0, 600.0, 900.0, 1200.0, 1500.0, 1800.0),
+                lib_temp_ext=('.03c', '.06c', '09c', '.12c', '.15c', '.18c')):
 
-        if mat_temp < lib_temp_vals[0]:
-            raise Exception('Fuel temp of {} is too low! must be >= lowest xs library temp {}'.format(
-                             mat_temp, lib_temp_vals[0]))
-        if mat_temp in lib_temp_vals:
-            doppler = False
-        else:
-            doppler = True
-        xs_lib_dict = dict(zip(lib_temp_vals, lib_temp_ext))
-        position = bisect_right(lib_temp_vals, mat_temp) - 1
-        xs_lib = xs_lib_dict[lib_temp_vals[position]]
-        return xs_lib, doppler
-        
-def find_sab_lib(mat_temp, sab_temp_vals=[294.0, 400.0, 500.0, 600.0, 700.0, 800.0, 
-                 1000.0, 1200.0, 1600.0, 1999.0],
-                 sab_lib_ext=['.00t', '.04t', '.08t', '.12t', '.16t', '.18t', '.20t', 
-                 '.22t', '.24t', '.26t']):
-                     
+    if mat_temp < lib_temp_vals[0]:
+        raise Exception('Fuel temp of {} is too low! must be >= lowest xs library temp {}'.format(
+                         mat_temp, lib_temp_vals[0]))
+    if mat_temp in lib_temp_vals:
+        doppler = False
+    else:
+        doppler = True
+    xs_lib_dict = dict(zip(lib_temp_vals, lib_temp_ext))
+    position = bisect_right(lib_temp_vals, mat_temp) - 1
+    xs_lib = xs_lib_dict[lib_temp_vals[position]]
+    return xs_lib, doppler
+
+def find_sab_lib(mat_temp, sab_temp_vals=(294.0, 400.0, 500.0, 600.0, 700.0, 800.0,
+                 1000.0, 1200.0, 1600.0, 1999.0),
+                 sab_lib_ext=('.00t', '.04t', '.08t', '.12t', '.16t', '.18t', '.20t',
+                 '.22t', '.24t', '.26t')):
+
     if mat_temp < sab_temp_vals[0]:
         raise Exception('Fuel temp of {} is too low! must be >= lowest sab library temp {}'.format(
                          mat_temp, sab_temp_vals[0]))
@@ -1937,8 +1937,8 @@ def find_sab_lib(mat_temp, sab_temp_vals=[294.0, 400.0, 500.0, 600.0, 700.0, 800
     position = bisect_right(sab_temp_vals, mat_temp) - 1
     sab_lib = sab_lib_dict[sab_temp_vals[position]]
     return sab_lib
-        
-    
+
+
 # Functions for use in data postprocessing
 def get_coolant_temp_delta(coolant_name):
     if coolant_name == 'nafzrf4':
@@ -1949,28 +1949,27 @@ def get_coolant_temp_delta(coolant_name):
         raise Exception("Please specify coolant_name argument as either 'nafzrf4' or 'flibe', not '{}' ".format(
                          coolant_name))
     return delta # units of [K]
-    
-    
+
+
 def calc_rel_dist(point_array):
     rel_dists = pdist(point_array)
     rel_dists = squareform(rel_dists)
     rel_dists = np.diagonal(rel_dists, offset=1).copy()
     return rel_dists
-    
+
 # Logging streamer functionality courtesy of Ferry Boender
 # http://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
 # GPL license
 
 class StreamToLogger(object):
-   """
-   Fake file-like stream object that redirects writes to a logger instance.
-   """
-   def __init__(self, logger, log_level=logging.INFO):
-      self.logger = logger
-      self.log_level = log_level
-      self.linebuf = ''
- 
-   def write(self, buf):
-      for line in buf.rstrip().splitlines():
-         self.logger.log(self.log_level, line.rstrip())
- 
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    """
+    def __init__(self, logger, log_level=logging.INFO):
+        self.logger = logger
+        self.log_level = log_level
+        self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.log_level, line.rstrip())

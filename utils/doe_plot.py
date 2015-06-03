@@ -25,7 +25,7 @@ data_save_name = os.path.join(saveloc,'lhs_doe_gen.out')
 
 def main():
 
-    #makeplot()
+    makeplot()
     check_spacefill()
 
 def makeplot():
