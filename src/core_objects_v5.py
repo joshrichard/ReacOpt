@@ -1878,8 +1878,11 @@ def dv_scaler(dv_set, dv_bounds, scal_type):
             scal = preprocessing.MinMaxScaler()
             scal.fit(min_max)
             dv_new[:,index] = scal.transform(dv_new[:,index])
+    elif scal_type == 'fit_transform':
+        scal = preprocessing.MinMaxScaler()
+        dv_new = scal.fit_transform(dv_new)
     else:
-        msg = "scal_type must be either 'real' or 'scaled', not {}".format(scal_type)
+        msg = "scal_type must be either 'real', 'scaled', or 'fit_transform', not {}".format(scal_type)
         raise TypeError(msg)
     return dv_new
 
