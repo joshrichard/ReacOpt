@@ -64,9 +64,17 @@ pin_type = 'smallpins' # 'smallpins' or 'largepins'
 
 
 run_opts = dict([('fuel_xs', '.15c'), ('mod_xs','.12c'),('cool_xs','.09c'),
-                 ('pin_rad','0.55'), ('ip_rad','1.7'),  # 0.7, 2.1, 1.8 or 0.55, 1.7, 1.5 ('pin_pitch','1.5'),
+                 #('pin_rad','0.55'), ('ip_rad','1.7'),  # 0.7, 2.1, 1.8 or 0.55, 1.7, 1.5 ('pin_pitch','1.5'),
                  ('cool_mat', 'flibe'), ('sab_xs', '.24t'),('mod_sab_xs', '.22t'),
                  ('total_coreh','175'), ('assm_type', pin_type)])
+
+if pin_type == 'smallpins':
+    run_opts.update({'pin_rad':'0.55', 'ip_rad':'1.7'})
+elif pin_type == 'largepins':
+    run_opts.update({'pin_rad':'0.7', 'ip_rad':'2.1'})
+else:
+    raise Exception("pin_type must be either 'smallpins' or 'largepins', not {}".format(
+                     pin_type))
 
 salt_file_dirname = run_opts['cool_mat']
 folder_set_name = 'lhs_50_test1'
