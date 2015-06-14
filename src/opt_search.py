@@ -43,12 +43,12 @@ def make_neg(func):
             res_tup = res_tup * -1.0
         return res_tup
     return inner
-    
+
 #def constr_cycle_len(func, min_cyc_len=200.0): # cycle len in EPFD | TAG: Constraint
 #    def inner(*args, **kwargs):
 #        return func(*args, **kwargs) - min_cyc_len
 #    return inner
-    
+
 def constr_cycle_len(func, min_cyc_len=200.0): # Void worth in pcm | TAG: Constraint
     def inner(*args, **kwargs):
         res_tup = func(*args, **kwargs)
@@ -85,7 +85,7 @@ def reac_coeff_adj(func, reac_coeff_margin=0.01): # Coolant temperature coeffici
             res_tup = (res_tup + reac_coeff_margin) * -1.0
         return res_tup
     return inner
-    
+
 # Function to combine all box bound constraints
 # TAG: Improve, TAG: Test
 def all_bounds_constr(X):
@@ -101,7 +101,7 @@ def all_bounds_constr(X):
             result = feature
     return result
 
-def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts, 
+def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
                    case_info, run_opts, iter_cntr):
     pin_type = run_opts['assm_type']
     pin_rad = run_opts['pin_rad']
@@ -124,25 +124,25 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
     if sur_type == 'regress':
         igpm_obj_eval = make_neg(fit_dict['obj_val']['igpm_surro_obj'].predict)
 #    bounds_eval = all_bounds_constr
-    
-    
+
+
     #global meta_dict
     # Constraints for COBYLA
-    
-    # Correlation (linear fit) for peak temp [K] in homogenized fuel 
+
+    # Correlation (linear fit) for peak temp [K] in homogenized fuel
     # as a function of volumetric power dens [W/m^3]
 #    homog_peak_fuel_temps = np.array([1164.0, 1228.0, 1256.0, 1352.0])
 #    vol_powdens = np.array([4.230E7, 5.711E7, 6.345E7, 8.566E7])[:,np.newaxis]
 #    peak_fuel_temp_regress = LinearRegression()
 #    peak_fuel_temp_regress.fit(vol_powdens, homog_peak_fuel_temps)
-#    def calc_peak_bulk_fuel_temp(core_pow, core_height, 
+#    def calc_peak_bulk_fuel_temp(core_pow, core_height,
 #                                 powdens_calc = core.AssemblyPowerPeak(),
 #                                 regress_func=peak_fuel_temp_regress.predict):
-#        
+#
 #        core_powdens = powdens_calc.set_core_conditions(core_pow, core_height)
 #        return regress_func(core_powdens)
-    
-    
+
+
     # Want to find a way to make work for any length of features
     # Is there a way to make all the bound constraints all into one function,
     # such that if any constraint is violated, the function returns a violation?
@@ -160,8 +160,8 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
             boxbound_constr_dict.append({'type':'ineq', 'fun':upper_constr})
             boxbound_constr_dict.append({'type':'ineq', 'fun':lower_constr})
         return boxbound_constr_dict
-        
-    def triso_pow_eval(dv_vec_scaled, eval_MSE=False, 
+
+    def triso_pow_eval(dv_vec_scaled, eval_MSE=False,
                        dvbounds=dv_bounds, defaultcore=default_core,
                        assm_pow=assm_peak_surro, axial_pow=axial_peak_surro,
                        pintype = pin_type, pinrad = pin_rad):
@@ -189,7 +189,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(pin_type = pintype, pin_rad = pinrad,
                                          radial_peak=assm_pow, axial_peak=axial_pow)
-        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
+        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled,
                                     bounds=dvbounds, default_core=defaultcore)
         pow_max_constr_eval = pow_max_constr - pow_obj.get_peak_triso_pow()
         val_pow_max_constr = unumpy.nominal_values(pow_max_constr_eval).sum(1)
@@ -200,7 +200,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
         else:
             return val_pow_max_constr
 
-    def fuel_temp_eval(dv_vec_scaled, eval_MSE = False, 
+    def fuel_temp_eval(dv_vec_scaled, eval_MSE = False,
                        dvbounds=dv_bounds, defaultcore=default_core,
                        assm_pow=assm_peak_surro, axial_pow=axial_peak_surro,
                        pintype = pin_type, pinrad = pin_rad):
@@ -225,7 +225,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(pin_type = pintype, pin_rad = pinrad,
                                          radial_peak=assm_pow, axial_peak=axial_pow)
-        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled, 
+        pow_obj.set_core_conditions(dv_type='scaled', dv_scaled=dv_vec_scaled,
                                     bounds=dvbounds, default_core=defaultcore)
         t_max_constr_eval = t_max_constr - pow_obj.get_peak_triso_temp()
         val_t_max_constr = unumpy.nominal_values(t_max_constr_eval).sum(1)
@@ -235,7 +235,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
             return val_t_max_constr, mse_t_max_constr
         else:
             return val_t_max_constr
-        
+
 #    pdb.set_trace()
 #    dv_test = np.array([ 0.44616,  1.     ,  1.     ,  0.9531 ,  0.14932,  1.     ])
 ##    print assm_peak_surro.predict(dv_test, eval_MSE=True)
@@ -263,17 +263,17 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
     boxbound_constr_dict = make_boxbound_constr_dict(x_guess)
     # Put into dictionary for use
 #    cobyla_constr = [{'type':'ineq', 'fun':constr_x1_upper},{'type':'ineq', 'fun':constr_x2_upper},
-#                     {'type':'ineq', 'fun':constr_x3_upper},{'type':'ineq', 'fun':constr_x4_upper}, 
+#                     {'type':'ineq', 'fun':constr_x3_upper},{'type':'ineq', 'fun':constr_x4_upper},
 #                     {'type':'ineq', 'fun':constr_x1_lower},{'type':'ineq', 'fun':constr_x2_lower},
-#                     {'type':'ineq', 'fun':constr_x3_lower},{'type':'ineq', 'fun':constr_x4_lower}, 
-#                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
+#                     {'type':'ineq', 'fun':constr_x3_lower},{'type':'ineq', 'fun':constr_x4_lower},
+#                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval},
 #                      {'type':'ineq', 'fun':max_cycle_eval}]
-#    cobyla_constr = [{'type':'ineq', 'fun':bounds_eval}, 
-#                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval}, 
+#    cobyla_constr = [{'type':'ineq', 'fun':bounds_eval},
+#                      {'type':'ineq', 'fun':reac_co_eval},{'type':'ineq', 'fun':void_w_eval},
 #                      {'type':'ineq', 'fun':max_cycle_eval}]
 
-    cobyla_constr_gpm = [{'type':'ineq', 'fun':reac_co_eval}, {'type':'ineq', 'fun':void_w_eval}, 
-                     {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':fuel_temp_eval}, 
+    cobyla_constr_gpm = [{'type':'ineq', 'fun':reac_co_eval}, {'type':'ineq', 'fun':void_w_eval},
+                     {'type':'ineq', 'fun':max_cycle_eval}, {'type':'ineq', 'fun':fuel_temp_eval},
                      {'type':'ineq', 'fun':triso_pow_eval}]
     #cobyla_constr_nongpm = [{'type':'ineq', 'fun':fuel_temp_eval}, {'type':'ineq', 'fun':triso_pow_eval}]
     cobyla_constr_search = boxbound_constr_dict # + cobyla_constr_nongpm
@@ -310,8 +310,8 @@ def optimize_dv(optim_options, data_opts):
         basin_disp = optim_options['basin_opts']['disp']
     elif global_type == 'random':
         random_iter = optim_options['random_opts']['niter']
-    
-    
+
+
     # Basinhopping global search
     if global_type == 'basin':
         # As with search, try local dv first and make sure guess
@@ -327,34 +327,34 @@ def optimize_dv(optim_options, data_opts):
                 print 'making new x_guess'
                 x_guess = np.random.random_sample([len(x_guess)])
                 print 'new x_guess: {}'.format(x_guess)
-        
+
         opt_res = basinhopping(func=obj_eval, x0=x_guess, minimizer_kwargs=min_kwargs, \
                             accept_test=myaccept, disp=basin_disp, interval=basin_interval) # niter = 10, accept_test=mybounds1 or accept_test=myaccept1, stepsize=0.01, callback=print_fun
-                            
+
     elif global_type == 'random':
         dv_global = RandGlobal()
         for local_iter in xrange(random_iter):
             local_res = minimize(obj_eval, x_guess, **min_kwargs)
             dv_global.add_result(local_res)
         dv_global.print_results()
-        
+
     else:
         msg = """
 {} is not a recognized global opt type,
 please specify either 'basin' or 'random'""".format(global_type)
         raise Exception(msg)
 
-    
+
     # save results to file
     with open(data_opts['opt_fname'], 'wb') as optf:
         cPickle.dump(opt_res, optf, 2)
-        
-    return opt_res
-    
 
-    
+    return opt_res
+
+
+
 def optimize_search(opt_results, optim_options):
-    
+
     x_guess = optim_options['x_guess']
     obj_eval = optim_options['obj_eval']
     min_kwargs = optim_options['fmin_opts']
@@ -366,7 +366,7 @@ def optimize_search(opt_results, optim_options):
         basin_disp = optim_options['basin_opts']['disp']
     elif global_type == 'random':
         random_iter = optim_options['random_opts']['niter']
-    
+
     def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval):
         y_eval, MSE = obj_eval_func(x, eval_MSE=True)
         sigma = np.sqrt(MSE)
@@ -377,9 +377,9 @@ def optimize_search(opt_results, optim_options):
             ei_term2 = (sigma * 1.0/math.sqrt(2.0*math.pi))*math.exp( -1.0 * (y_min - y_eval)**2.0/(2.0*MSE) )
             exp_imp = ei_term1 + ei_term2
         return exp_imp
-        
+
     neg_expect_improve = make_neg(expect_improve)
-    
+
     if global_type == 'basin':
         # Try the local minimizer first, make sure that it doesn't fail
         # otherwise try a new starting guess and repeat
@@ -409,12 +409,12 @@ def optimize_search(opt_results, optim_options):
 {} is not a recognized global opt type,
 please specify either 'basin' or 'random'""".format(global_type)
         raise Exception(msg)
-    
+
     return search_res
 
 
 def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None, opt_results=None, fit_opts=None):
-    
+
     if prev_opt_data is not None:
         if opt_purpose == 'dv_opt':
             x_guess = prev_opt_data['opt_res'].x
@@ -460,7 +460,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         sur_type = fit_opts['sur_type']
         if sur_type == 'regress':
             obj_eval = optim_options['igpm_obj_eval']
-            # Use same ymin here, or use the igpm to estimate it? For now, use same | TAG: Check            
+            # Use same ymin here, or use the igpm to estimate it? For now, use same | TAG: Check
         ymin = opt_results.fun
         def expect_improve(x, y_min=ymin, obj_eval_func=obj_eval, constr_info=gpm_constr_list):
             y_min = float(y_min)
@@ -506,13 +506,13 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
             return exp_constr_imp
         neg_expect_improve = make_neg(expect_improve)
         opt_fun = neg_expect_improve
-    
+
 #    pdb.set_trace()
 #    dv_test = np.array([0.00865, 0.98704, 0.79148, 0.96384, 0.30697, 1.0])
 #    test1 = opt_fun(dv_test) # | TAG: debug
 #    myaccept.print_result(dv_test)
 #    test2 = opt_fun(np.array([ 0.37025,  0.97972,  0.99783,  0.9968 ,  0.4031 ,  0.99588]))
-    
+
     if global_type == 'basin':
         # Try the local minimizer first, make sure that it doesn't fail
         # otherwise try a new starting guess and repeat
@@ -532,7 +532,7 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
         # Once the inital local fmin works, start the basinhopping
         global_res = basinhopping(func=opt_fun, x0=x_guess, minimizer_kwargs=min_kwargs, \
                             accept_test=myaccept, disp=basin_disp, interval=basin_interval)
-        
+
     elif global_type == 'random':
         global_obj = RandGlobal()
         if opt_purpose == 'search_opt':
@@ -557,32 +557,32 @@ def optimize_wrapper(optim_options, prev_opt_data, opt_purpose, outp_name = None
 #            if global_obj.best_count >= random_repeat_stop:
 #                print 'Have not found improved global opt after {} iter'.format(random_repeat_stop)
 #                print 'stopping global optimization on iteration {}'.format(local_iter)
-#                break                
+#                break
         global_obj.finish_step()
         global_res = global_obj
         #pdb.set_trace()
-        
+
     elif global_type == 'evolve':
         #pdb.set_trace()
         global_res = differential_evolution(opt_fun, min_kwargs['bounds'],
                                             seed=iter_num + 5, disp=True)
-                                            
+
     else:
         msg = """
 {} is not a recognized global opt type,
 please specify either 'basin' or 'random'""".format(global_type)
         raise Exception(msg)
-        
+
     if outp_fname != None:
         with open(outp_fname, 'wb') as optf:
             cPickle.dump(global_res, optf, 2)
-    
+
     return global_res
 
 
 # Optimization search and infill function
 def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fit_op):
-    
+
     dv_bounds = case_info['dv_bounds']
     search_type = optim_options['search_type']
     global_opt_type = optim_options['global_type']
@@ -613,7 +613,7 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
 
 
 #def converge_check(prev_obs_vals, thresh_inp):
-#    
+#
 #    obs_obj_vals = prev_obs_vals
 #    range_obs = np.abs(np.max(obs_obj_vals) - np.min(obs_obj_vals))
 #    thresh = thresh_inp
@@ -624,7 +624,7 @@ def search_infill(opt_result, optim_options, exist_opt, case_info, data_opts, fi
 #    else:
 #        converged = False
 #    return converged
-    
+
 def converge_check(prev_obs_vals, opt_res, opt_res_loc, converge_opts):
 
     active_span = opt_res.active_span #opt_res.active_span,  -1.0 * math.log(opt_res.active_span)
@@ -634,10 +634,10 @@ def converge_check(prev_obs_vals, opt_res, opt_res_loc, converge_opts):
     station_num = converge_opts['stationary_points']
     station_tol = converge_opts['stationarity_thresh']
     opt_res_loc_arr = np.array(opt_res_loc)
-    
+
     obs_obj_vals = np.array(prev_obs_vals)
     delta_set = np.diff(obs_obj_vals)
-    
+
     if converge_type == 'range':
         range_obs = np.abs(np.max(obs_obj_vals[:-1]) - np.min(obs_obj_vals[:-1]))
         stop_criterion = converge_tol * range_obs
@@ -673,8 +673,8 @@ def converge_check(prev_obs_vals, opt_res, opt_res_loc, converge_opts):
         else:
             raise Exception('You specifed converge_type as {}, not a valid type'.format(
                             converge_type))
-        
-        
+
+
     #reverse_delta_set = np.array(np.abs([obs_obj_vals[-idx] - obs_obj_vals[-idx - 1] for idx in xrange(1, len(obs_obj_vals))]))
 
     # Code to do relative diff converge check | TAG: outtest
@@ -686,9 +686,9 @@ def converge_check(prev_obs_vals, opt_res, opt_res_loc, converge_opts):
 #    else:
 #        converged = False
     return converged
-    
+
 def prox_check(doe_sets, new_search_dv, euclid_tol):
-    
+
     for dv_set in doe_sets['doe_scaled']:
         new_point_distance = euclidean(dv_set, new_search_dv)
         if new_point_distance < euclid_tol:
@@ -716,9 +716,9 @@ def prox_check(doe_sets, new_search_dv, euclid_tol):
 ##        else:
 ##            return True
 #        return tmax and tmin
-        
+
 class MyConstr(object):
-    def __init__(self, reac_co_eval, void_w_eval, max_cycle_eval, 
+    def __init__(self, reac_co_eval, void_w_eval, max_cycle_eval,
                  fuel_temp_eval, triso_pow_eval, x_len): # need to make work for n-length feature set | TAG: Improve
         self.xmax = np.ones(x_len)
         self.xmin = np.zeros(x_len)
@@ -742,23 +742,23 @@ class MyConstr(object):
         if False in [reac_coeff, void_worth, max_cycle, fuel_temp, triso_pow, tmax, tmin]:
             return False
         else:
-            return True    
+            return True
     def print_result(self, x):
         print 'Reac coeff constr is {}'.format(self.reac_co_eval(x))
         print 'Void worth constr is {}'.format(self.void_w_eval(x))
         print 'Max cycle len constr is {}'.format(self.max_cycle_eval(x))
         print 'Peak fuel temp constr is {}'.format(self.fuel_temp_eval(x))
         print 'Peak power per particle constr is {}'.format(self.triso_pow_eval(x))
-        
+
 
 # Class to find minimum currently observed rGPM obj fun val, store
 class BestObsOptVal(object):
     def __init__(self, X_t, obj_vals, constr_list, constr_tol=1E-3):
         self.find_constr_opt(X_t, obj_vals, constr_list, constr_tol)
-        
+
     def __repr__(self):
         return 'obj val optimum obj: opt val of {} at {}'.format(self.fun, self.x)
-        
+
     def find_constr_opt(self, X_t, obj_vals, constr_list, constr_tol):
         if obj_vals[0] > 0.0:
             obj_vals = obj_vals * -1.0
@@ -812,7 +812,7 @@ class RandGlobal(object):
         self.feval_tot = 0
         self.best = None
         self.best_count = 0
-        
+
     def add_result(self, result): # Can add a check here to make sure result is a OptimizeResult object | TAG: Improve
         if result.success:
             self.num_success += 1
@@ -840,10 +840,10 @@ class RandGlobal(object):
             self.fun_failure.append(result.fun)
             self.res_failure.append(result)
         self.feval_tot += result.nfev
-        
+
     def add_x_guess(self, x):
         self.x_guesses.append(x)
-        
+
     def print_results(self):
         selfstr = """
 Global optimization result
@@ -852,11 +852,11 @@ Final optimum: {}
 Final opt location: {}
 """.format(self.feval_tot, self.best.fun, self.best.x)
         print selfstr
-        
+
     def make_scipy_like(self):
         self.x = self.best.x
         self.fun = self.best.fun
-        
+
     def combine_internal_lists(self):
         self.x_guesses = np.vstack(self.x_guesses)
         if self.num_success > 0:
@@ -869,13 +869,13 @@ Final opt location: {}
             self.fun_failure = np.array(self.fun_failure)
 
 
-        
+
     def finish_step(self):
         self.make_scipy_like()
         self.combine_internal_lists()
         self.print_results()
-        
-#msg = """New optimum found: {} at loc {}"""        
+
+#msg = """New optimum found: {} at loc {}"""
 
 class MaxTrisoTemp(object):
     def __init__(self, dv_vec):
@@ -903,21 +903,21 @@ class MaxTrisoTemp(object):
         for idx in xrange(1,len(self.layer_k)):
             self.t_max = self.t_max - self.pow_triso_peak*(1.0/(self.layer_k[idx]*self.layerrad[idx]) \
                                       - 1.0/(self.layer_k[idx]*self.layerrad[idx - 1]))
-                                      
+
     def get_tmax(self):
         return self.t_max
-        
+
     def get_tmax_constr(self):
         return self.t_max_constr - self.t_max
-            
 
-        
-        
+
+
+
 #x_guess = pseudo_rand.random_sample([len(x_guess)])
 #global_obj.add_x_guess(x_guess)
 #local_res = minimize(opt_fun, x_guess, **min_kwargs)
 #global_obj.add_result(local_res)
-        
+
 def exec_minimizer(rand_state, rand_len, global_store, opt_fun, min_kwargs):
     x_guess = rand_state.random_sample([rand_len])
     try:
@@ -927,11 +927,11 @@ def exec_minimizer(rand_state, rand_len, global_store, opt_fun, min_kwargs):
     except ValueError:
         print 'ValueError in minimizer, trying with the next random number set in the sequence'
         exec_minimizer(rand_state, rand_len, global_store, opt_fun, min_kwargs)
-        
 
-        
 
-        
+
+
+
 def print_fun(x, f, accepted):
     print("at minima %.4f accepted %d" % (f, int(accepted)))
 
@@ -939,5 +939,3 @@ def merge_dict(dict1, dict2):
     new_dict = dict1.copy()
     new_dict.update(dict2)
     return new_dict
-
-    
