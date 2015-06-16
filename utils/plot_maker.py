@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
@@ -7,6 +8,8 @@ import os
 import cPickle
 from scipy.spatial.distance import cdist, pdist, squareform, euclidean
 import core_objects_v5 as core
+
+#import pdb
 
 np.set_printoptions(precision=5, linewidth=90, suppress=True)
 
@@ -18,32 +21,51 @@ case_type = 'nafzrf4_fixed_pow_20' # 'all_dv'
 #data_dir = os.path.expanduser(os.path.join('~jgr42_000','Documents','Grad_Research','Salt_reactor',
 #    'optimization_results','pow_iterations', salt_type, basename, opt_type))
 data_dir = os.path.expanduser(os.path.join('~joshrich','SERPENT','new_core',
-    'opt_runs_pow','run_dump_files', salt_type, basename + '_test1', opt_type,
-    case_type))
+    'opt_runs_pow','run_dump_files'))
+# salt_type, basename + '_test1', opt_type, case_type
 
-maker_output_basename = salt_type + '_' + basename + '_'
-table_filename = os.path.join(data_dir, maker_output_basename + 'locations.out')
-    
-all_data_fname = os.path.join(data_dir, 'opt_run_dump_iter.out') # 'run_files', 
+maker_output_basename = 'res_plot_'  #salt_type + '_' + basename + '_'
+table_filename = 'res_locations.out'
+# os.path.join(data_dir, maker_output_basename +
+
+outp_data_fname = 'opt_run_dump_iter.out'
+#all_data_fname = os.path.join(data_dir, 'opt_run_dump_iter.out') # 'run_files',
 #last_data_fname = os.path.join(data_dir, 'run_files', 'opt_run_dump_iter.out')
 
 def main():
-    
+
+    # Get case arguments from argparser
+    parser = argparse.ArgumentParser(
+             description = 'Make opt progress plots for one or more iter cases')
+    parser.add_argument("cases", nargs='+')
+    args = parser.parse_args()
+
+    # For each case, make plots
+    for casefile in args.cases:
+        full_casedir_path = os.path.join(data_dir, casefile)
+        make_plots(full_casedir_path)
+
+def make_plots(full_case_path):
+
+    case_dir = full_case_path
+    all_data_fname = os.path.join(case_dir, outp_data_fname)
+    table_full_fname = os.path.join(case_dir, table_filename)
+
     # Extact optimization output results
     with open(all_data_fname, 'rb') as datf:
         run_dump_data_list = cPickle.load(datf)
     ######################################################
     # Plot optimal values and exp_imp values for each iter
     ######################################################
-    
+
     # Plot expected improvement
     exp_imp = run_dump_data_list[-1]['all_search_res']
     exp_imp_axis = {'y_axis':'Expected Improvement'}
-    iter_val_plot(exp_imp, exp_imp_axis, 'exp_imp')
+    iter_val_plot(exp_imp, exp_imp_axis, 'exp_imp', case_dir)
     # Plot optimal flux value
     optimal_flux = run_dump_data_list[-1]['all_opt_res']
     opt_flux_axis = {'y_axis':'Optimal Flux value [n/s/cm^2]'}
-    iter_val_plot(optimal_flux, opt_flux_axis, 'opt_val')
+    iter_val_plot(optimal_flux, opt_flux_axis, 'opt_val', case_dir)
     ########################################
     # Print and plot the DOE eval locations:
     ########################################
@@ -53,17 +75,19 @@ def main():
     ref_loc_arr = np.zeros([1,doe_scaled.shape[1]])
     search_loc_dists = cdist(doe_scaled, ref_loc_arr)
     search_dist_axis = {'y_axis':'Distance from each search point to 0.0 vec'}
-    iter_val_plot(search_loc_dists, search_dist_axis, 'search_dist')
+    iter_val_plot(search_loc_dists, search_dist_axis, 'search_dist', case_dir)
     # Plot Search location in relation to next location
     search_loc_rel_dists = calc_rel_dist(doe_scaled)
     search_rel_dist_axis = {'y_axis':'Distance from each search point to next'}
-    iter_val_plot(search_loc_rel_dists, search_rel_dist_axis, 'search_rel_dist')
+    iter_val_plot(search_loc_rel_dists, search_rel_dist_axis, 'search_rel_dist',
+                  case_dir)
     # Plot dists from each search location to original search location
     search_loc_orig_dists = cdist(doe_scaled, doe_scaled[0, np.newaxis])[:,0]
     search_orig_dist_axis = {'y_axis':'Distance from each search point to orig'}
-    iter_val_plot(search_loc_orig_dists, search_orig_dist_axis, 'search_orig_dist')    
+    iter_val_plot(search_loc_orig_dists, search_orig_dist_axis, 'search_orig_dist',
+                  case_dir)
     # Write out table of search point locations
-    with open(table_filename, 'w') as f:
+    with open(table_full_fname, 'w') as f:
         f.write('DoE locations:' + os.linesep)
         f.write(doe_scaled.__repr__())
     print 'DoE search locations'
@@ -78,26 +102,28 @@ def main():
     # Plot dists from optimal location to zero point
     opt_loc_dists = cdist(opt_val_loc, ref_loc_arr)
     opt_dist_axis = {'y_axis':'Distance from each optimal location to 0.0 vec'}
-    iter_val_plot(opt_loc_dists, opt_dist_axis, 'opt_dist')
+    iter_val_plot(opt_loc_dists, opt_dist_axis, 'opt_dist', case_dir)
     # Plot dists from optimal val location to next optimal val location
     opt_loc_rel_dists = calc_rel_dist(opt_val_loc)
     opt_rel_dist_axis = {'y_axis':'Distance from each optimal loc to next'}
-    iter_val_plot(opt_loc_rel_dists, opt_rel_dist_axis, 'opt_rel_dist')
+    iter_val_plot(opt_loc_rel_dists, opt_rel_dist_axis, 'opt_rel_dist', case_dir)
     # Plot dists from each optimal val location to original opt val location
     opt_loc_orig_dists = cdist(opt_val_loc, opt_val_loc[0, np.newaxis])[:,0]
     opt_orig_dist_axis = {'y_axis':'Distance from each opt point to orig'}
-    iter_val_plot(opt_loc_orig_dists, opt_orig_dist_axis, 'opt_orig_dist')
+    iter_val_plot(opt_loc_orig_dists, opt_orig_dist_axis, 'opt_orig_dist', case_dir)
     # plots dists from optimal val location to surrent search point
     opt_search_dists = cdist(opt_val_loc, doe_scaled)
     opt_search_current_dists = np.diagonal(opt_search_dists).copy()
     opt_search_current_axis = {'y_axis':'Distance from optimum to current search location'}
-    iter_val_plot(opt_search_current_dists, opt_search_current_axis, 'opt_search_current_dist')
+    iter_val_plot(opt_search_current_dists, opt_search_current_axis, 'opt_search_current_dist',
+                  case_dir)
     # plots dists from opt val loc to previous search point
     # Write out table of optimal value locations
     opt_search_prev_dists = np.diagonal(opt_search_dists, offset=-1).copy()
     opt_search_prev_axis = {'y_axis':'Distance from optimum to prev search location'}
-    iter_val_plot(opt_search_prev_dists, opt_search_prev_axis, 'opt_search_prev_dist')
-    with open(table_filename, 'a') as f:
+    iter_val_plot(opt_search_prev_dists, opt_search_prev_axis, 'opt_search_prev_dist',
+                  case_dir)
+    with open(table_full_fname, 'a') as f:
         f.write(os.linesep)
         f.write('Optimal Value locations:' + os.linesep)
         f.write(opt_val_loc.__repr__())
@@ -115,44 +141,53 @@ def main():
 #    xval_40_scores = xval_scores[-40:]
 #    iter_val_plot(xval_40_scores, xval_axis, 'lhs_10_40_xval_scores')
 
-    
-    
-    
-    
-        
-    
-    
 
-def iter_val_plot(all_iter_val, y_label, figname, major_mult=5, minor_mult=1,
-                  base_filename=maker_output_basename, directory=data_dir):
+
+
+
+
+
+
+
+def iter_val_plot(all_iter_val, y_label, figname, directory,
+                  base_filename=maker_output_basename):
+    #major_mult=5, minor_mult=1,
+
     num_iters = len(all_iter_val)
+    if num_iters <= 10:
+        minor_flag = False
+        major_mult = 1
+    else:
+        minor_flag = True
+        major_mult = 5
+        minor_mult = 1
+        minor_locator = MultipleLocator(minor_mult)
+    major_locator = MultipleLocator(major_mult)
+    major_formatter = FormatStrFormatter('%d')
     x_val = np.arange(1, num_iters+1)
     axis_labels = {'x_axis':'Iteration #'}
     axis_labels.update(y_label)
-    
-    major_locator = MultipleLocator(major_mult)
-    major_formatter = FormatStrFormatter('%d')
-    minor_locator = MultipleLocator(minor_mult)
-    
-    
+
+
     fig, ax = plt.subplots()
     plt.plot(x_val, all_iter_val, '-bD')
     ax.xaxis.set_major_locator(major_locator)
     ax.xaxis.set_major_formatter(major_formatter)
-    ax.xaxis.set_minor_locator(minor_locator)
+    if minor_flag:
+        ax.xaxis.set_minor_locator(minor_locator)
     plt.xlabel(axis_labels['x_axis'])
     plt.ylabel(axis_labels['y_axis'])
     figname = base_filename + figname + '.png'
     plt.savefig(os.path.join(directory, figname), dpi=600.0)
     plt.close()
-    
+
 def calc_rel_dist(point_array):
     rel_dists = pdist(point_array)
     rel_dists = squareform(rel_dists)
     rel_dists = np.diagonal(rel_dists, offset=1).copy()
     return rel_dists
-    
-    
+
+
 
 if __name__ == '__main__':
     main()
