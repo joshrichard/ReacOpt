@@ -220,7 +220,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
 #        for idx in xrange(1,len(layer_k)):
 #            t_max = t_max - pow_triso_peak*(1.0/(layer_k[idx]*layerrad[idx]) \
 #                                      - 1.0/(layer_k[idx]*layerrad[idx - 1]))
-        t_max_constr = 1510.0 # TAG: Constraint
+        t_max_constr = 1510.0 # TAG: Constraint 1510 for 1250 C actual lim
         # pow_obj = core.AssemblyPowerPeak()
         # If want surrogate radial peak, use this:
         pow_obj = core.AssemblyPowerPeak(pin_type = pintype, pin_rad = pinrad,
@@ -285,7 +285,7 @@ def get_optim_opts(fit_dict, doe_sets, data_opts, fit_opts,
     min_kwargs = {"method":"L-BFGS-B", "bounds":dv_bounds_scaled.values()} # "method":"L-BFGS-B", "bounds":dv_bounds_scaled.values() or "method":"COBYLA", "options":cobyla_opts
     min_kwargs_obj_fun = merge_dict(min_kwargs, {'constraints':cobyla_constr_obj_fun})
     # Only use constraints here if SLSQP or COBYLA | TAG: toggle
-    min_kwargs_search = min_kwargs # merge_dict(min_kwargs, {'constraints':cobyla_constr_search}) # replace with cobyla_constr_search |TAG: DEBUG
+    min_kwargs_search = min_kwargs # either just min_kwargs or merge_dict(min_kwargs, {'constraints':cobyla_constr_search}) # replace with cobyla_constr_search |TAG: DEBUG
     myaccept = MyConstr(reac_co_eval, void_w_eval, max_cycle_eval, fuel_temp_eval, triso_pow_eval, num_feat)
     global_type = 'evolve' # 'random', 'evolve', or basin?
     optim_options = {'fmin_opts_obj_fun':min_kwargs_obj_fun, 'fmin_opts_search':min_kwargs_search ,'accept_test':myaccept,
