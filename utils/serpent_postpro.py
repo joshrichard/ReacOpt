@@ -13,7 +13,11 @@ import subprocess
 import numpy as np
 from uncertainties import unumpy
 
-import pdb
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+import matplotlib.pyplot as plt
+
+#import pdb
 
 
 # To get assembly maps to be 13 across:
@@ -193,14 +197,50 @@ def analyze_bu_data():
     print reactivity
 
 
-def make_3d_fluxplot(mat_file):
+######################
+### Plot functions ###
+######################
+
+def plot_3d_flux(x_mat, y_mat, data_mat, figname):
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    surf = ax.plot_surface(x_mat, y_mat, data_mat, rstride=1, cstride=1,
+    cmap=cm.jet, linewidth=0)
+    ax.azim = 325
+    ax.eliv = 45
+    ax.set_xlabel("X position [cm]")
+    ax.set_ylabel("Y position [cm]")
+    ax.set_zlabel("Flux [n/s/cm^2]")
+    full_figname = os.path.join(final_dataname, figname)
+    fig.savefig(full_figname, dpi=600.0)
+    plt.close()
+
+
+def make_fluxplots(mat_file):
     matlab_data = sio.loadmat(mat_file)
     print 'retrieved matlab data'
+    # prep the 3d data
+    core_d = core_dims(matlab_data)
+    x_vals = matlab_data['DET8904X'][:,2]
+    y_vals = matlab_data['DET8904Y'][:,2]
+    x_vals, y_vals = np.meshgrid(x_vals, y_vals)
+    len_data_3d = matlab_data['DET8904'][:,10].shape[0]
+    vec_len_data_3d = int(np.sqrt(len_data_3d/2))
+    therm_3dflux = matlab_data['DET8904'][:len_data_3d/2,10].reshape(
+               [vec_len_data_3d, vec_len_data_3d])/core_d.total_h
+    fast_3dflux = matlab_data['DET8904'][len_data_3d/2:,10].reshape(
+               [vec_len_data_3d, vec_len_data_3d])/core_d.total_h
+    plot_3d_flux(x_vals, y_vals, therm_3dflux, 'therm_3d_flux.png')
+    plot_3d_flux(x_vals, y_vals, fast_3dflux, 'fast_3d_flux.png')
 
 
 #################################
 ### Data processing functions ###
 #################################
+
+class core_dims(object):
+    def __init__(self, data_obj):
+        self.total_h = data_obj['DET89099Z'][-1,1] - data_obj['DET89099Z'][0,0]
 
 def find_lastline(file_obj):
     file_obj.seek(-2,2)
@@ -266,9 +306,8 @@ def main():
     if gen_newdata == 'on':
         process_case_outputs()
     if make_plots == 'on':
-        pdb.set_trace()
         matdata_fname = get_matfilename()
-        make_3d_fluxplot(matdata_fname)
+        make_fluxplots(matdata_fname)
 
 
 
