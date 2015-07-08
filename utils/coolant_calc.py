@@ -17,11 +17,11 @@ def main():
     # user options
     pts_per_node = 5
     np.set_printoptions(formatter={'float': lambda x: format(x, '6.3E')}) # precision=5, suppress=True
-    
+
     # inlet conditions
     pump_eff = 0.85
     power = 30E6
-    global core_del_t 
+    global core_del_t
     core_del_t = 17.0 # 7.0 C nominal | add 5 K for each 10 MW added to core power to preserve ~same htc
     active_core_h = 1.00 # [m] 1.35, 1.00
     fric_form_loss = (0.5, 1.0)
@@ -34,18 +34,18 @@ def main():
     peak_assm_totpow = power/n_assm*radial_peak
     t_out = 700.0 + 273.0
     t_in = t_out - core_del_t
-    coolant = NaFZrF4() # FLiBe() or NaFZrF4()
+    coolant = FLiBe() # FLiBe() or NaFZrF4()
     r_tube_sm = 0.0055 # [m] 0.007 for largepins, 0.0055 for smallpins
     r_tube_lg = 0.017 # [m] 0.021 for largepins, 0.017 for smallpins
     a_flow_sm = np.pi*r_tube_sm**2.0*n_pins
     a_flow_lg = np.pi*r_tube_lg**2.0
-    
+
     # Serpent pin peaking values
     pin_peak_vals = np.array([1.31,1.26,1.23,1.16,1.14,1.10,1.05,1.03]) # smallpins_reg
     #pin_peak_vals = pin_peak_vals = np.array([1.69,1.61,1.47,1.39,1.30,1.27,1.17,1.10,1.07,1.01,0.958])
     ax_peak_val = 1.2859
     rad_peak_val = 1.196
-    
+
     # dict for calculating power peaking values with AssemPowPeak obj
     default_core = OrderedDict([('coreh', active_core_h*100),('pf',0.35), ('krad', 0.0350),
                                 ('enr', 19.5), ('f2f', 24.8),('power', power/1E6), # 24.248 #22.38
@@ -76,7 +76,7 @@ def main():
     mflow = mflow_tot/n_assm
     step_del_t = 2.0*core_del_t
     del_t_err = del_t_err_calc(step_del_t, core_del_t)
-    
+
     while True:
     # Solve single-channel analysis thermal-hydraulics: heat balance
         for node in xrange(num_z_nodes):
@@ -134,7 +134,7 @@ def main():
             mflow_lg = mflow - mflow_sm
         else:
             break
-    
+
     nusselt_sm = nusselt_calc(re_sm, prandtl)
     nusselt_lg = nusselt_calc(re_lg, prandtl)
     htc_sm = htc_calc(nusselt_sm, thc, r_tube_sm)
@@ -145,7 +145,7 @@ def main():
     print htc_lg
     print 'min htc in the small tube is: {}'.format(htc_sm.min())
     print 'min htc in the large tube: {}'.format(htc_lg.min())
-    
+
     volflow_tot = mflow_tot/rho.mean()
     volflow_tot_gpm = volflow_tot * 15850.0
     pump_pow = dp_sm*volflow_tot/(pump_eff)
@@ -161,27 +161,35 @@ def main():
     print 'split pump hp is {}'.format(pump_pow_hp)
     print 'split pressure drop in feet is {}'.format(dp_head_feet)
     print 'split pressure drop in pa is {:.6e}'.format(dp_sm)
-    
+
     pump_pow_samesize = dp_tot*volflow_tot/pump_eff
     pump_pow_samesize_hp = pump_pow_samesize/746.0
     dp_samesize_head_feet = dp_tot/(rho.mean()*9.81) * 3.281
+    print 'Average coolant density in all small is: {} kg/m^3'.format(rho.mean())
+    print 'Flow velocity in the all small tubes: {}'.format(v_tot.mean())
+    print 'Reynolds number in the all small tubes is: {}'.format(re_tot.mean())
+    print 'Mass tube flow rate in all small tubes is: {}'.format(mflow/n_pins)
+    print 'Volumetric core flow rate in all small tubes is: {}'.format(volflow_tot)
+    print 'Volumetric tube flow rate in all small tubes is: {}'.format(volflow_tot/(n_assm*n_pins))
     print 'samesize pump hp is {}'.format(pump_pow_samesize_hp)
     print 'samesize pressure drop in feet is {}'.format(dp_samesize_head_feet)
     print 'samesize pressure drop in pa is {:.6e}'.format(dp_tot)
     print 'samesize fric pressure drop in pa is {:.6e}'.format(dp_fric)
     print 'samesize grav pressure drop in pa is {:.6e}'.format(dp_grav)
     print 'samesize form pressure drop in pa is {:.6e}'.format(dp_form)
-    
+
+    ## This functionality is depecated! Need to rework to use new AssemPowPeak object
+    # TAG: FIX
     # Calc assembly powers | Need to rework to use new dict dv input | TAG: fix
-    assem_powers = core.AssemblyPowerPeak(pin_peaking=pin_peak_vals, n_pins_per_assm=n_fuel_pins,
-                                          pin_rad=r_tube_sm*1e2)
+    # assem_powers = core.AssemblyPowerPeak(pin_peaking=pin_peak_vals, n_pins_per_assm=n_fuel_pins,
+    #                                       pin_rad=r_tube_sm*1e2)
 #    assem_powers = core.AssemblyPowerPeak()
-    assem_powers.set_core_conditions(dv_type='real', dv_real=default_core)
-    print 'peak TRISO temp is {} K'.format(assem_powers.t_max)
-    assem_powers.print_all_powers()
-        
-        
-        
+    # assem_powers.set_core_conditions(dv_type='real', dv_real=default_core)
+    # print 'peak TRISO temp is {} K'.format(assem_powers.t_max)
+    # assem_powers.print_all_powers()
+
+
+
 def htc_calc(nusselt, thc, radius):
     return nusselt*thc/(2.0*radius)
 
@@ -198,14 +206,14 @@ def del_t_err_calc(inp_del_t, actual_del_t):
     return (inp_del_t - actual_del_t)/(actual_del_t)
 
 # Assumes axial stepping?
-def calc_del_p(rho, velocity, reynold_num, dz, radius, nonheat_lengths, 
+def calc_del_p(rho, velocity, reynold_num, dz, radius, nonheat_lengths,
                form_coeff, all_dp=False):
-    
+
     # fric_form_loss + fric_sm * core_h/(2.0*r_tube_sm)) * rho*v_sm**2.0/(2.0)
     # Start by getting form loss term:
     dp_form =  rho[0]*velocity[0]**2.0/2.0*form_coeff[0]
     dp_form += rho[-1]*velocity[-1]**2.0/2.0*form_coeff[-1]
-    
+
     # Friction term
     # active core
     active_fric_fac = 0.316 * reynold_num**(-0.25)
@@ -220,13 +228,13 @@ def calc_del_p(rho, velocity, reynold_num, dz, radius, nonheat_lengths,
                        rho[-1]*velocity[-1]**2.0/2.0)
     # total friction pressure drop
     dp_fric_tot = dp_fric_entrance + dp_fric_active + dp_fric_exit
-                       
+
     # Gravitational pressure drop
     dp_grav_active = rho*9.81*dz
     dp_grav_entrance = rho[0]*9.81*nonheat_lengths[0]
     dp_grav_exit = rho[-1]*9.81*nonheat_lengths[-1]
     dp_grav = dp_grav_active.sum() + dp_grav_entrance + dp_grav_exit
-    
+
     # Total pressure drop
     dp_tot = dp_fric_tot + dp_form + dp_grav
     if all_dp:
@@ -240,20 +248,20 @@ class Salt(object):
         self.thc = thc
         self.rho = rho
         self.hcap = hcap
-        
+
     def calc_rho(self, temp):
         return self.rho['drdt'] * temp + self.rho['rhospec'] # [kg/m^3]
-        
+
     def calc_thc(self, temp):
         return 0.0005*temp + self.thc['yint'] # [W/M-K]
-        
+
     def calc_visc(self, temp):
         return self.visc['coeff']*np.exp(self.visc['expon']/temp) # [Pa-s]
-        
+
     def calc_hcap(self, temp):
         return self.hcap * temp / temp # J/kg-K
-        
-        
+
+
 class NaFZrF4(Salt):
     def __init__(self):
         visc = {'coeff':7.67E-5, 'expon':3977.0}
@@ -261,7 +269,7 @@ class NaFZrF4(Salt):
         rho = {'drdt':-0.889, 'rhospec':3827.0}
         hcap = 1172.0
         super(NaFZrF4, self).__init__(visc, thc, rho, hcap)
-        
+
 class FLiBe(Salt):
     def __init__(self):
         visc = {'coeff':1.16E-4, 'expon':3755.0}
@@ -269,7 +277,7 @@ class FLiBe(Salt):
         rho = {'drdt':-0.4884, 'rhospec':2413.0}
         hcap = 2416.0
         super(FLiBe, self).__init__(visc, thc, rho, hcap)
-        
+
 #class AssemblyPowerPeak(object):
 #    def __init__(self, radial_peak=1.5159, axial_peak=1.2856, pin_peaking=None,
 #                 n_assm=54.0, n_fuel_pins=60.0, pin_rad=0.7):
@@ -281,15 +289,15 @@ class FLiBe(Salt):
 #        if pin_peaking is not None:
 #            self.pin_peaking = pin_peaking
 #        else: # peaking vals, starting from upper-left
-#            self.pin_peaking = np.array([1.3498, 
+#            self.pin_peaking = np.array([1.3498,
 #                                1.0944,
 #                                1.1466,
 #                                1.0388,
 #                                0.90678,
 #                                0.88237,
 #                                0.83307])
-#            
-#        
+#
+#
 #    def set_core_conditions(self, core_power, core_h):
 #        self.core_power = core_power*1e6 # Input in [MW], store in [W]
 #        self.core_h = core_h*1e-2 # input in [cm], store in [m]
@@ -297,10 +305,10 @@ class FLiBe(Salt):
 #        self.calc_pin_powers()
 #        return self.peak_assm_peak_ax_vol_power
 #
-#    
+#
 #    def calc_total_pin_vol(self):
 #        self.all_pin_vol = np.pi*self.pin_rad**2.0*self.core_h*self.n_fuel_pins
-#    
+#
 #    def calc_pin_powers(self):
 #        self.avg_assm_power = self.core_power/self.n_assm
 #        self.peak_assm_power = self.avg_assm_power*self.radial_peak
@@ -323,7 +331,7 @@ class FLiBe(Salt):
 
 #class Water(object):
 #    def __init__(self):
-#        self.visc = 
-    
+#        self.visc =
+
 if __name__ == '__main__':
     main()

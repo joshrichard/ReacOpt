@@ -16,6 +16,7 @@ from uncertainties import unumpy
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 
 #import pdb
 
@@ -77,6 +78,10 @@ final_dataname = os.path.join(data_dirname, saltname)
 
 gen_newdata = 'off'
 make_plots = 'on'
+plot3d = 'off'
+plot2d = 'off'
+plotspec = 'off'
+plotpow = 'on'
 
 
 ####################
@@ -207,40 +212,180 @@ def plot_3d_flux(x_mat, y_mat, data_mat, figname):
     surf = ax.plot_surface(x_mat, y_mat, data_mat, rstride=1, cstride=1,
     cmap=cm.jet, linewidth=0)
     ax.azim = 325
-    ax.eliv = 45
+    ax.elev = 45 # 55
     ax.set_xlabel("X position [cm]")
     ax.set_ylabel("Y position [cm]")
-    ax.set_zlabel("Flux [n/s/cm^2]")
+    ax.set_zlabel("Flux [n/s/cm2]")
+    full_figname = os.path.join(final_dataname, figname)
+    fig.savefig(full_figname, dpi=600.0)
+    plt.close()
+
+def plot_2d_axial_flux(z_vec, data_vec, figname, x_margins, y_margins):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.plot(z_vec, data_vec)
+    ax.set_xlim(x_margins)
+    ax.set_ylim(y_margins)
+    ax.set_ylim()
+    ax.set_ylabel("Axial position [cm]")
+    ax.set_xlabel("Flux [n/s/cm2]")
+    full_figname = os.path.join(final_dataname, figname)
+    fig.savefig(full_figname, dpi=600.0)
+    plt.close()
+
+def plot_spectra(ebins, spec_flux_list, figname):
+    color_patches = []
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for flux_obj in spec_flux_list:
+        ax.plot(ebins, flux_obj.data, flux_obj.color)
+        color_patches.append(mpatches.Patch(color=flux_obj.color,
+                                            label=flux_obj.label))
+    ax.set_xscale('log')
+    ax.set_xlabel("Energy [MeV]")
+    ax.set_ylabel("Flux [n/s/cm2]")
+    plt.legend(handles=color_patches)
+    full_figname = os.path.join(final_dataname, figname)
+    fig.savefig(full_figname, dpi=600.0)
+    plt.close()
+
+def plot_powmap(powmap_vals, figname):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    imgplot = ax.imshow(powmap_vals, interpolation='none')
+    ax.xaxis.set_major_locator(plt.NullLocator())
+    ax.yaxis.set_major_locator(plt.NullLocator())
+    plt.colorbar(imgplot)
     full_figname = os.path.join(final_dataname, figname)
     fig.savefig(full_figname, dpi=600.0)
     plt.close()
 
 
-def make_fluxplots(mat_file):
+def make_fluxplots(mat_file, inp_file):
     matlab_data = sio.loadmat(mat_file)
     print 'retrieved matlab data'
-    # prep the 3d data
-    core_d = core_dims(matlab_data)
-    x_vals = matlab_data['DET8904X'][:,2]
-    y_vals = matlab_data['DET8904Y'][:,2]
-    x_vals, y_vals = np.meshgrid(x_vals, y_vals)
-    len_data_3d = matlab_data['DET8904'][:,10].shape[0]
-    vec_len_data_3d = int(np.sqrt(len_data_3d/2))
-    therm_3dflux = matlab_data['DET8904'][:len_data_3d/2,10].reshape(
-               [vec_len_data_3d, vec_len_data_3d])/core_d.total_h
-    fast_3dflux = matlab_data['DET8904'][len_data_3d/2:,10].reshape(
-               [vec_len_data_3d, vec_len_data_3d])/core_d.total_h
-    plot_3d_flux(x_vals, y_vals, therm_3dflux, 'therm_3d_flux.png')
-    plot_3d_flux(x_vals, y_vals, fast_3dflux, 'fast_3d_flux.png')
+    core_d = core_dims(inp_file)
+    if plot3d == 'on':
+        ## 3D Radial flux plots
+        # prep the 3d data
+        x_vals = matlab_data['DET8904X'][:,2]
+        y_vals = matlab_data['DET8904Y'][:,2]
+        x_vals, y_vals = np.meshgrid(x_vals, y_vals)
+        len_data_3d = matlab_data['DET8904'][:,10].shape[0]
+        vec_len_data_3d = int(np.sqrt(len_data_3d/2))
+        therm_3dflux = matlab_data['DET8904'][:len_data_3d/2,10].reshape(
+                   [vec_len_data_3d, vec_len_data_3d])/core_d.allgeom_area
+        fast_3dflux = matlab_data['DET8904'][len_data_3d/2:,10].reshape(
+                   [vec_len_data_3d, vec_len_data_3d])/core_d.allgeom_area
+        # Plot the 3d radial core flux
+        plot_3d_flux(x_vals, y_vals, therm_3dflux, 'therm_3d_flux.png')
+        plot_3d_flux(x_vals, y_vals, fast_3dflux, 'fast_3d_flux.png')
+    if plot2d == 'on':
+        ## Axial flux plots
+        # Prep the 2d axial data
+        z_vals = matlab_data['DET89099Z'][:,2]
+        len_data_2d = matlab_data['DET89099'][:,10].shape[0]
+        therm_axial_flux = matlab_data['DET89099'][:len_data_2d/2,10]/core_d.act_area
+        fast_axial_flux  = matlab_data['DET89099'][len_data_2d/2:,10]/core_d.act_area
+        plot_2d_axial_flux(therm_axial_flux, z_vals, 'therm_2d_axial_flux.png',
+                           [1e13, 5e13], [-5.0, core_d.act_h+5.0])
+        plot_2d_axial_flux(fast_axial_flux, z_vals, 'fast_2d_axial_flux.png',
+                           [1e13, 2e14], [-5.0, core_d.act_h+5.0])
+    if plotspec == 'on':
+        ebins = matlab_data['DET80003E'][:,2]
+        act_specflux = plot_line(matlab_data['DET80003'][:,10]/core_d.act_vol,
+                                 'r', 'active core')
+        total_specflux = plot_line(matlab_data['DET80001'][:,10]/core_d.total_vol,
+                                 'b', 'total core')
+        fuelip_specflux = plot_line(matlab_data['DET84000'][:,10]/core_d.ip_vol,
+                                    'g', 'fuel irr. pos.')
+        specflux_list = [act_specflux, total_specflux, fuelip_specflux]
+        plot_spectra(ebins, specflux_list, 'specflux_plots.png')
+    if plotpow == 'on':
+        powmap = matlab_data['DET1003'][:,10].reshape([core_d.lat_size,
+                                                       core_d.lat_size])
+        powmap = powmap/powmap[powmap.nonzero()].mean()
+        plot_powmap(powmap, 'core_assm_pow_plots.png')
+
+
+
+
+
+
 
 
 #################################
 ### Data processing functions ###
 #################################
 
+class plot_line(object):
+    def __init__(self, data, color, label):
+        self.data = data
+        self.color = color
+        self.label = label
+
+
 class core_dims(object):
-    def __init__(self, data_obj):
-        self.total_h = data_obj['DET89099Z'][-1,1] - data_obj['DET89099Z'][0,0]
+    def __init__(self, case_inpfile):
+        self.case_inpfile = case_inpfile
+        self.extract_geom_dims()
+        # self.total_h = data_obj['DET89099Z'][-1,1] - data_obj['DET89099Z'][0,0]
+        # self.core_tot_f2f = 2.0*data_obj['DET89099Z'][-1,1]
+        # self.total_xy_area = np.sqrt(3.0)/2.0*(self.core_tot_f2f)**2.0
+
+    def extract_geom_dims(self):
+        # at some point, look into mmap objects here
+        with open(self.case_inpfile, 'rb') as df:
+            for file_line in df:
+                line_split = file_line.split()
+                # Get the active fuel region dims
+                if 'surf' in line_split and '8201' in line_split:
+                    # Get the inner active core region radius
+                    self.act_inner_rad = float(line_split[5])
+                    # Get the lower axial bound of active core
+                    self.act_ax_lowb = float(line_split[6])
+                    # Get the upper axial bound of active core
+                    self.act_ax_upb = float(line_split[7])
+                # Get the outer active core region radius
+                elif 'surf' in line_split and '8202' in line_split:
+                    self.act_outer_rad = float(line_split[5])
+                # Get the total core (fuel+ref) radius and height
+                elif 'surf' in line_split and '8001' in line_split:
+                    self.tot_outer_rad = float(line_split[5])
+                    self.tot_ax_lowb = float(line_split[6])
+                    self.tot_ax_upb = float(line_split[7])
+                # Get the 3d plot side length
+                elif 'det' in line_split and '8904' in line_split:
+                    file_line = df.next()
+                    line_split = file_line.split()
+                    self.allgeom_len = float(line_split[2])
+                # Get the fuel ip dims
+                elif 'surf' in line_split and '8' in line_split and 'hexyprism' in line_split:
+                    self.ip_outer_rad = float(line_split[5])
+                    self.ip_ax_lowb = float(line_split[6])
+                    self.ip_ax_upb = float(line_split[7])
+                # Get the core lattice pitch size
+                elif 'lat' in line_split and '22' in line_split:
+                    self.lat_size = int(line_split[5])
+
+
+
+        # Now calculate derived geom dims
+        self.act_h = self.act_ax_upb - self.act_ax_lowb
+        self.total_h = self.tot_ax_upb - self.tot_ax_lowb
+        self.ip_h =  self.ip_ax_upb - self.ip_ax_lowb
+        self.act_area = 2.0*np.sqrt(3.0)*(self.act_outer_rad**2.0-
+                                          self.act_inner_rad**2.0)
+        self.total_area = 2.0*np.sqrt(3.0)*self.tot_outer_rad**2.0
+        self.ip_area = 2.0*np.sqrt(3.0)*self.ip_outer_rad**2.0
+        self.allgeom_area = self.allgeom_len**2.0
+        self.act_vol = self.act_h * self.act_area
+        self.total_vol = self.total_h * self.total_area
+        self.ip_vol = self.ip_h * self.ip_area
+        print 'all dims extracted and calculated successfully'
+
+
+
 
 def find_lastline(file_obj):
     file_obj.seek(-2,2)
@@ -256,6 +401,9 @@ def convert_mfile_name(serp_fullname):
 
 def get_matfilename(datadir=final_dataname, f_id=depstep):
     return glob.glob(os.path.join(datadir, "*{}.mat".format(f_id)))[0]
+
+def get_inpfilename(matfilename):
+    return matfilename.split('.')[0][:-5]
 
 
 def mod_serp_outp(outp_fname):
@@ -307,7 +455,8 @@ def main():
         process_case_outputs()
     if make_plots == 'on':
         matdata_fname = get_matfilename()
-        make_fluxplots(matdata_fname)
+        inp_fname = get_inpfilename(matdata_fname)
+        make_fluxplots(matdata_fname, inp_fname)
 
 
 
