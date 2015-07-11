@@ -18,7 +18,7 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-#import pdb
+import pdb
 
 
 # To get assembly maps to be 13 across:
@@ -76,12 +76,14 @@ depstep = 'det0'
 final_dataname = os.path.join(data_dirname, saltname)
 
 
-gen_newdata = 'off'
-make_plots = 'on'
+gen_detdata = 'off'
+make_detplots = 'off'
+gen_budata = 'on'
+make_buplots = 'on'
 plot3d = 'off'
 plot2d = 'off'
 plotspec = 'off'
-plotpow = 'on'
+plotpow = 'off'
 
 
 ####################
@@ -264,7 +266,7 @@ def plot_powmap(powmap_vals, figname):
 def make_fluxplots(mat_file, inp_file):
     matlab_data = sio.loadmat(mat_file)
     print 'retrieved matlab data'
-    core_d = core_dims(inp_file)
+    core_d = CoreDims(inp_file)
     if plot3d == 'on':
         ## 3D Radial flux plots
         # prep the 3d data
@@ -293,11 +295,11 @@ def make_fluxplots(mat_file, inp_file):
                            [1e13, 2e14], [-5.0, core_d.act_h+5.0])
     if plotspec == 'on':
         ebins = matlab_data['DET80003E'][:,2]
-        act_specflux = plot_line(matlab_data['DET80003'][:,10]/core_d.act_vol,
+        act_specflux = PlotLine(matlab_data['DET80003'][:,10]/core_d.act_vol,
                                  'r', 'active core')
-        total_specflux = plot_line(matlab_data['DET80001'][:,10]/core_d.total_vol,
+        total_specflux = PlotLine(matlab_data['DET80001'][:,10]/core_d.total_vol,
                                  'b', 'total core')
-        fuelip_specflux = plot_line(matlab_data['DET84000'][:,10]/core_d.ip_vol,
+        fuelip_specflux = PlotLine(matlab_data['DET84000'][:,10]/core_d.ip_vol,
                                     'g', 'fuel irr. pos.')
         specflux_list = [act_specflux, total_specflux, fuelip_specflux]
         plot_spectra(ebins, specflux_list, 'specflux_plots.png')
@@ -308,7 +310,15 @@ def make_fluxplots(mat_file, inp_file):
         plot_powmap(powmap, 'core_assm_pow_plots.png')
 
 
-
+def make_nonproplots(mat_file):
+    matlab_data = sio.loadmat(mat_file)
+    print 'retrieved matlab data'
+    cs_134_mass = matlab_data['TOT_MASS'][2,:]
+    cs_137_mass = matlab_data['TOT_MASS'][3,:]
+    cs_134_obj = Cs134(cs_134_mass)
+    cs_137_obj = Cs137(cs_137_mass)
+    # check here to see if the activity calculates correctly,
+    # if so then look at plotting
 
 
 
@@ -318,14 +328,49 @@ def make_fluxplots(mat_file, inp_file):
 ### Data processing functions ###
 #################################
 
-class plot_line(object):
+class PlotLine(object):
     def __init__(self, data, color, label):
         self.data = data
         self.color = color
         self.label = label
 
 
-class core_dims(object):
+class Nuclide(object):
+    def __init__(self, half_life, mass, molar_mass, branch_ratios):
+        self.half_life = half_life # [seconds]
+        self.mass = mass # [grams]
+        self.molar_mass = molar_mass # [grams/mol]
+        self.branch_ratios = np.array(branch_ratios)
+        self.avogadro = 6.0221E23
+        self.num_atoms = self.mass * self.avogadro / self.molar_mass
+        self.calc_signal()
+
+    def convert_sec_years(self, t_in_years):
+        t_in_sec = t_in_years*3600.0*24.0*365.0
+        return t_in_sec
+
+
+    def calc_signal(self):
+        self.activity = np.log(2.0)/self.half_life
+        self.signal = self.activity * self.branch_ratios.sum() * self.num_atoms
+
+
+class Cs134(Nuclide):
+    def __init__(self, mass):
+        half_life = self.convert_sec_years(2.0652) # Convert from years to seconds
+        molar_mass = 133.906718475 #g/mol
+        branch_ratios = [.0148, .0834, .154, .976, .855, .0869, .0179, .0302]
+        super(Cs134, self).__init__(half_life, mass, molar_mass, branch_ratios)
+
+class Cs137(Nuclide):
+    def __init__(self, mass):
+        half_life = self.convert_sec_years(30.08)
+        molar_mass = 136.907089473
+        branch_ratios = [.851]
+        super(Cs137, self).__init__(half_life, mass, molar_mass, branch_ratios)
+
+
+class CoreDims(object):
     def __init__(self, case_inpfile):
         self.case_inpfile = case_inpfile
         self.extract_geom_dims()
@@ -399,7 +444,7 @@ def convert_mfile_name(serp_fullname):
     matfile_fname = os.path.splitext(serpfile_fname)[0] + '.mat'
     return matfile_fname
 
-def get_matfilename(datadir=final_dataname, f_id=depstep):
+def get_matfilename(f_id, datadir=final_dataname):
     return glob.glob(os.path.join(datadir, "*{}.mat".format(f_id)))[0]
 
 def get_inpfilename(matfilename):
@@ -434,10 +479,11 @@ def get_matlab_data(matlab_filename, python_filename=None):
         cPickle.dump(matlab_data, f, 2)
 
 
-def process_case_outputs():
+def process_case_outputs(case_wildcard):
 
     # for each depletion step in the specified case:
-    for serp_fname in glob.glob(os.path.join(final_dataname, "*det?.m")):
+    for serp_fname in glob.glob(os.path.join(final_dataname, "{}".format(
+                                                            case_wildcard))):
         # Adds the 'writeout' statement to the end of the serp output files
         mod_serp_outp(serp_fname)
         # Runs octave to convert the matlab outp file to matlab data file
@@ -451,12 +497,19 @@ def main():
     ## Per-case new analysis function (7/3/15)
     # This function contains all the sub-functions used to process output data
     # in a loop over all depletion steps
-    if gen_newdata == 'on':
-        process_case_outputs()
-    if make_plots == 'on':
-        matdata_fname = get_matfilename()
+    if gen_detdata == 'on':
+        process_case_outputs(case_wildcard = '*det?.m')
+    if make_detplots == 'on':
+        matdata_fname = get_matfilename(f_id = depstep)
         inp_fname = get_inpfilename(matdata_fname)
         make_fluxplots(matdata_fname, inp_fname)
+    if gen_budata == 'on':
+        pdb.set_trace()
+        process_case_outputs(case_wildcard = '*dep.m')
+    if make_buplots == 'on':
+        matdata_fname = get_matfilename(f_id = 'dep')
+        make_nonproplots(matdata_fname) # Add capability to extract data from each bu file, combine, then plot
+
 
 
 
