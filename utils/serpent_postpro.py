@@ -10,6 +10,7 @@ import glob
 import scipy.io as sio
 import cPickle
 import subprocess
+import copy
 import numpy as np
 from uncertainties import unumpy
 
@@ -17,14 +18,15 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib.ticker import AutoMinorLocator
 
-import pdb
+#import pdb
 
 
 # To get assembly maps to be 13 across:
 # with 3 decimals: 3.3f, linewidth=80
 # with 2 decimals: 3.2f, linewidth=65
-np.set_printoptions(linewidth=80, formatter={'float': lambda x: format(x, '3.3f')}) # linewidth=104, formatter={'float': lambda x: format(x, '6.1E')})
+np.set_printoptions(linewidth=80, formatter={'float': lambda x: format(x, '3.3e')}) # linewidth=104, formatter={'float': lambda x: format(x, '6.1E')})
 
 #############
 # Input specs
@@ -70,20 +72,22 @@ np.set_printoptions(linewidth=80, formatter={'float': lambda x: format(x, '3.3f'
 
 # New run specs
 data_dirname = "/Volumes/HDD_250GB/Documents/grad_research/salt_reactor/inputs/smallpins/final_design/final_core_analysis_files"
-saltname = 'flibe'
+saltname = 'nafzrf4'
 depstep = 'det0'
 
 final_dataname = os.path.join(data_dirname, saltname)
 
 
 gen_detdata = 'off'
-make_detplots = 'off'
-gen_budata = 'on'
-make_buplots = 'on'
-plot3d = 'off'
+make_detplots = 'on'
+gen_budata = 'off'
+make_buplots = 'off'
+plot3d = 'on'
 plot2d = 'off'
 plotspec = 'off'
 plotpow = 'off'
+plotcs = 'on'
+plotpu = 'on'
 
 
 ####################
@@ -214,7 +218,7 @@ def plot_3d_flux(x_mat, y_mat, data_mat, figname):
     surf = ax.plot_surface(x_mat, y_mat, data_mat, rstride=1, cstride=1,
     cmap=cm.jet, linewidth=0)
     ax.azim = 325
-    ax.elev = 45 # 55
+    ax.elev = 25 # 45 reg, 25 lowangle
     ax.set_xlabel("X position [cm]")
     ax.set_ylabel("Y position [cm]")
     ax.set_zlabel("Flux [n/s/cm2]")
@@ -222,31 +226,43 @@ def plot_3d_flux(x_mat, y_mat, data_mat, figname):
     fig.savefig(full_figname, dpi=600.0)
     plt.close()
 
-def plot_2d_axial_flux(z_vec, data_vec, figname, x_margins, y_margins):
+def plot_single_2d(xvals, yvals, axis_labels, figname, x_margins=None,
+                   y_margins=None, style='-bD'):
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    ax.plot(z_vec, data_vec)
-    ax.set_xlim(x_margins)
-    ax.set_ylim(y_margins)
-    ax.set_ylim()
-    ax.set_ylabel("Axial position [cm]")
-    ax.set_xlabel("Flux [n/s/cm2]")
+    ax.plot(xvals, yvals, style)
+    if x_margins != None:
+        ax.set_xlim(x_margins)
+    if y_margins != None:
+        ax.set_ylim(y_margins)
+    ax.set_xlabel("{}".format(axis_labels['xaxis']))
+    ax.set_ylabel("{}".format(axis_labels['yaxis']))
     full_figname = os.path.join(final_dataname, figname)
     fig.savefig(full_figname, dpi=600.0)
     plt.close()
 
-def plot_spectra(ebins, spec_flux_list, figname):
+def plot_multi_2d(xvals, data_obj_list, axis_labels, figname, logx=False,
+                  logy=False, leg_loc=None, minor_ticks=True):
     color_patches = []
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    for flux_obj in spec_flux_list:
-        ax.plot(ebins, flux_obj.data, flux_obj.color)
-        color_patches.append(mpatches.Patch(color=flux_obj.color,
-                                            label=flux_obj.label))
-    ax.set_xscale('log')
-    ax.set_xlabel("Energy [MeV]")
-    ax.set_ylabel("Flux [n/s/cm2]")
-    plt.legend(handles=color_patches)
+    for data_obj in data_obj_list:
+        ax.plot(xvals, data_obj.data, data_obj.linetype)
+        color_patches.append(mpatches.Patch(color=data_obj.color,
+                                            label=data_obj.label))
+    if logx:
+        ax.set_xscale('log')
+    if logy:
+        ax.set_yscale('log')
+    if minor_ticks:
+        minor_locator = AutoMinorLocator()
+        ax.yaxis.set_minor_locator(minor_locator)
+    ax.set_xlabel("{}".format(axis_labels['xaxis']))
+    ax.set_ylabel("{}".format(axis_labels['yaxis']))
+    if leg_loc == None:
+        plt.legend(handles=color_patches)
+    else:
+        plt.legend(handles=color_patches, loc=leg_loc)
     full_figname = os.path.join(final_dataname, figname)
     fig.savefig(full_figname, dpi=600.0)
     plt.close()
@@ -280,29 +296,34 @@ def make_fluxplots(mat_file, inp_file):
         fast_3dflux = matlab_data['DET8904'][len_data_3d/2:,10].reshape(
                    [vec_len_data_3d, vec_len_data_3d])/core_d.allgeom_area
         # Plot the 3d radial core flux
-        plot_3d_flux(x_vals, y_vals, therm_3dflux, 'therm_3d_flux.png')
-        plot_3d_flux(x_vals, y_vals, fast_3dflux, 'fast_3d_flux.png')
+        plot_3d_flux(x_vals, y_vals, therm_3dflux, 'therm_3d_flux_lowangle.png')
+        plot_3d_flux(x_vals, y_vals, fast_3dflux, 'fast_3d_flux_lowangle.png')
     if plot2d == 'on':
         ## Axial flux plots
         # Prep the 2d axial data
+        axplot_axislabels = {'xaxis':'Flux [n/s/cm2]','yaxis':'Axial position [cm]'}
         z_vals = matlab_data['DET89099Z'][:,2]
         len_data_2d = matlab_data['DET89099'][:,10].shape[0]
         therm_axial_flux = matlab_data['DET89099'][:len_data_2d/2,10]/core_d.act_area
         fast_axial_flux  = matlab_data['DET89099'][len_data_2d/2:,10]/core_d.act_area
-        plot_2d_axial_flux(therm_axial_flux, z_vals, 'therm_2d_axial_flux.png',
-                           [1e13, 5e13], [-5.0, core_d.act_h+5.0])
-        plot_2d_axial_flux(fast_axial_flux, z_vals, 'fast_2d_axial_flux.png',
-                           [1e13, 2e14], [-5.0, core_d.act_h+5.0])
+        plot_single_2d(therm_axial_flux, z_vals, axplot_axislabels,
+                           'therm_2d_axial_flux.png',
+                           [1e13, 5e13], [-5.0, core_d.act_h+5.0], style='-b')
+        plot_single_2d(fast_axial_flux, z_vals, axplot_axislabels,
+                           'fast_2d_axial_flux.png',
+                           [1e13, 2e14], [-5.0, core_d.act_h+5.0], style='-b')
     if plotspec == 'on':
         ebins = matlab_data['DET80003E'][:,2]
+        specplot_axislabels = {'xaxis':"Energy [MeV]", 'yaxis':"Flux [n/s/cm2]"}
         act_specflux = PlotLine(matlab_data['DET80003'][:,10]/core_d.act_vol,
-                                 'r', 'active core')
+                                 'r', 'active core', style='-')
         total_specflux = PlotLine(matlab_data['DET80001'][:,10]/core_d.total_vol,
-                                 'b', 'total core')
+                                 'b', 'total core', style='-')
         fuelip_specflux = PlotLine(matlab_data['DET84000'][:,10]/core_d.ip_vol,
-                                    'g', 'fuel irr. pos.')
+                                    'g', 'fuel irr. pos.', style='-')
         specflux_list = [act_specflux, total_specflux, fuelip_specflux]
-        plot_spectra(ebins, specflux_list, 'specflux_plots.png')
+        plot_multi_2d(ebins, specflux_list, specplot_axislabels,
+                     'specflux_plots.png', logx=True)
     if plotpow == 'on':
         powmap = matlab_data['DET1003'][:,10].reshape([core_d.lat_size,
                                                        core_d.lat_size])
@@ -313,12 +334,42 @@ def make_fluxplots(mat_file, inp_file):
 def make_nonproplots(mat_file):
     matlab_data = sio.loadmat(mat_file)
     print 'retrieved matlab data'
-    cs_134_mass = matlab_data['TOT_MASS'][2,:]
-    cs_137_mass = matlab_data['TOT_MASS'][3,:]
-    cs_134_obj = Cs134(cs_134_mass)
-    cs_137_obj = Cs137(cs_137_mass)
-    # check here to see if the activity calculates correctly,
-    # if so then look at plotting
+    bu_vals = matlab_data['BU'].flatten()
+    if plotcs == 'on':
+        # Safeguards signal plots
+        cs_134_mass = matlab_data['TOT_MASS'][2,:]
+        cs_137_mass = matlab_data['TOT_MASS'][3,:]
+        cs_134_obj = Cs134(cs_134_mass)
+        cs_137_obj = Cs137(cs_137_mass)
+        cs_sig_ratio = np.nan_to_num(cs_134_obj.signal/cs_137_obj.signal)
+        ratioplot_axislabels = make_labeldict('Burnup [MWd/kg]',
+                                              'Cs-134/Cs-137 signal ratio')
+        cs137_axislabels = make_labeldict('Burnup [MWd/kg]',
+                                              'Cs-137 signal [Bq]')
+        plot_single_2d(bu_vals, cs_sig_ratio, ratioplot_axislabels,
+                       'cs_ratio_plot.png')
+        plot_single_2d(bu_vals, cs_137_obj.signal, cs137_axislabels,
+                       'cs_137_signal_plot.png')
+    # nonpro pu vector plots
+    if plotpu == 'on':
+        pu_vec_masslist = []
+        pu_vec_fraclist = []
+        pu_massvec_axislabels = make_labeldict("Burnup [MWd/kg]", "Mass [kg]")
+        pu_fracvec_axislabels = make_labeldict("Burnup [MWd/kg]", "Mass Percent")
+        pu_taglist = ['Pu-238', 'Pu-239', 'Pu-240', 'Pu-241', 'Pu-242']
+        pu_colorlist = ['r', 'b', 'g', 'c','m']
+        pu_totmass = matlab_data['TOT_MASS'][7:12,:].sum(axis=0)
+        for idx in xrange(7,12):
+            pu_vec_masslist.append(PlotLine(matlab_data['TOT_MASS'][idx,:]/1000.0, # for mass: matlab_data['TOT_MASS'][idx,:]/1000.0
+                               pu_colorlist[idx-7], pu_taglist[idx-7]))
+            pu_vec_fraclist.append(PlotLine(matlab_data['TOT_MASS'][idx,:]/pu_totmass*100.0, # for mass: matlab_data['TOT_MASS'][idx,:]/1000.0
+                               pu_colorlist[idx-7], pu_taglist[idx-7]))
+        plot_multi_2d(bu_vals, pu_vec_masslist, pu_massvec_axislabels,
+                      'pu_massvec_plot.png',
+                      logy=False, leg_loc='upper left')
+        plot_multi_2d(bu_vals, [pu_vec_fraclist[0]]+pu_vec_fraclist[2:], pu_fracvec_axislabels,
+                      'pu_fracvec_plot.png',
+                      logy=False, leg_loc='upper left')
 
 
 
@@ -329,10 +380,11 @@ def make_nonproplots(mat_file):
 #################################
 
 class PlotLine(object):
-    def __init__(self, data, color, label):
+    def __init__(self, data, color, label, style='-D'):
         self.data = data
         self.color = color
         self.label = label
+        self.linetype = self.color + style
 
 
 class Nuclide(object):
@@ -344,6 +396,10 @@ class Nuclide(object):
         self.avogadro = 6.0221E23
         self.num_atoms = self.mass * self.avogadro / self.molar_mass
         self.calc_signal()
+
+    # def __repr__(self):
+    #     return "{:.4e}".format(self.signal)
+
 
     def convert_sec_years(self, t_in_years):
         t_in_sec = t_in_years*3600.0*24.0*365.0
@@ -430,6 +486,8 @@ class CoreDims(object):
         print 'all dims extracted and calculated successfully'
 
 
+def make_labeldict(xlabel, ylabel):
+    return {'xaxis':xlabel, 'yaxis':ylabel}
 
 
 def find_lastline(file_obj):
@@ -504,7 +562,6 @@ def main():
         inp_fname = get_inpfilename(matdata_fname)
         make_fluxplots(matdata_fname, inp_fname)
     if gen_budata == 'on':
-        pdb.set_trace()
         process_case_outputs(case_wildcard = '*dep.m')
     if make_buplots == 'on':
         matdata_fname = get_matfilename(f_id = 'dep')
