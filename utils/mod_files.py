@@ -1,35 +1,47 @@
 # -*- coding: utf-8 -*-
 import os
+import glob
 import re
 import subprocess
 #import pdb
 
-direc = '/Volumes/HDD_250GB/Documents/grad_research/salt_reactor/inputs/smallpins/final_design/final_core_analysis_files/rods_in/cold_zero_power'
+#direc = '/Volumes/HDD_250GB/Documents/grad_research/salt_reactor/inputs/smallpins/final_design/final_core_analysis_files/center_fuel/hot_shutdown'
 #direc = os.getcwd()
+direc = '/home/joshrich/SERPENT/new_core/opt_runs_pow/final_core_analysis/center_fuel/hot_shutdown'
 
-clean = 'off'
-xs_temp = 'off'
-ex_serp = 'off'
+clean = 'off' # used to clean up backup files, don't really need anymore
+xs_temp = 'on' # changes xs temps
+ex_serp = 'on' # executes serpent
 undo_backup = 'off'
-get_keff = 'on'
+get_keff = 'off'
 
 serp_token = 'fhtr'
-pdist_levels = 4
+pdist_levels = 5 #4
+serp_run = 'scheduler'
 
 new_xs_temp = '724.0' # K (724K = 450 C)
 new_xs_ext = '06c' # '03c'
 new_sab_ext = '16t' # '00t'
 
-def run_serpent(fname, root_dir):
+def run_serpent(fname, root_dir, run_type):
     orig_dir = os.getcwd()
-    logfile = 'run_output.log'
     os.chdir(root_dir)
-    if os.path.isfile(logfile):
-        os.remove(logfile)
-    with open(logfile, 'wb') as logf:
-        p = subprocess.Popen(['sss2', '{}'.format(fname), '-omp', '8'], # , '{}'.format(fname),  '-omp 8'
-                             stdout=logf)
-        p.communicate()
+    if run_type == 'standard':
+        logfile = 'run_output.log'
+        if os.path.isfile(logfile):
+            os.remove(logfile)
+        with open(logfile, 'wb') as logf:
+            p = subprocess.Popen(['sss2', '{}'.format(fname), '-omp', '8'], # , '{}'.format(fname),  '-omp 8'
+                                 stdout=logf)
+            p.communicate()
+    elif run_type == 'scheduler':
+        outp_set = glob.glob('*.?[0-9]*')
+        for old_outp in outp_set:
+            print 'removing old output {}'.format(old_outp)
+            os.remove(old_outp)
+        qsub_fname = fname + '.qsub'
+        jobid = subprocess.check_output(['qsub', qsub_fname])
+        print jobid
     os.chdir(orig_dir)
 
 
@@ -55,8 +67,9 @@ def adj_xs_temp(fname, root_dir):
                 f_string += new_line
             elif 'pbed' in line:
                 old_pdistpath = line.split()[-1]
-                pdist_fname = os.path.basename(old_pdistpath)
-                new_pdistpath = '"' + r'../'*pdist_levels + old_pdistpath[1:] + '"'
+                #pdist_fname = os.path.basename(old_pdistpath)
+                mod_pdistpath = re.sub('\.\./','',old_pdistpath)
+                new_pdistpath = '"' + r'../'*pdist_levels + mod_pdistpath[1:] #+ '"'
                 new_line = line.replace(old_pdistpath, new_pdistpath)
                 f_string += new_line
             elif 'tmp' in line and 'burn' in line:
@@ -128,7 +141,7 @@ def main():
                 if xs_temp == 'on':
                     adj_xs_temp(file_name, root)
                 if ex_serp == 'on':
-                    run_serpent(file_name, root)
+                    run_serpent(file_name, root, serp_run)
                 if get_keff == 'on':
                     extract_keff(file_name, root)
             if undo_backup == 'on' and '.backup' in file_name:
