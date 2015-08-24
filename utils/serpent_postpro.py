@@ -71,23 +71,27 @@ np.set_printoptions(linewidth=80, formatter={'float': lambda x: format(x, '3.3e'
 #                     tallyname_type))
 
 # New run specs
-data_dirname = "/Volumes/HDD_250GB/Documents/grad_research/salt_reactor/inputs/smallpins/final_design/final_core_analysis_files"
-saltname = 'nafzrf4'
-depstep = 'det0'
+# data_dirname = "/Volumes/HDD_250GB/Documents/grad_research/salt_reactor/inputs/smallpins/final_design/final_core_analysis_files"
+# saltname = 'nafzrf4'
+# depstep = 'det0'
+#
+# final_dataname = os.path.join(data_dirname, saltname)
 
-final_dataname = os.path.join(data_dirname, saltname)
+final_dataname = "/Volumes/HDD_250GB/Documents/grad_research/salt_reactor/cluster_files/new_core/m_f_analysis/assembly/assm_tilt/assem_dep/"
 
 
 gen_detdata = 'off'
-make_detplots = 'on'
+make_detplots = 'off'
 gen_budata = 'off'
 make_buplots = 'off'
-plot3d = 'on'
+gen_outpdata = 'on'
+make_outplots = 'on'
+plot3d = 'off'
 plot2d = 'off'
 plotspec = 'off'
 plotpow = 'off'
-plotcs = 'on'
-plotpu = 'on'
+plotcs = 'off'
+plotpu = 'off'
 
 
 ####################
@@ -208,9 +212,11 @@ def analyze_bu_data():
     print reactivity
 
 
-######################
-### Plot functions ###
-######################
+##################################################
+### New-style data analysis and plot functions ###
+##################################################
+
+###### Plot Functions ######
 
 def plot_3d_flux(x_mat, y_mat, data_mat, figname):
     fig = plt.figure()
@@ -372,6 +378,46 @@ def make_nonproplots(mat_file):
                       logy=False, leg_loc='upper left')
 
 
+def plot_outpdata(mat_dir, verbose=False):
+    matlab_data = {}
+    bu_vals = []
+    reac_vals = []
+    plot_colors = ['b','r']
+    idx = 0
+    # extrat the data
+    for walk_names in os.walk(mat_dir):
+        for res_matname in walk_names[2]:
+            if 'res.mat' in res_fname:
+                case_name = os.path.basename(walk_names[0])
+                matlab_data.update({case_name:sio.loadmat(res_matname)})
+    plot_colors = dict(zip(matlab_data.keys(),plot_colors))
+    for data_name, data_val in matlab_data:
+        # prepare the data
+        if not bu_vals in locals():
+            bu_vals = data_val['BURNUP'][:,0]
+        reac_vals.append(PlotLine(np.log(data_val['COL_KEFF'][:,0])*1e5,
+                                  plot_colors[data_name], data_name, style='-'))
+    reac_axislabels = make_labeldict("Burnup [MWd/kg]","Reactivity [pcm]")
+    # plot the data
+    plot_multi_2d(bu_vals, reac_vals, reac_axislabels, 'plot_name.png', logy=False,
+                 leg_loc='upper right')
+
+
+
+
+
+
+    # print 'retrieved matlab data'
+    # bu_vals = matlab_data['BURNUP'][:,0]
+    # keff_data = matlab_data['COL_KEFF'][:,0]
+    # reac_data = np.log(keff_data)*1e5
+    # if verbose:
+    #     print bu_vals
+    #     print reac_data
+    # reacplot_axislabels = make_labeldict('Burnup [MWd/kg]',
+    #                                       'Reactivity [pcm]')
+    # print 'plotting reac data'
+    # plot_single_2d(bu_vals, reac_data, reacplot_axislabels, 'assm_bu_plot.png')
 
 
 
@@ -502,7 +548,7 @@ def convert_mfile_name(serp_fullname):
     matfile_fname = os.path.splitext(serpfile_fname)[0] + '.mat'
     return matfile_fname
 
-def get_matfilename(f_id, datadir=final_dataname):
+def get_matfilename(f_id, datadir=final_dataname, walk=True):
     return glob.glob(os.path.join(datadir, "*{}.mat".format(f_id)))[0]
 
 def get_inpfilename(matfilename):
@@ -537,17 +583,28 @@ def get_matlab_data(matlab_filename, python_filename=None):
         cPickle.dump(matlab_data, f, 2)
 
 
-def process_case_outputs(case_wildcard):
+def process_case_outputs(case_wildcard, walk=False):
+
+    if walk:
+        pdb.set_trace()
+        for serp_walkset in os.walk(final_dataname):
+            for serp_fname in glob.glob(os.path.join(serp_walkset[0], "{}".format(
+                                                                    case_wildcard))):
+                mod_serp_outp(serp_fname)
+                make_matlab_data(serp_fname)
+
+
 
     # for each depletion step in the specified case:
-    for serp_fname in glob.glob(os.path.join(final_dataname, "{}".format(
-                                                            case_wildcard))):
-        # Adds the 'writeout' statement to the end of the serp output files
-        mod_serp_outp(serp_fname)
-        # Runs octave to convert the matlab outp file to matlab data file
-        make_matlab_data(serp_fname)
-        # Converts the matlab data file to Python pickle data files
-        #get_matlab_data(serp_fname)
+    else:
+        for serp_fname in glob.glob(os.path.join(final_dataname, "{}".format(
+                                                                case_wildcard))):
+            # Adds the 'writeout' statement to the end of the serp output files
+            mod_serp_outp(serp_fname)
+            # Runs octave to convert the matlab outp file to matlab data file
+            make_matlab_data(serp_fname)
+            # Converts the matlab data file to Python pickle data files
+            #get_matlab_data(serp_fname)
 
 
 def main():
@@ -566,6 +623,11 @@ def main():
     if make_buplots == 'on':
         matdata_fname = get_matfilename(f_id = 'dep')
         make_nonproplots(matdata_fname) # Add capability to extract data from each bu file, combine, then plot
+    if gen_outpdata == 'on':
+        process_case_outputs(case_wildcard = '*_res.m')
+    if make_outplots == 'on':
+        #matdata_fname = get_matfilename(f_id = 'res')
+        plot_outpdata(matdata_dirname)
 
 
 
